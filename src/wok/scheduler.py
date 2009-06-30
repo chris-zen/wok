@@ -16,6 +16,7 @@ class Scheduler(object):
         pass
 
 
+# Could it be an inner class of DefaultScheduler ???
 class Task:
     '''
     Represents a scheduled job.
