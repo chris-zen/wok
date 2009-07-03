@@ -69,10 +69,10 @@ class Task:
     def __ne__(self, task):
         return self.job != task.job
 
-class UnknownTaskStatus(Error):
+class UnknownTaskStatus(Exception):
     pass
 
-class NoMoreTasks(Error):
+class NoMoreTasks(Exception):
     pass
 
 class DefaultScheduler(Scheduler):

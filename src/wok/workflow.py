@@ -6,7 +6,7 @@ Created on 28/06/2009
 
 from wok.scheduler import *
 
-class WorkflowManager(object):
+class Workflow(object):
     '''
     Manager of workflows
     '''
@@ -16,4 +16,6 @@ class WorkflowManager(object):
         self.scheduler = scheduler
         
     def run(self, *jobs):
-        pass
+        for job in jobs:
+            self.scheduler.schedule(job)
+        self.loop()

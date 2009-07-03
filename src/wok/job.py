@@ -12,8 +12,10 @@ class Job():
     # Minimum required memory
     min_memory = 0
     
-    def __init__(self, **attrs):
-        self.__dict__.update(attrs)
+    def __init__(self, *args, **nargs):
+        self.args = args
+        self.nargs = {}
+        self.nargs.update(nargs)
     
     def activate(self):
         return True;
@@ -27,3 +29,8 @@ class Job():
     def invokes(self):
         pass
 
+    def __eq__(self, other):
+        return self.args == other.args and self.nargs == other.nargs
+
+    def __ne__(self, other):
+        return self.args != other.args or self.nargs != other.nargs
