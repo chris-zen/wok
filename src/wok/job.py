@@ -13,9 +13,11 @@ class Job():
     min_memory = 0
     
     def __init__(self, *args, **nargs):
-        self.args = args
-        self.nargs = {}
-        self.nargs.update(nargs)
+        self.args = list(args)
+        self.nargs = dict(nargs)
+    
+    def name(self):
+        return self.__class__.__name__
     
     def activate(self):
         return True;
@@ -27,10 +29,22 @@ class Job():
         pass
         
     def invokes(self):
-        pass
+        return []
 
     def __eq__(self, other):
-        return self.args == other.args and self.nargs == other.nargs
+        return self.name() == other.name() \
+                and self.args == other.args \
+                and self.nargs == other.nargs
 
     def __ne__(self, other):
-        return self.args != other.args or self.nargs != other.nargs
+        return self.name() != other.name() \
+                or self.args != other.args \
+                or self.nargs != other.nargs
+
+    def __repr__(self):
+        sb = [self.name()]
+        if self.args is not None and len(self.args) > 0:
+            sb += [" ", repr(self.args)]
+        if self.nargs is not None and len(self.nargs) > 0:
+            sb += [" ", repr(self.nargs)]
+        return "".join(sb)

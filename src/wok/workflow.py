@@ -5,6 +5,7 @@ Created on 28/06/2009
 '''
 
 from wok.scheduler import *
+from wok.processor import *
 
 class Workflow(object):
     '''
@@ -12,10 +13,25 @@ class Workflow(object):
     '''
 
     def __init__(self,
-                 scheduler = DefaultScheduler):
+                 scheduler = DefaultScheduler(),
+                 processor = DefaultProcessor()):
         self.scheduler = scheduler
+        self.processor = processor
+        
+        self.scheduler.processor = processor
         
     def run(self, *jobs):
-        for job in jobs:
-            self.scheduler.schedule(job)
-        self.loop()
+        self.scheduler.schedule(list(jobs))
+        self.scheduler.loop()
+
+### Workflow singleton
+
+_workflow = None
+        
+def workflow():
+    global _workflow
+    
+    if _workflow is None:
+        _workflow = Workflow()
+
+    return _workflow
