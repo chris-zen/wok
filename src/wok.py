@@ -36,6 +36,6 @@ if __name__ == '__main__':
     root_logger.info("Running...")
 
     wf = Workflow(processor = None)
-    wf.run(j1, j2, j1)
+    wf.run(j2, j1)
     
     root_logger.info("Done.")
