@@ -26,9 +26,6 @@ class Job():
         return []
     
     def execute(self):
-        pass
-        
-    def invokes(self):
         return []
 
     def __eq__(self, other):

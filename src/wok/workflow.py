@@ -20,9 +20,8 @@ class Workflow(object):
         
         self.scheduler.processor = processor
         
-    def run(self, *jobs):
-        self.scheduler.schedule(list(jobs))
-        self.scheduler.loop()
+    def run(self, jobs):
+        self.scheduler.run(jobs)
 
 ### Workflow singleton
 
