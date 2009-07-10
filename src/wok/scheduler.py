@@ -42,6 +42,7 @@ class DefaultSchedulerWorker(threading.Thread):
             if task == self.scheduler.LAST_TASK:
                 break
             
+            ### TODO: Use Processor, check exceptions
             task.execute()
             
             self.scheduler.put_task(task)
@@ -63,7 +64,7 @@ class DefaultScheduler(Scheduler):
     # Used to stop working threads
     LAST_TASK = Task()
     
-    def __init__(self, num_procs = 2):
+    def __init__(self, max_procs = 1):
         self._running_tasks = []
         
         self._waiting_tasks = []
@@ -74,9 +75,7 @@ class DefaultScheduler(Scheduler):
         
         self._workers = []
         
-        for i in range(num_procs):
-            worker = DefaultSchedulerWorker(scheduler = self, name="sched_worker_" + str(i))
-            self._workers.append(worker)
+        self.max_procs = max_procs
 
     def schedule(self, jobs):
         self._tasks_cond.acquire()
@@ -86,7 +85,10 @@ class DefaultScheduler(Scheduler):
     def run(self, jobs = []):
         self.schedule(jobs)
         
-        for worker in self._workers:
+        self._workers = []
+        for i in range(self.max_procs):
+            worker = DefaultSchedulerWorker(scheduler = self, name="sched_worker_" + str(i))
+            self._workers.append(worker)
             worker.start()
             
         for worker in self._workers:
@@ -122,9 +124,11 @@ class DefaultScheduler(Scheduler):
             self._add_waiting_task(task)
         elif task.status == Task.STATUS_EXECUTION:
             self._add_running_task(task)
+        elif task.status == Task.STATUS_INVOCATION:
+            self._add_running_task(task)
         elif task.status == Task.STATUS_TERMINATION:
             self._notify_termination(task)
-            self._invoke(task.invokations)
+            self._invoke(task.invocations)
             self._remove_task(task)
         elif task.status == Task.STATUS_NOT_ACTIVATED:
             self._notify_termination(task)
@@ -199,7 +203,7 @@ class DefaultScheduler(Scheduler):
                 and len(self._running_tasks) == 0 \
                 and len(self._waiting_tasks) == 0
     
-    ### Deprecated
+    ### Deprecated ---------------------------------------------------------
         
     def _next_task(self):
         if self._no_more_tasks():

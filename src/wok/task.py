@@ -17,7 +17,8 @@ class Task:
     STATUS_DEP_WAITING = 3
     STATUS_EXECUTION = 4
     STATUS_PROC_WAITING = 5
-    STATUS_TERMINATION = 6
+    STATUS_INVOCATION = 6
+    STATUS_TERMINATION = 7
 
     status_str = {
         STATUS_ACTIVATION : "Activation",
@@ -25,6 +26,7 @@ class Task:
         STATUS_DEP_WAITING : "Dependency waiting",
         STATUS_EXECUTION : "Execution",
         STATUS_PROC_WAITING : "Processor waiting",
+        STATUS_INVOCATION : "Invocation",
         STATUS_TERMINATION : "Termination" }
 
     def __init__(self, job=Job(), status=STATUS_TERMINATION):
@@ -41,30 +43,32 @@ class Task:
         self.dependencies = []
         
         # jobs that should be invoked after execution
-        self.invokations = []
+        self.invocations = []
     
     # This will be executed in the processor
     def execute(self):
         while self.status not in [Task.STATUS_DEP_WAITING, 
-                                  Task.STATUS_TERMINATION,
-                                  Task.STATUS_NOT_ACTIVATED]:
+                                  Task.STATUS_TERMINATION]:
             
-            if self.status == self.STATUS_ACTIVATION:
+            if self.status == Task.STATUS_ACTIVATION:
                 if self.job.activate():
                     self.dependencies = self.job.dependencies()
                     if self.dependencies is None:
                         self.dependencies = []
                     if len(self.dependencies) > 0:
-                        self.status = self.STATUS_DEP_WAITING
+                        self.status = Task.STATUS_DEP_WAITING
                     else:
-                        self.status = self.STATUS_EXECUTION
+                        self.status = Task.STATUS_EXECUTION
                 else:
-                    self.status = self.STATUS_NOT_ACTIVATED
-            elif self.status == self.STATUS_EXECUTION:
-                self.invokations = self.job.execute()
-                if self.invokations is None:
-                    self.invokations = []
-                self.status = self.STATUS_TERMINATION
+                    self.status = Task.STATUS_INVOCATION
+            elif self.status == Task.STATUS_EXECUTION:
+                self.job.execute()
+                self.status = Task.STATUS_INVOCATION
+            elif self.status == Task.STATUS_INVOCATION:
+                self.invocations = self.job.invoke()
+                if self.invocations is None:
+                    self.invocations = []
+                self.status = Task.STATUS_TERMINATION
     
     ### --------------------------------------
     

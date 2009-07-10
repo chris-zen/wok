@@ -20,17 +20,6 @@ class Workflow(object):
         
         self.scheduler.processor = processor
         
-    def run(self, jobs):
+    def run(self, jobs, max_procs = 1):
+        self.scheduler.max_procs = max_procs
         self.scheduler.run(jobs)
-
-### Workflow singleton
-
-_workflow = None
-        
-def workflow():
-    global _workflow
-    
-    if _workflow is None:
-        _workflow = Workflow()
-
-    return _workflow
