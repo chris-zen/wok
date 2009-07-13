@@ -36,10 +36,10 @@ class Job:
         # How many tasks is this task waiting for
         self.wait_counter = 0
         
-        # Which tasks are waiting for this task
-        self.waiting_tasks = []
+        # Which jobs are waiting for this job
+        self.waiting_jobs = []
         
-        # tasks which this job is waiting for
+        # tasks this job will wait for
         self.dependencies = []
         
         # tasks that should be invoked after execution
@@ -72,28 +72,28 @@ class Job:
     
     ### --------------------------------------
     
-    def add_waiting_task(self, task):
-        if task not in self.waiting_tasks:
-            task.waits_on(self)
-            self.waiting_tasks.append(task)
+    def add_waiting_job(self, job):
+        if job not in self.waiting_jobs:
+            job.waits_on(self)
+            self.waiting_jobs.append(job)
     
-    def get_waiting_tasks(self):
-        return self.waiting_tasks
+    def get_waiting_jobs(self):
+        return self.waiting_jobs
     
-    def waits_on(self, task):
+    def waits_on(self, job):
         self.wait_counter += 1
     
-    def notify_termination(self, task):
+    def notify_termination(self, job):
         self.wait_counter -= 1
 
     def is_waiting(self):
         return self.wait_counter > 0
     
-    def __eq__(self, task):
-        return self.task == task.task
+    def __eq__(self, job):
+        return self.task == job.task
     
     def __ne__(self, task):
-        return self.task != task.task
+        return self.task != job.task
     
     def __repr__(self):
         sb = [repr(self.task)]

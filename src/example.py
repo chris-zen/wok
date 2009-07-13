@@ -21,7 +21,7 @@ class TaskA(Task):
         log = logging.getLogger(repr(self))
         log.info(repr(self) + " executing...")
         import time, random
-        time.sleep(random.randint(2, 3))
+        time.sleep(random.randint(1, 2))
         done.append(repr(self))
 
 class TaskB(Task):
@@ -36,8 +36,10 @@ class TaskB(Task):
         log = logging.getLogger(repr(self))
         log.info(repr(self) + " executing...")
         import time
-        time.sleep(4)
+        time.sleep(1)
         done.append(repr(self))
+        
+    def invoke(self):
         return [TaskC("C" + str(i)) for i in range(3)]
 
 class TaskC(Task):
@@ -45,7 +47,7 @@ class TaskC(Task):
         log = logging.getLogger(repr(self))
         log.info(repr(self) + " executing...")
         import time, random
-        time.sleep(random.randint(2, 4))
+        time.sleep(random.randint(1, 2))
         
 if __name__ == '__main__':
 
