@@ -7,7 +7,7 @@ class ShellException(Exception):
     def __str__(self):
         return self.command + "\n" + self.error
 
-def shell(command, input=None, cwd=None, env=None, check_returncode=True, log=None):
+def run(command, input=None, cwd=None, env=None, check_returncode=True, log=None):
     p = subprocess.Popen(args=command, 
                          stdin=subprocess.PIPE, 
                          stdout=subprocess.PIPE, 
