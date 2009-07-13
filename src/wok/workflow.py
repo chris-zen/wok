@@ -20,6 +20,6 @@ class Workflow(object):
         
         self.scheduler.processor = processor
         
-    def run(self, jobs, max_procs = 1):
+    def run(self, tasks, max_procs = 1):
         self.scheduler.max_procs = max_procs
-        self.scheduler.run(jobs)
+        self.scheduler.run(tasks)
