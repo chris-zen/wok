@@ -5,14 +5,14 @@ Created on 08/07/2009
 '''
 
 from wok import *
+from wok.task import Task
 from wok.workflow import *
-from wok.job import *
 
 import logging
 
 done = []
 
-class JobA(Job):
+class TaskA(Task):
     
     def activate(self):
         return repr(self) not in done
@@ -24,13 +24,13 @@ class JobA(Job):
         time.sleep(random.randint(2, 3))
         done.append(repr(self))
 
-class JobB(Job):
+class TaskB(Task):
     
     def activate(self):
         return repr(self) not in done
     
     def dependencies(self):
-        return [JobA("A" + str(i)) for i in range(5, 7)]
+        return [TaskA("A" + str(i)) for i in range(5, 7)]
     
     def execute(self):
         log = logging.getLogger(repr(self))
@@ -38,9 +38,9 @@ class JobB(Job):
         import time
         time.sleep(4)
         done.append(repr(self))
-        return [JobC("C" + str(i)) for i in range(3)]
+        return [TaskC("C" + str(i)) for i in range(3)]
 
-class JobC(Job):
+class TaskC(Task):
     def execute(self):
         log = logging.getLogger(repr(self))
         log.info(repr(self) + " executing...")
@@ -49,10 +49,10 @@ class JobC(Job):
         
 if __name__ == '__main__':
 
-    a = [JobA("A" + str(i)) for i in range(3)]
-    a.append(JobB("B", p1 = "P1", p2="P2"))
-    #j1 = Job1("A1")
-    #j2 = Job2("A2", p1 = "NA1", p2="NA2")
+    a = [TaskA("A" + str(i)) for i in range(3)]
+    a.append(TaskB("B", p1 = "P1", p2="P2"))
+    #j1 = Task1("A1")
+    #j2 = Task2("A2", p1 = "NA1", p2="NA2")
     
     logging.basicConfig()
     root_logger = logging.getLogger("")
