@@ -6,7 +6,7 @@ Created on 30/06/2009
 
 from wok.task import Task
 
-class Job:
+class Job(object):
     '''
     Represents a scheduled task.
     It has information about state of queued tasks.

@@ -4,7 +4,7 @@ Created on 08/07/2009
 @author: chris
 '''
 
-class Task():
+class Task(object):
     
     # Maximum number of jobs allowed in parallel
     max_parallel = 0
