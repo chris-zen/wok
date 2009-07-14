@@ -48,8 +48,8 @@ class TaskC(Task):
         log.info(repr(self) + " executing...")
         import time, random
         time.sleep(random.randint(1, 2))
-        
-if __name__ == '__main__':
+
+if __name__ == '__main____':
 
     a = [TaskA("A" + str(i)) for i in range(3)]
     a.append(TaskB("B", p1 = "P1", p2="P2"))
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     root_logger.setLevel(logging.DEBUG)
     root_logger.info("Running...")
 
-    wf = Workflow(processor = None)
+    wf = Workflow()
     wf.run(a)
     
     root_logger.info("Done.")
