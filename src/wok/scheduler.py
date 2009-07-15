@@ -40,7 +40,7 @@ class DefaultSchedulerWorker(threading.Thread):
             if job == self.scheduler.LAST_JOB:
                 break
             
-            ### TODO: Use Processor, check exceptions
+            ### TODO: check exceptions
             job.execute()
             
             self.scheduler.put_job(job)
@@ -112,6 +112,7 @@ class DefaultScheduler(Scheduler):
         while job is None:
             if self._no_jobs():
                 job = self.LAST_JOB
+                self._jobs_cond.notify()
             else:
                 if len(self._running_jobs) == 0:
                     self._jobs_cond.wait()
