@@ -1,0 +1,37 @@
+<flow name = "test2">
+
+	<title>test2</title>
+	
+	<in name = "in" map = "m1.in" />
+	<out name = "out" map = "m2.out" />
+
+	<module name = "m1">
+		<in name = "in" src = "in" depth = "5"/>
+		<out name = "out1" />
+		<out name = "out2" />
+
+		<exec launcher = "python">
+			<script>test2_1.py</script>
+		</exec>
+	</module>
+	
+	<module name = "m2" maxpar = "1" reducer = "true">
+		<in name = "in" src = "m1.out1" />
+		<out name = "out" />
+
+		<exec launcher = "python" stdin = "in" stdout = "out">
+			<script>test2_2.py</script>
+		</exec>
+	</module>
+	
+	<module name = "m3">
+		<in name = "in" src = "m1.out2" />
+
+		<exec launcher = "python">
+			<env>
+				<TEST_MSG>Hello World</TEST_MSG>
+			</env>
+			<script>test2_3.py</script>
+		</exec>
+	</module>
+</flow>

@@ -9,10 +9,16 @@ class PythonLauncher(Launcher):
 	def template(self, exec_conf, task):
 		task_conf = task["conf"]
 		
-		def_path = task_conf.get("wok.def_path", os.getcwd())
+		flow_path = task_conf.get("wok.flow_path", os.getcwd())
 		
 		python_bin = self.conf.get("bin", "python")
-		python_path = self.conf.get("pythonpath", def_path)
+
+		python_path = [flow_path]
+		if "pythonpath" in self.conf:
+			python_path += [self.conf["pythonpath"]]
+
+		if "pythonpath" in exec_conf:
+			python_path += [exec_conf["pythonpath"]]
 
 		if "script" not in exec_conf:
 			raise Exception("Python launcher requires 'script' configuration")
@@ -20,13 +26,11 @@ class PythonLauncher(Launcher):
 		script = exec_conf["script"]
 
 		if not os.path.isabs(script):
-			script_path = def_path
-			script = os.path.join(script_path, script)
+			script = os.path.join(flow_path, script)
 
 		cmd = "%s %s" % (python_bin, script)
 
 		args = []
-		#args += [task["id"]]
 		args += ["-c", task["__doc_path"]]
 		
 		if "env" in self.conf:
@@ -34,7 +38,7 @@ class PythonLauncher(Launcher):
 		else:
 			shell_env = self.conf.create_element()
 
-		shell_env["PYTHONPATH"] = python_path
+		shell_env["PYTHONPATH"] = ":".join(python_path)
 		
 		if "env" in exec_conf:
 			shell_env.copy_from(exec_conf["env"])

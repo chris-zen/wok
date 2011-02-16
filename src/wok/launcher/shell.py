@@ -1,4 +1,3 @@
-import os
 
 from wok.launcher import Launcher
 
@@ -7,9 +6,8 @@ class ShellLauncher(Launcher):
 		Launcher.__init__(self, conf)
 		
 	def template(self, exec_conf, task):
-		task_conf = task["conf"]
-				
-		def_path = task_conf.get("wok.def_path", os.getcwd())
+		#task_conf = task["conf"]
+		#flow_path = task_conf.get("wok.flow_path", os.getcwd())
 		
 		shell = self.conf.get("bin", "sh")
 

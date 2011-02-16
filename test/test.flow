@@ -1,0 +1,16 @@
+<flow name = "test">
+
+	<title>testing pipeline</title>
+	
+	<in name = "in" />
+
+	<out name = "out" />
+
+	<module name = "m1">
+		<in name = "in" src = "in" />
+
+		<exec launcher = "python">
+			<script>test1.py</script>
+		</exec>
+	</module>
+</flow>

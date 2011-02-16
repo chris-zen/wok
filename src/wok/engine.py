@@ -135,6 +135,8 @@ class WokEngine(object):
 
 		self._connect_ports()
 
+		#TODO: Check that there is no unattached input ports
+
 	def _populate_ports(self, ports, ns = ""):
 		pnodes = []
 		for p in ports:
@@ -256,7 +258,7 @@ class WokEngine(object):
 		task["conf"] = conf
 		task["exec"] = task_exec = task.create_element()
 		mnode.module.execution.fill_element(task_exec)
-		task["ports"] = task_ports = task.create_element()
+		task["ports"] = task.create_element()
 		return task
 
 	def _persist_task(self, task):
@@ -303,6 +305,7 @@ class WokEngine(object):
 				num_partitions = 1
 				self._log.warn("Unable to partition a module with inputs of different size")
 			else:
+				#TODO: Check mdepth == 0 --> some empty port
 				num_partitions = int(math.ceil(psize / float(mdepth)))
 				maxpar = mnode.module.maxpar
 				if maxpar != -1:

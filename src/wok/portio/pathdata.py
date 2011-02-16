@@ -1,9 +1,7 @@
 import os
 import struct
-import glob
 
 from wok.portio import PortData
-from wok.portio.multidata import MultiData
 
 TYPE_PATH_DATA = "path_data"
 
@@ -102,7 +100,6 @@ class PathData(PortData):
 			if os.path.exists(self._path):
 				for f in os.listdir(self._path):
 					if f.endswith(".index"):
-						p = int(f[:-6])
 						path = os.path.join(self._path, f)
 						self._size += os.path.getsize(path) / 8
 		else:
@@ -174,7 +171,6 @@ class PartitionDataReader(object):
 	
 	def next(self):
 		if self._size == 0:
-			print "raise StopIteration: self._size == 0"
 			raise StopIteration()
 
 		if self._data_f is None:
@@ -190,7 +186,6 @@ class PartitionDataReader(object):
 			d = self._index_f.read(8)
 			
 			if len(d) < 8:
-				print "raise StopIteration: len(d) < 8"
 				raise StopIteration()
 
 		pos = struct.unpack("Q", d)[0]
@@ -217,10 +212,8 @@ class PartitionDataReader(object):
 				data += [self.next()]
 				size -= 1
 		except StopIteration:
-			print "StopIteration:", len(data)
-			#pass
+			pass
 
-		print len(data), data
 		if len(data) == 0:
 			return None
 		elif len(data) == 1:

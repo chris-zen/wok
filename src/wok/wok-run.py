@@ -2,7 +2,6 @@
 
 import os
 
-from wok import __version__
 from wok import logger
 from wok.config import Config
 from wok.reader import FlowReader
@@ -29,14 +28,14 @@ def main():
 		log.error("Incorrect number of arguments")
 		exit(-1)
 	
-	flow_path = conf.args[0]
-	def_path = os.path.dirname(os.path.abspath(flow_path))
-	wok_conf["def_path"] = def_path
-	wok_conf["def_file"] = os.path.basename(flow_path)
+	flow_arg = conf.args[0]
+	flow_path = os.path.dirname(os.path.abspath(flow_arg))
+	wok_conf["flow_path"] = flow_path
+	wok_conf["flow_file"] = os.path.basename(flow_arg)
 	
 	log.debug("Configuration: %s" % conf)
 	
-	reader = FlowReader(flow_path)
+	reader = FlowReader(flow_arg)
 	flow = reader.read()
 	reader.close()
 	
