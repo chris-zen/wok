@@ -15,7 +15,11 @@ class PythonLauncher(Launcher):
 
 		python_path = [flow_path]
 		if "pythonpath" in self.conf:
-			python_path += [self.conf["pythonpath"]]
+			pp = self.conf["pythonpath"].to_native()
+			if isinstance(pp, list):
+				python_path += pp
+			else:
+				python_path += [pp]
 
 		if "pythonpath" in exec_conf:
 			python_path += [exec_conf["pythonpath"]]

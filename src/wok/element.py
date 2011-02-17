@@ -1,5 +1,6 @@
 import re
 from copy import deepcopy
+from string import Template
 
 _IDENTIFIER_PAT = re.compile("^[a-zA-Z_]+$")
 _LIST_PAT = re.compile("^([a-zA-Z_]+)\[(\d+)\]$")
@@ -11,6 +12,71 @@ def _list_ensure_index(l, index):
 	list_len = len(l)
 	if index >= list_len:
 		l += [None] * (index + 1 - list_len)
+
+_VARPAT = re.compile(r"\$(\{[._a-z0-9]+\}|[._a-z0-9]+)")
+
+class Tmpl(Template):
+	idpattern = r"[._a-z0-9]+"
+
+def _expand(value, context, path = None):
+	if path is None:
+		path = set()
+
+	res = []
+	last = 0
+	for m in _VARPAT.finditer(value):
+		name = m.group(1)
+		if name[0] == "{":
+			name = name[1:-1]
+
+		start = m.start()
+		end = m.end()
+
+		res += [value[last:start]]
+		
+		context_value = context.get(name, m.group(0))
+		if name not in path:
+			expanded_value = _expand(context_value, context, path.union(set([name])))
+		else:
+			expanded_value = "@{%s}" % context_value
+
+		res += [expanded_value]
+		last = end
+
+	res += [value[last:]]
+	
+	return "".join(res)
+
+def dataelement_from_xml(xmle):
+	if len(xmle) == 0:
+		return xmle.text
+	else:
+		data = DataElement(key_sep = "/")
+		for e in xmle:
+			data[e.tag] = dataelement_from_xml(e)
+
+	return data
+
+def dataelement_from_json(obj):
+	if isinstance(obj, dict):
+		return DataElement(obj, key_sep = "/")
+	elif isinstance(obj, list):
+		return DataElementList(obj, key_sep = "/")
+	else:
+		raise Exception("Simple value can not be translated to DataElement: %s" % str(obj))
+
+def dataelement_from_json_path(path):
+	return dataelement_from_json(json.load(open(path, "r")))
+
+import json
+
+class DataElementJsonEncoder(json.JSONEncoder):
+	def default(self, obj):
+		if isinstance(obj, DataElement):
+			return obj.data
+		elif isinstance(obj, DataElementList):
+			return obj.data
+
 
 class KeyPath(object):
 	def __init__(self, path, sep = _DEFAULT_KEY_SEP):
@@ -159,7 +225,15 @@ class DataElementList(Data):
 
 		for d in e:
 			self.data += [d]
-		
+
+	def expand_vars(self, context):
+		for i in xrange(len(self.data)):
+			data = self.data[i]
+			if isinstance(data, Data):
+				data.expand_vars(context)
+			elif isinstance(data, str) or isinstance(data, unicode):
+				self.data[i] = _expand(data, context)
+
 	def to_native(self):
 		native = []
 		for data in self.data:
@@ -170,7 +244,7 @@ class DataElementList(Data):
 			native += [value]
 		return native
 			
-	def _repr_level(sb, level):
+	def _repr_level(self, sb, level):
 		sb += ["[\n"]
 		level += 1
 		for e in self.data:
@@ -346,14 +420,14 @@ class DataElement(Data):
 
 		for key in keys:
 			ed = e[key]
-			if key not in self:
-				self[key] = deepcopy(ed)
+			if key not in self.data:
+				self.data[key] = deepcopy(ed)
 			else:
-				d = self[key]
+				d = self.data[key]
 				if isinstance(d, Data):
 					d.merge(ed)
 				else:
-					self[key] = deepcopy(ed)
+					self.data[key] = deepcopy(ed)
 
 	def missing_fields(self, keys):
 		missing = []
@@ -361,44 +435,28 @@ class DataElement(Data):
 			if key not in self:
 				missing += [key]
 		return missing
-		
+
+	def check_keys(self, keys):
+		missing_keys = self.missing_fields(keys)
+		if len(missing_keys) > 0:
+			raise MissingKeys(missing_keys)
+
+	def expand_vars(self, context = None):
+		if context is None:
+			context = self
+
+		for key, data in self.data.iteritems():
+			if isinstance(data, Data):
+				data.expand_vars(context)
+			elif isinstance(data, str) or isinstance(data, unicode):
+				self.data[key] = _expand(data, context)
+
 	def to_native(self):
 		native = {}
-		for key, data in self.iteritems():
+		for key, data in self.data.iteritems():
 			if isinstance(data, Data):
 				value = data.to_native()
 			else:
 				value = data
 			native[key] = value
 		return native
-
-def dataelement_from_xml(xmle):
-	if len(xmle) == 0:
-		return xmle.text
-	else:
-		data = DataElement(key_sep = "/")
-		for e in xmle:
-			data[e.tag] = dataelement_from_xml(e)
-
-	return data
-	
-def dataelement_from_json(obj):
-	if isinstance(obj, dict):
-		return DataElement(obj, key_sep = "/")
-	elif isinstance(obj, list):
-		return DataElementList(obj, key_sep = "/")
-	else:
-		raise Exception("Simple value can not be translated to DataElement: %s" % str(obj))
-
-def dataelement_from_json_path(path):
-	return dataelement_from_json(json.load(open(path, "r")))
-
-import json
-
-class DataElementJsonEncoder(json.JSONEncoder):
-	def default(self, obj):
-		if isinstance(obj, DataElement):
-			return obj.data
-		elif isinstance(obj, DataElementList):
-			return obj.data
-

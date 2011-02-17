@@ -6,6 +6,14 @@ from wok import logger
 from wok.config import Config
 from wok.port import PortFactory
 
+class MissingRequiredPorts(Exception):
+	def __init__(self, missing_ports):
+		Exception.__init__(self, "Missing required ports: %s" % ", ".join(missing_ports))
+
+class MissingRequiredConf(Exception):
+	def __init__(self, missing_keys):
+		Exception.__init__(self, "Missing required configuration: %s" % ", ".join(missing_keys))
+
 class Task(object):
 	"""
 	Processes a data partition of a module in a flow.
@@ -77,6 +85,34 @@ class Task(object):
 	
 		exit(retcode)
 
+	def check_conf(self, keys, exit_on_error = True):
+		missing_keys = []
+		for key in keys:
+			if key not in self.conf:
+				missing_keys += [key]
+
+		if exit_on_error and len(missing_keys) > 0:
+			raise MissingRequiredConf(missing_keys)
+
+		return missing_keys
+
+	def check_ports(self, port_names, mode, exit_on_error = True):
+		missing_ports = []
+		for port_name in port_names:
+			if port_name not in self.ports or self.ports[port_name].mode() != mode:
+				missing_ports += [port_name]
+
+		if exit_on_error and len(missing_ports) > 0:
+			raise MissingRequiredPorts(missing_ports, mode)
+
+		return missing_ports
+
+	def check_in_ports(self, port_names, exit_on_error = True):
+		return self.check_ports(port_names, "in", exit_on_error)
+
+	def check_out_ports(self, port_names, exit_on_error = True):
+		return self.check_ports(port_names, "out", exit_on_error)
+	
 	def run(self):
 		return 0
 

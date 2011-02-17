@@ -52,6 +52,10 @@ class InPort(Port):
 			
 		return self._reader.read(size)
 
+	def read_all(self):
+		size = self.size()
+		return self.read(size)
+
 	def close(self):
 		if self._reader is not None:
 			self._reader.close()

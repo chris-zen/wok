@@ -4,7 +4,7 @@ from wok import __version__
 from wok.element import DataElement, DataFactory
 
 class Config(DataElement):
-	def __init__(self, required = [], args_usage = "", add_options = None):
+	def __init__(self, required = [], args_usage = "", add_options = None, expand_vars = False):
 		DataElement.__init__(self)
 		
 		from optparse import OptionParser
@@ -45,8 +45,10 @@ class Config(DataElement):
 		if len(required) > 0:
 			self.check_required(required)
 
+		if expand_vars:
+			self.expand_vars()
+
 	def check_required(self, required):
 		for name in required:
 			if not name in self:
 				raise Exception("Missing required configuration: %s" % name)
-

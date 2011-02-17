@@ -1,7 +1,7 @@
 import os
 import struct
 
-from wok.portio import PortData
+from wok.portio import PortData, DataReader
 
 TYPE_PATH_DATA = "path_data"
 
@@ -133,7 +133,7 @@ class PathData(PortData):
 				sb += [":%i" % (self._start + self._size - 1)]
 		return "".join(sb)
 
-class PartitionDataReader(object):
+class PartitionDataReader(DataReader):
 	def __init__(self, path, partition, start, size):
 		self._path = path
 		self._partition = partition
@@ -166,9 +166,9 @@ class PartitionDataReader(object):
 			self._data_f.close()
 			self._data_f = None
 
-	def size(self):
-		return self._size
-	
+	def is_opened(self):
+		return self._data_f is not None
+
 	def next(self):
 		if self._size == 0:
 			raise StopIteration()
@@ -195,31 +195,6 @@ class PartitionDataReader(object):
 		self._size -= 1
 
 		return data
-	
-	def __iter__(self):
-		return self
-
-	def read(self, size = 1):
-		data = []
-		if self._size == 0:
-			return None
-
-		if self._data_f is None:
-			self._open()
-		
-		try:
-			while size > 0:
-				data += [self.next()]
-				size -= 1
-		except StopIteration:
-			pass
-
-		if len(data) == 0:
-			return None
-		elif len(data) == 1:
-			return data[0]
-		else:
-			return data
 	
 class PartitionDataWriter(object):
 	def __init__(self, path, partition):

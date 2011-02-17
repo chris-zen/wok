@@ -1,6 +1,6 @@
 import os
 
-from wok.portio import PortData
+from wok.portio import PortData, DataReader
 
 TYPE_FILE_DATA = "file_data"
 
@@ -40,16 +40,11 @@ class FileData(PortData):
 			else:
 				self._size = 0
 				f = open(self._path, "r")
-				self._size = sum([1 for line in f])
+				self._size = sum([1 for _ in f])
 				f.close()
 		return self._size
 
 	def reader(self):
-		#if self._size == -1:
-		#	size = self.size()
-		#else:
-		#	size = self._size
-		
 		return FileDataReader(self._path, self._start, self._size, self._seek_pos)
 
 	def writer(self):
@@ -63,49 +58,47 @@ class FileData(PortData):
 				sb += [":%i" % (self._start + self._size - 1)]
 		return "".join(sb)
 		
-class FileDataReader(object):
+class FileDataReader(DataReader):
 	def __init__(self, path, start, size, seek_pos = -1):
 		self._path = path
 		self._start = start
 		self._size = size
 		self._seek_pos = seek_pos
 
-		self._reader = None
+		self._data_f = None
 
 	def _open(self):
-		if self._reader is not None:
-			self._close()
-		return open(self._path, "r")
+		if self._data_f is not None:
+			self.close()
 
-	def _seek(self):
+		self._data_f = open(self._path, "r")
+
 		if self._seek_pos >= 0:
 			self._reader.seek(self._seek_pos)
 		else:
-			for i in xrange(self._start):
-				self._reader.readline()
+			for _ in xrange(self._start):
+				self._data_f.readline()
 
 	def close(self):
-		if self._reader is not None:
-			self._reader.close()
-			self._reader = None
+		if self._data_f is not None:
+			self._data_f.close()
+			self._data_f = None
 
-	def __iter__(self):
-		if self._reader is None:
-			self._reader = self._open()
+	def is_opened(self):
+		return self._data_f is not None
 
-		self._seek()
+	def next(self):
+		if self._size == 0:
+			raise StopIteration()
 
-		if self._size <= 0:
-			return
+		if self._data_f is None:
+			self._open()
 
-		count = 0
-		for line in self._reader:
-			yield line.rstrip().replace(r"\n", "\n")
+		data = self._data_f.readline().rstrip()
 
-			count += 1
-			if count >= self._size:
-				self.close()
-				return
+		self._size -= 1
+
+		return data
 
 	def __repr__(self):
 		sb = [self._path]
