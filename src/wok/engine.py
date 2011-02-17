@@ -65,25 +65,25 @@ class WokEngine(object):
 		
 		conf.check_required(["wok.bin_path", "wok.data_path"])
 
-		flow_conf = conf["wok"]
+		wok_conf = conf["wok"]
 		
-		self._log = logger.get_logger(flow_conf, "wok")
+		self._log = logger.get_logger(wok_conf, "wok")
 		
-		self._bin_path = flow_conf["bin_path"]
-		self._data_path = flow_conf["data_path"]
+		self._bin_path = wok_conf["bin_path"]
+		self._data_path = wok_conf["data_path"]
 		self._ports_path = os.path.join(self._data_path, "ports")
 		self._tasks_path = os.path.join(self._data_path, "tasks")
 		
-		if "port_map" in flow_conf:
-			self._port_data_conf = flow_conf["port_map"]
+		if "port_map" in wok_conf:
+			self._port_data_conf = wok_conf["port_map"]
 		else:
-			self._port_data_conf = flow_conf.create_element()
+			self._port_data_conf = wok_conf.create_element()
 		
-		self._autorm_task = flow_conf.get("auto_remove.task", True, dtype=bool)
+		self._autorm_task = wok_conf.get("auto_remove.task", True, dtype=bool)
 
-		self._clean = flow_conf.get("clean", True, dtype=bool)
+		self._clean = wok_conf.get("clean", True, dtype=bool)
 
-		self._stop_on_errors = flow_conf.get("stop_on_errors", True, dtype=bool)
+		self._stop_on_errors = wok_conf.get("stop_on_errors", True, dtype=bool)
 
 		self._mod_map = {}
 		self._port_map = {}
@@ -94,18 +94,22 @@ class WokEngine(object):
 		self._waiting = []
 		self._finished = []
 
-		sched_name = flow_conf.get("scheduler", "default")
+		self._job_sched = self._create_job_scheduler(wok_conf)
+
+	def _create_job_scheduler(self, wok_conf):
+		sched_name = wok_conf.get("scheduler", "default")
+
+		sched_conf = wok_conf.create_element()
+		if "schedulers.__default" in wok_conf:
+			sched_conf.merge(wok_conf["schedulers.__default"])
 
 		sched_conf_key = "schedulers.%s" % sched_name
-		
-		if sched_conf_key in flow_conf:
-			sched_conf = flow_conf[sched_conf_key]
-		else:
-			sched_conf = flow_conf.create_element()
-		
+		if sched_conf_key in wok_conf:
+			sched_conf.merge(wok_conf[sched_conf_key])
+
 		self._log.debug("Creating '%s' scheduler with configuration %s" % (sched_name, sched_conf))
-		
-		self._job_sched = create_job_scheduler(sched_name, sched_conf)
+
+		return create_job_scheduler(sched_name, sched_conf)
 
 	def _ns_name(self, ns, name):
 		if len(ns) == 0:
@@ -289,9 +293,19 @@ class WokEngine(object):
 		tasks = []
 		
 		if len(psizes) == 0:
-			# Submit a task for the module without port information
-			task = self._create_task(self.conf, flow, mnode)
+			# Submit a task for the module without input ports information
+			t_id = "%s-%04i" % (mnode.m_id, 0)
+			task = self._create_task(self.conf, flow, mnode, t_id)
 			tasks += [task]
+
+			for pnode in mnode.out_pnodes:
+				task_ports = task["ports"]
+				e = task_ports.create_element()
+				task_ports[pnode.port.name] = e
+				data = pnode.data.get_slice(partition = pnode.data.last_partition)
+				e["mode"] = "out"
+				e["data"] = data.fill_element(e.create_element())
+				pnode.data.last_partition += 1
 		else:
 			# Check whether all inputs have the same size
 			psize = psizes[0]
@@ -310,7 +324,10 @@ class WokEngine(object):
 				maxpar = mnode.module.maxpar
 				if maxpar != -1:
 					num_partitions = min(maxpar, num_partitions)
-					mdepth = int(math.ceil(psize / float(num_partitions)))
+					if num_partitions == 0:
+						mdepth = 0
+					else:
+						mdepth = int(math.ceil(psize / float(num_partitions)))
 				self._log.debug("num_par=%i, psize=%i, mdepth=%i" % (num_partitions, psize, mdepth))
 
 			start = 0

@@ -7,12 +7,12 @@ from wok.config import Config
 from wok.port import PortFactory
 
 class MissingRequiredPorts(Exception):
-	def __init__(self, missing_ports):
-		Exception.__init__(self, "Missing required ports: %s" % ", ".join(missing_ports))
+	def __init__(self, missing_ports, mode):
+		Exception.__init__(self, "Missing required %s ports: %s" % (mode, ", ".join(missing_ports)))
 
 class MissingRequiredConf(Exception):
 	def __init__(self, missing_keys):
-		Exception.__init__(self, "Missing required configuration: %s" % ", ".join(missing_keys))
+		Exception.__init__(self, "Missing required configuration: %s" % (", ".join(missing_keys)))
 
 class Task(object):
 	"""
@@ -40,7 +40,7 @@ class Task(object):
 		logger.initialize(self.conf)
 
 		log = self.logger()
-		log.debug("Task: %s\nConfiguration: %s" % (self.data, self.conf))
+		log.debug("Task:\nData: %s\nConfiguration: %s" % (self.data, self.conf))
 	
 	def _start_timer(self):
 		self._start_time = time.time()

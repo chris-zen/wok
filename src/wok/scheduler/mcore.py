@@ -32,14 +32,14 @@ class McoreJobScheduler(JobScheduler):
 	def __init__(self, conf):
 		JobScheduler.__init__(self, conf)
 		
-		mf = conf.missing_fields(["data_path"])
+		mf = conf.missing_fields(["work_path"])
 		if len(mf) > 0:
 			raise Exception("Missing configuration: [%s]" % ", ".join(mf))
 
 		self._log = logger.get_logger(conf, "mcore")
 
-		self._data_path = conf["data_path"]
-		self._stdio_path = os.path.join(self._data_path, "io")
+		self._work_path = conf["work_path"]
+		self._stdio_path = conf.get("io_path", os.path.join(self._work_path, "io"))
 		if not os.path.exists(self._stdio_path):
 			os.makedirs(self._stdio_path)
 
@@ -63,7 +63,7 @@ class McoreJobScheduler(JobScheduler):
 			os.makedirs(path)
 
 	def submit(self, task):
-		job_name = task["id"]
+		#job_name = task["id"]
 		
 		execution = task["exec"]
 		launcher_name = execution.get("launcher", None)

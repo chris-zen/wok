@@ -33,6 +33,8 @@ def main():
 	wok_conf["flow_path"] = flow_path
 	wok_conf["flow_file"] = os.path.basename(flow_arg)
 
+	wok_conf["cwd"] = os.getcwd()
+
 	conf.expand_vars()
 	
 	log.debug("Configuration: %s" % conf)
