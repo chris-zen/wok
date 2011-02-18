@@ -66,7 +66,7 @@ class Flow(object):
 		return "".join(sb)
 			
 class Port(object):
-	def __init__(self, name, ptype, src = None, depth = 1):
+	def __init__(self, name, ptype, src = None, depth = 0):
 		self.name = name
 		self.ptype = ptype
 		if src is None:
@@ -101,7 +101,7 @@ class Port(object):
 		return "".join(self.repr_level([], 0))
 							
 class Module(object):
-	def __init__(self, name, maxpar = -1, priority = 0, enabled = True, depends = None, in_ports = None, out_ports = None, execution = None):
+	def __init__(self, name, maxpar = 0, priority = 0, enabled = True, depends = None, in_ports = None, out_ports = None, execution = None):
 		self.name = name
 		self.maxpar = maxpar
 		self.priority = priority

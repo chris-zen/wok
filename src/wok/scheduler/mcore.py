@@ -10,23 +10,33 @@ from wok.scheduler import JobScheduler
 from wok.launcher.factory import create_launcher
 
 def _run_job(job):
-	args = shlex.split(str(job["cmd"]))
-	
-	o = open(job["output_path"], "w")
-	
-	p = sp.Popen(
-				args = args,
-				stdin=None,
-				stdout=o,
-				stderr=sp.STDOUT,
-				cwd=job["working_directory"],
-				env=job["env"])
+	retcode = -128
 
-	p.wait()
+	o = open(job["output_path"], "wa")
 
-	o.close()
+	try:
+		args = shlex.split(str(job["cmd"]))
 
-	return p.returncode
+		p = sp.Popen(
+					args = args,
+					stdin=None,
+					stdout=o,
+					stderr=sp.STDOUT,
+					cwd=job["working_directory"],
+					env=job["env"])
+
+		p.wait()
+
+		retcode = p.returncode
+	except:
+		#import traceback
+		#o.write(">>> Exception on job runner:\n")
+		#traceback.print_exc(file=o)
+		pass
+	finally:
+		o.close()
+
+	return retcode
 
 class McoreJobScheduler(JobScheduler):
 	def __init__(self, conf):

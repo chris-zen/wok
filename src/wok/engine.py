@@ -85,6 +85,10 @@ class WokEngine(object):
 
 		self._stop_on_errors = wok_conf.get("stop_on_errors", True, dtype=bool)
 
+		self._maxpar = wok_conf.get("defaults.maxpar", 0, dtype=int)
+
+		self._depth = wok_conf.get("defaults.depth", 0, dtype=int)
+
 		self._mod_map = {}
 		self._port_map = {}
 
@@ -162,6 +166,7 @@ class WokEngine(object):
 		for p_id, pnode in self._port_map.iteritems():
 			port = pnode.port
 			if p_id in self._port_data_conf: # attached through user configuration
+				pnode.port.src = [] # override flow specified connections
 				port_data_conf = self._port_data_conf[p_id]
 				if isinstance(port_data_conf, DataElement):
 					raise Exception("Configurable attached port unimplemented")
@@ -279,16 +284,28 @@ class WokEngine(object):
 		f = open(path, "w")
 		json.dump(task, f, sort_keys=True, indent=4, cls=DataElementJsonEncoder)
 		f.close()
-	
+
+	def _effective_depth(self, depth):
+		if depth == 0:
+			depth = max(self._depth, 1)
+		return depth
+
+	def _effective_maxpar(self, maxpar):
+		if maxpar == 0:
+			maxpar = max(self._maxpar, 1)
+		return maxpar
+
 	def _schedule_module(self, flow, mnode):
 		# Calculate input sizes and the minimum depth
 		psizes = []
 		mdepth = sys.maxint
 		for pnode in mnode.in_pnodes:
-			psizes += [pnode.data.size()]
-			port = pnode.port
-			if port.depth < mdepth:
-				mdepth = port.depth
+			psize = pnode.data.size()
+			psizes += [psize]
+			pdepth = self._effective_depth(pnode.port.depth)
+			self._log.debug("%s: size=%i, depth=%i" % (pnode.p_id, psize, pdepth))
+			if pdepth < mdepth:
+				mdepth = pdepth
 
 		tasks = []
 		
@@ -321,13 +338,11 @@ class WokEngine(object):
 			else:
 				#TODO: Check mdepth == 0 --> some empty port
 				num_partitions = int(math.ceil(psize / float(mdepth)))
-				maxpar = mnode.module.maxpar
-				if maxpar != -1:
-					num_partitions = min(maxpar, num_partitions)
-					if num_partitions == 0:
-						mdepth = 0
-					else:
-						mdepth = int(math.ceil(psize / float(num_partitions)))
+				maxpar = self._effective_maxpar(mnode.module.maxpar)
+				self._log.debug("%s.maxpar=%i" % (mnode.module.name, maxpar))
+				if maxpar > 0 and num_partitions > maxpar:
+					num_partitions = maxpar
+					mdepth = int(math.ceil(psize / float(num_partitions)))
 				self._log.debug("num_par=%i, psize=%i, mdepth=%i" % (num_partitions, psize, mdepth))
 
 			start = 0
@@ -358,7 +373,7 @@ class WokEngine(object):
 					#	size = psizes[pi]
 					#else:
 					#	size = partition["size"]
-					data = pnode.data.get_slice(start = partition["start"], size = size)
+					data = pnode.data.get_slice(start = partition["start"], size = partition["size"])
 					e["mode"] = "in"
 					e["data"] = data.fill_element(e.create_element())
 
@@ -373,7 +388,7 @@ class WokEngine(object):
 					e["data"] = data.fill_element(e.create_element())
 					pnode.data.last_partition += 1
 
-		self._log.info("Running %i tasks for module '%s' ..." % (len(tasks), mnode))
+		self._log.info("Submitting %i tasks for module '%s' ..." % (len(tasks), mnode))
 		
 		for task in tasks:
 			self._persist_task(task)
@@ -430,6 +445,7 @@ class WokEngine(object):
 				tasks += self._schedule_module(flow, mnode)
 
 			# Wait for modules to finish
+			self._log.info("Waitting for the %i tasks to finish ..." % len(tasks))
 			self._job_sched.wait()
 
 			# Update tasks and check failed ones

@@ -57,7 +57,10 @@ class InPort(Port):
 		data = self.read(size)
 		if data is None:
 			data = []
-		return data
+		elif isinstance(data, list):
+			return data
+		else:
+			return [data]
 
 	def close(self):
 		if self._reader is not None:

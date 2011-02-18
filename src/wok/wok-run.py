@@ -44,8 +44,10 @@ def main():
 	reader.close()
 	
 	wok = WokEngine(conf)
-	wok.run(flow)
-	wok.exit()
+	try:
+		wok.run(flow)
+	finally:
+		wok.exit()
 	
 if __name__ == "__main__":
 	main()
