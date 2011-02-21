@@ -46,6 +46,8 @@ class Task(object):
 		self._start_time = time.time()
 		
 	def logger(self, name = None):
+		if name is None and "id" in self.data:
+			name = self.data["id"]
 		log = logger.get_logger(self.conf, name)
 		return log
 

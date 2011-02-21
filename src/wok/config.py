@@ -30,10 +30,16 @@ class Config(DataElement):
 
 		if len(self.options.conf_files) > 0:
 			for conf_file in self.options.conf_files:
-				f = open(conf_file, "r")
-				conf = DataFactory.from_native(json.load(f))
-				self.merge(conf)
-				f.close()
+				try:
+					f = open(conf_file, "r")
+					conf = DataFactory.from_native(json.load(f))
+					self.merge(conf)
+					f.close()
+				except:
+					from wok import logger
+					logger.initialize(self)
+					logger.get_logger(self, "config").error("Error reading configuration file: %s" % conf_file)
+					raise
 		
 		for data in self.options.data:
 			d = data.split("=")
