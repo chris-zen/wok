@@ -37,19 +37,13 @@ class Task(object):
 
 		self.ports = self._initialize_ports()
 
-		logger.initialize(self.conf)
+		logger.initialize(self.conf.get("log"))
 
-		log = self.logger()
-		log.debug("Task:\nData: %s\nConfiguration: %s" % (self.data, self.conf))
+		#log = self.logger()
+		#log.debug("Task:\nData: %s\nConfiguration: %s" % (self.data, self.conf))
 	
 	def _start_timer(self):
 		self._start_time = time.time()
-		
-	def logger(self, name = None):
-		if name is None and "id" in self.data:
-			name = self.data["id"]
-		log = logger.get_logger(self.conf, name)
-		return log
 
 	def _initialize_ports(self):
 		ports = {}
@@ -61,6 +55,12 @@ class Task(object):
 	def _close_ports(self):
 		for port_name, port in self.ports.iteritems():
 			port.close()
+
+	def logger(self, name = None):
+		if name is None and "id" in self.data:
+			name = self.data["id"]
+		log = logger.get_logger(self.conf.get("log"), name)
+		return log
 
 	def port(self, name):
 		if name not in self.ports:

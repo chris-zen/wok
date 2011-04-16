@@ -66,14 +66,14 @@ class Flow(object):
 		return "".join(sb)
 			
 class Port(object):
-	def __init__(self, name, ptype, src = None, depth = 0):
+	def __init__(self, name, ptype, link = None, wsize = 0):
 		self.name = name
 		self.ptype = ptype
-		if src is None:
-			self.src = []
+		if link is None:
+			self.link = []
 		else:
-			self.src = src
-		self.depth = depth
+			self.link = link
+		self.wsize = wsize
 	
 	def is_input(self):
 		return self._ptype == PORT_TYPE_IN
@@ -89,12 +89,12 @@ class Port(object):
 		sb += [_INDENT * level]
 		sb += ["%s %s:\n" % (ptype, self.name)]
 		level += 1
-		if self.src is not None and len(self.src) > 0:
+		if self.link is not None and len(self.link) > 0:
 			sb += [_INDENT * level]
-			sb += ["src: %s\n" % ", ".join(self.src)]
-		if self.depth > 1:
+			sb += ["link: %s\n" % ", ".join(self.link)]
+		if self.wsize > 1:
 			sb += [_INDENT * level]
-			sb += ["depth: %i\n" % self.depth]
+			sb += ["wsize: %i\n" % self.wsize]
 		return sb
 
 	def __repr__(self):
@@ -127,7 +127,8 @@ class Module(object):
 			self.out_ports = out_ports
 			for p in out_ports:
 				self.out_port_map[p.name] = p
-				
+
+		self.conf = None
 		self.execution = execution
 
 	def add_in_port(self, port):
@@ -156,6 +157,11 @@ class Module(object):
 			p.repr_level(sb, level)
 		for p in self.out_ports:
 			p.repr_level(sb, level)
+		if self.conf is not None:
+			sb += [_INDENT * level]
+			sb += ["Conf: "]
+			self.conf._repr_level(sb, level)
+			sb += ["\n"]
 		if self.execution is not None:
 			self.execution.repr_level(sb, level)
 		sb += ["\n"]

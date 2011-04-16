@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+	<title>Wok</title>
+	<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+	<div class="page">
+		<h1>Wok</h1>
+		<div class="navbar">
+			<ul>
+				<li><a href="{{ url_for('configuration') }}">Configuration</a></li>
+				<li><a href="{{ url_for('workflow') }}">Workflow</a></li>
+				<li><a href="{{ url_for('state') }}">State</a></li>
+			</ul>
+		</div>
+		<div class="loginbar">
+			<ul>
+				<li><a href="{{ url_for('engine_exit') }}">exit</a></li>
+				<li>
+				{% if not session.logged_in %}
+					<a href="{{ url_for('login') }}">log in</a>
+				{% else %}
+					<a href="{{ url_for('logout') }}">log out</a>
+				{% endif %}
+				</li>
+			</ul>
+		</div>
+
+		<div style="clear: both"></div>
+		
+		{% for message in get_flashed_messages() %}
+			<div class="flash">{{ message }}</div>
+		{% endfor %}
+
+		{% if session.logged_in %}
+			{% block body %}{% endblock %}
+		{% else %}
+			{% block login %}
+				<p>Log in to start session</p>
+			{% endblock %}
+		{% endif %}
+	</div>
+</body>
+</html>

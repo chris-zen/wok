@@ -1,6 +1,40 @@
+"""
+This module contains all the classes necessary to work with
+data elements, a type of enhanced maps to manage structured data.
+
+It allows to load data from xml and json and manage the data hierarchically like:
+
+json = <load a json {"a": "1", "b" : {"c": 2, "d" : [10,20,30] } }>
+data = load_from_json(json)
+print data # prints the whole data tree
+print data["b.c"] # 2
+print data["b.d[2]"] # 30
+data["x.y"] = 5
+print data["x"] # {"y": 5}
+
+It allows to specify different node separation characters.
+By default it uses a dot '.'. The following example shows how to create
+a new element programmatically:
+
+data = DataElement(key_sep = '/')
+data["a/b"] = 6
+data["f/j/k"] = 8
+a_data = data["a"]
+print a_data # {"b": 6}
+x_data = a_data.create_element()
+x_data["y"] = "Hello"
+a_data["x"] = x_data
+print a_data # {"b": 6, "x": {"y": "Hello"}}
+
+It offers many more functionalities such as:
+- variables expansion
+- key existence checking
+- basic tree transformations
+- trees merge
+"""
+
 import re
 from copy import deepcopy
-from string import Template
 
 _IDENTIFIER_PAT = re.compile("^[a-zA-Z_]+$")
 _LIST_PAT = re.compile("^([a-zA-Z_]+)\[(\d+)\]$")
@@ -15,13 +49,10 @@ def _list_ensure_index(l, index):
 
 _VARPAT = re.compile(r"\$(\{[._a-z0-9]+\}|[._a-z0-9]+)")
 
-class Tmpl(Template):
-	idpattern = r"[._a-z0-9]+"
-
-def _expand(value, context, path = None):
+def _expand(key, value, context, path = None):
 	if path is None:
 		path = set()
-
+	
 	res = []
 	last = 0
 	for m in _VARPAT.finditer(value):
@@ -34,11 +65,13 @@ def _expand(value, context, path = None):
 
 		res += [value[last:start]]
 		
-		context_value = context.get(name, m.group(0))
 		if name not in path:
-			expanded_value = _expand(context_value, context, path.union(set([name])))
+			if name in context:
+				expanded_value = _expand(name, context[name], context, path.union(set([name])))
+			else:
+				raise Exception("Undefined variable '%s' at '%s'" % (name, key))
 		else:
-			expanded_value = "@{%s}" % context_value
+			expanded_value = "@{%s}" % name
 
 		res += [expanded_value]
 		last = end
@@ -226,13 +259,18 @@ class DataElementList(Data):
 		for d in e:
 			self.data += [d]
 
-	def expand_vars(self, context):
+	def expand_vars(self, context, path = None):
+		if path is None:
+			path = list()
+
+		key = ".".join(path)
+
 		for i in xrange(len(self.data)):
 			data = self.data[i]
 			if isinstance(data, Data):
-				data.expand_vars(context)
+				data.expand_vars(context, path + ['[%i]' % i])
 			elif isinstance(data, str) or isinstance(data, unicode):
-				self.data[i] = _expand(data, context)
+				self.data[i] = _expand(key, data, context)
 
 	def to_native(self):
 		native = []
@@ -441,15 +479,19 @@ class DataElement(Data):
 		if len(missing_keys) > 0:
 			raise MissingKeys(missing_keys)
 
-	def expand_vars(self, context = None):
+	def expand_vars(self, context = None, path = None):
 		if context is None:
 			context = self
 
+		if path is None:
+			path = list()
+
 		for key, data in self.data.iteritems():
+			current_path = path + [key]
 			if isinstance(data, Data):
-				data.expand_vars(context)
+				data.expand_vars(context, current_path)
 			elif isinstance(data, str) or isinstance(data, unicode):
-				self.data[key] = _expand(data, context)
+				self.data[key] = _expand(".".join(current_path), data, context)
 
 	def to_native(self):
 		native = {}

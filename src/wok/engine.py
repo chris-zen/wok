@@ -5,12 +5,24 @@ import math
 import uuid
 import json
 
+from threading import Thread, Lock
+
 from wok import logger
 from wok.scheduler.factory import create_job_scheduler
 from wok.portio.filedata import FileData
 from wok.portio.pathdata import PathData
 from wok.portio.multidata import MultiData
-from wok.element import DataElement, DataElementJsonEncoder
+from wok.element import DataElement, DataFactory, DataElementJsonEncoder
+
+class WokAlreadyRunningError(Exception):
+	pass
+
+class WokInvalidOperationForStatusError(Exception):
+	def __init__(self, op, status):
+		Exception.__init__(self, "Invalid operation '%s' for current status '%s'" % (op, status))
+
+class WokUninitializedError(Exception):
+	pass
 
 class PortNode(object):
 	def __init__(self, p_id, port, data = None):
@@ -28,16 +40,35 @@ class PortNode(object):
 		return "".join(sb)
 
 class ModNode(object):
+	S_UNINITIALIZED = 'uninitialized'
+	S_WAITING = 'waiting'
+	S_READY = 'ready'
+	S_SUBMITTED = 'submitted'
+	S_FAILED = 'failed'
+	S_FINISHED = 'finished'
+
 	def __init__(self, m_id, module):
 		self.m_id = m_id
 		self.module = module
+		self.state = self.S_UNINITIALIZED
 		self.in_pnodes = None
 		self.out_nodes = None
-		self.scheduled = False
+		self.conf = DataElement()
+		self.num_tasks = 0
+		self.submitted_tasks = []
+		self.finished_tasks = []
+		self.failed_tasks = []
 
 	def fill_element(self, e):
 		e["id"] = self.m_id
 		e["name"] = self.module.name
+		#TODO create section 'module' with module information
+		e["state"] = self.state
+		#TODO in & out ports
+		e["num_tasks"] = self.num_tasks
+		e["submitted_tasks"] = self.submitted_tasks
+		e["finished_tasks"] = self.finished_tasks
+		e["failed_tasks"] = self.failed_tasks
 		return e
 	
 	def __str__(self):
@@ -49,8 +80,7 @@ class ModNode(object):
 			sb += [" (%s)" % ",".join([str(x) for x in self.in_pnodes])]
 		if self.out_pnodes is not None:
 			sb += [" --> (%s)" % ",".join([str(x) for x in self.out_pnodes])]
-		if self.scheduled:
-			sb += [" [S]"]
+		sb += [" [%s]" % self.status]
 		return "".join(sb)
 
 def _map_add_list(m, k, v):
@@ -59,20 +89,65 @@ def _map_add_list(m, k, v):
 	else:
 		m[k] += [v]
 
+def synchronized(lock):
+	""" Synchronization decorator. """
+
+	def wrap(f):
+		def new_function(*args, ** kw):
+			from wok.logger import get_logger
+			get_logger(None, "wok").debug("acquire %s" % f.__name__)
+			lock.acquire()
+			try:
+				return f(*args, ** kw)
+			finally:
+				lock.release()
+				get_logger(None, "wok").debug("release %s" % f.__name__)
+		return new_function
+	return wrap
+
+class RunThread(Thread):
+	def __init__(self, wok):
+		Thread.__init__(self, name = "wok-engine-run")
+		self.wok = wok
+
+	def run(self):
+		self.wok._run()
+
+_engine_lock = Lock()
+
 class WokEngine(object):
-	def __init__(self, conf):
+	"""
+	The Wok engine manages the execution of a workflow.
+
+	It is created from a configuration object and then the run() method
+	is called with a workflow already loaded in memory. At the end the exit()
+	method has to be called to release resources.
+	"""
+
+	S_UNINITIALIZED = 'uninitialized'
+	S_READY = 'ready'
+	S_PAUSED = 'paused'
+	S_RUNNING = 'running'
+	S_FINISHED = 'finished'
+	S_FAILED = 'failed'
+	S_EXCEPTION = 'exception'
+	S_EXITING = 'exiting'
+	S_EXITED = 'exited'
+
+	def __init__(self, conf, flow = None):
 		self.conf = conf
 		
-		conf.check_required(["wok.bin_path", "wok.data_path"])
+		conf.check_required(["wok.bin_path", "wok.work_path"])
 
 		wok_conf = conf["wok"]
 		
-		self._log = logger.get_logger(wok_conf, "wok")
+		self._log = logger.get_logger(wok_conf.get("log"), "wok")
 		
 		self._bin_path = wok_conf["bin_path"]
-		self._data_path = wok_conf["data_path"]
-		self._ports_path = os.path.join(self._data_path, "ports")
-		self._tasks_path = os.path.join(self._data_path, "tasks")
+		self._work_path = wok_conf["work_path"]
+		self._output_path = os.path.join(self._work_path, "output")
+		self._ports_path = os.path.join(self._work_path, "ports")
+		self._tasks_path = os.path.join(self._work_path, "tasks")
 		
 		if "port_map" in wok_conf:
 			self._port_data_conf = wok_conf["port_map"]
@@ -87,18 +162,20 @@ class WokEngine(object):
 
 		self._maxpar = wok_conf.get("defaults.maxpar", 0, dtype=int)
 
-		self._depth = wok_conf.get("defaults.depth", 0, dtype=int)
+		self._wsize = wok_conf.get("defaults.wsize", 0, dtype=int)
 
-		self._mod_map = {}
-		self._port_map = {}
-
-		self._asc_dep = {} # {"child" : [parents]}
-		#self._des_dep = {} # {"parent" : [children]} FIXME: Not used
+		self._flow = None
 		
-		self._waiting = []
-		self._finished = []
+		self._state = WokEngine.S_UNINITIALIZED
+
+		self._run_thread = None
 
 		self._job_sched = self._create_job_scheduler(wok_conf)
+
+		self._run_lock = Lock()
+		
+		if flow is not None:
+			self._initialize(flow)
 
 	def _create_job_scheduler(self, wok_conf):
 		sched_name = wok_conf.get("scheduler", "default")
@@ -111,6 +188,9 @@ class WokEngine(object):
 		if sched_conf_key in wok_conf:
 			sched_conf.merge(wok_conf[sched_conf_key])
 
+		if "output_path" not in sched_conf:
+			sched_conf["output_path"] = self._output_path
+
 		self._log.debug("Creating '%s' scheduler with configuration %s" % (sched_name, sched_conf))
 
 		return create_job_scheduler(sched_name, sched_conf)
@@ -121,31 +201,37 @@ class WokEngine(object):
 		else:
 			return "%s.%s" % (ns, name)
 
-	def _populate_flow(self, flow, ns = ""):
+	def _create_graph(self, flow, ns = ""):
 		self._log.debug("Analyzing flow ...")
-		
-		# populate modules
+
+		self._mnodes_by_flow = []
+
+		# create module nodes
 		for m in flow.modules:
 			if m.enabled:
 				m_id = self._ns_name(ns, m.name)
 				mnode = ModNode(m_id, m)
 				self._mod_map[m_id] = mnode
-				self._waiting += [mnode]
+				self._mnodes_by_flow.append(mnode)
 
-		# populate ports
-		self._populate_ports(flow.in_ports)
-		self._populate_ports(flow.out_ports)
+		# create port nodes
+		self._create_port_nodes(flow.in_ports)
+		self._create_port_nodes(flow.out_ports)
 
 		for m_id, mnode in self._mod_map.iteritems():
 			m = mnode.module
-			mnode.in_pnodes = self._populate_ports(m.in_ports, m_id)
-			mnode.out_pnodes = self._populate_ports(m.out_ports, m_id)
+			mnode.in_pnodes = self._create_port_nodes(m.in_ports, m_id)
+			mnode.out_pnodes = self._create_port_nodes(m.out_ports, m_id)
 
 		self._connect_ports()
 
 		#TODO: Check that there is no unattached input ports
 
-	def _populate_ports(self, ports, ns = ""):
+		self._calculate_dependencies()
+
+		self._mnodes_by_dep = self._mnodes_sorted_by_dependency()
+		
+	def _create_port_nodes(self, ports, ns = ""):
 		pnodes = []
 		for p in ports:
 			p_id = self._ns_name(ns, p.name)
@@ -166,7 +252,7 @@ class WokEngine(object):
 		for p_id, pnode in self._port_map.iteritems():
 			port = pnode.port
 			if p_id in self._port_data_conf: # attached through user configuration
-				pnode.port.src = [] # override flow specified connections
+				pnode.port.link = [] # override flow specified connections
 				port_data_conf = self._port_data_conf[p_id]
 				if isinstance(port_data_conf, DataElement):
 					raise Exception("Configurable attached port unimplemented")
@@ -181,9 +267,9 @@ class WokEngine(object):
 						pnode.data = FileData(path)
 					else:
 						raise Exception("Unexpected path type: %s" % path)
-			elif len(port.src) == 0: # src not defined (they are source ports)
+			elif len(port.link) == 0: # link not defined (they are source ports)
 				rel_path = p_id.replace(".", "/")
-				path = os.path.join(self._data_path, "ports", rel_path)
+				path = os.path.join(self._work_path, "ports", rel_path)
 				if not os.path.exists(path):
 					os.makedirs(path)
 				pnode.data = PathData(path)
@@ -191,14 +277,14 @@ class WokEngine(object):
 		# then the ports that link to source ports
 		for p_id, pnode in self._port_map.iteritems():
 			port = pnode.port
-			if len(port.src) != 0:
+			if len(port.link) != 0:
 				data = []
-				for src in port.src:
-					if src not in self._port_map:
-						raise Exception("Port %s references a non-existent port: %s" % (p_id, src))
+				for link in port.link:
+					if link not in self._port_map:
+						raise Exception("Port %s references a non-existent port: %s" % (p_id, link))
 		
-					src_port = self._port_map[src]
-					data += [src_port.data.get_slice()]
+					link_port = self._port_map[link]
+					data += [link_port.data.get_slice()]
 				if len(data) == 1:
 					pnode.data = data[0]
 				else:
@@ -209,7 +295,7 @@ class WokEngine(object):
 			if pnode.data is None:
 				raise Exception("Unconnected port: %s" % p_id)
 
-	def _populate_dependencies(self, ns = ""):
+	def _calculate_dependencies(self, ns = ""):
 		self._log.debug("Calculating dependencies ...")
 		for m_id, mnode in self._mod_map.iteritems():
 			m = mnode.module
@@ -218,14 +304,14 @@ class WokEngine(object):
 					d_id = self._ns_name(ns, dname)
 					dm = self._mod_map[d_id]
 					_map_add_list(self._asc_dep, m_id, dm)
-					# TODO remove _map_add_list(self._des_dep, d_id, m)
+					# _map_add_list(self._des_dep, d_id, m)
 
 			for p in m.in_ports:
-				if len(p.src) == 0:
+				if len(p.link) == 0:
 					continue
 
-				for src in p.src:
-					parts = src.split(".")
+				for link in p.link:
+					parts = link.split(".")
 					if len(parts) <= 1:
 						continue
 
@@ -235,25 +321,49 @@ class WokEngine(object):
 
 					dm = self._mod_map[d_id]
 					_map_add_list(self._asc_dep, m_id, dm)
-					# TODO remove _map_add_list(self._des_dep, d_id, m)
+					# _map_add_list(self._des_dep, d_id, m)
 
-	def _schedule_batch(self):
+	def _mnodes_sorted_by_dependency(self):
+		mnodes = list()
+		ids = set()
+		remaining = self._mnodes_by_flow
+
+		while len(remaining) > 0:
+			selected = []
+			for mnode in remaining:
+				if mnode.m_id in self._asc_dep:
+					select = True
+					for dnode in self._asc_dep[mnode.m_id]:
+						if dnode.m_id not in ids:
+							select = False
+							break
+
+					if not select:
+						continue
+
+				selected.append(mnode)
+
+			for mnode in selected:
+				remaining.remove(mnode)
+				mnodes.append(mnode)
+				ids.add(mnode.m_id)
+		
+		return mnodes
+
+	def _next_batch(self):
 		batch = []
 		for mnode in self._waiting:
 			if mnode.m_id in self._asc_dep:
 				select = True
 				for dnode in self._asc_dep[mnode.m_id]:
-					if not dnode.scheduled:
+					if dnode.state != ModNode.S_FINISHED:
 						select = False
 						break
+
 				if not select:
 					continue
 
 			batch += [mnode]
-					
-		for mnode in batch:
-			mnode.scheduled = True
-			self._waiting.remove(mnode)
 	
 		return batch
 	
@@ -262,16 +372,19 @@ class WokEngine(object):
 		if t_id is not None:
 			task["id"] = t_id
 		task["flow"] = flow.name
-		task["module"] = task_module = task.create_element()
-		mnode.fill_element(task_module)
-		task["conf"] = conf
+		#task["mnode"] = task_mnode = task.create_element()
+		#mnode.fill_element(task_mnode)
+		task["mnode"] = mnode.m_id
+		task["conf"] = mnode.conf
 		task["exec"] = task_exec = task.create_element()
 		mnode.module.execution.fill_element(task_exec)
 		task["ports"] = task.create_element()
+		task["job"] = job = task.create_element()
+		job["output_path"] = os.path.join(self._output_path, "%s.txt" % task["id"])
 		return task
 
 	def _persist_task(self, task):
-		path = os.path.join(self._data_path, "tasks")
+		path = os.path.join(self._work_path, "tasks")
 		if not os.path.exists(path):
 			os.makedirs(path)
 		if "id" not in task:
@@ -285,33 +398,44 @@ class WokEngine(object):
 		json.dump(task, f, sort_keys=True, indent=4, cls=DataElementJsonEncoder)
 		f.close()
 
-	def _effective_depth(self, depth):
-		if depth == 0:
-			depth = max(self._depth, 1)
-		return depth
+	def _load_task(self, t_id):
+		path = os.path.join(self._work_path, "tasks", t_id + ".json")
+		try:
+			f = open(path, "r")
+			task = DataFactory.from_native(json.load(f), key_sep = "/")
+			f.close()
+		except:
+			self._log.error("Error reading task file: %s" % path)
+			raise
+		return task
+
+	def _effective_wsize(self, wsize):
+		if wsize == 0:
+			wsize = max(self._wsize, 1)
+		return wsize
 
 	def _effective_maxpar(self, maxpar):
 		if maxpar == 0:
 			maxpar = max(self._maxpar, 1)
 		return maxpar
 
-	def _schedule_module(self, flow, mnode):
-		# Calculate input sizes and the minimum depth
+	def _schedule_tasks(self, flow, mnode):
+		# Calculate input sizes and the minimum wsize
 		psizes = []
-		mdepth = sys.maxint
+		mwsize = sys.maxint
 		for pnode in mnode.in_pnodes:
 			psize = pnode.data.size()
 			psizes += [psize]
-			pdepth = self._effective_depth(pnode.port.depth)
-			self._log.debug("%s: size=%i, depth=%i" % (pnode.p_id, psize, pdepth))
-			if pdepth < mdepth:
-				mdepth = pdepth
+			pwsize = self._effective_wsize(pnode.port.wsize)
+			self._log.debug("%s: size=%i, wsize=%i" % (pnode.p_id, psize, pwsize))
+			if pwsize < mwsize:
+				mwsize = pwsize
 
 		tasks = []
 		
 		if len(psizes) == 0:
 			# Submit a task for the module without input ports information
-			t_id = "%s-%04i" % (mnode.m_id, 0)
+			t_id = "%s-%05i" % (mnode.m_id, 0)
 			task = self._create_task(self.conf, flow, mnode, t_id)
 			tasks += [task]
 
@@ -336,14 +460,14 @@ class WokEngine(object):
 				num_partitions = 1
 				self._log.warn("Unable to partition a module with inputs of different size")
 			else:
-				#TODO: Check mdepth == 0 --> some empty port
-				num_partitions = int(math.ceil(psize / float(mdepth)))
+				#TODO: Check mwsize == 0 --> some empty port
+				num_partitions = int(math.ceil(psize / float(mwsize)))
 				maxpar = self._effective_maxpar(mnode.module.maxpar)
 				self._log.debug("%s.maxpar=%i" % (mnode.module.name, maxpar))
 				if maxpar > 0 and num_partitions > maxpar:
 					num_partitions = maxpar
-					mdepth = int(math.ceil(psize / float(num_partitions)))
-				self._log.debug("num_par=%i, psize=%i, mdepth=%i" % (num_partitions, psize, mdepth))
+					mwsize = int(math.ceil(psize / float(num_partitions)))
+				self._log.debug("num_par=%i, psize=%i, mwsize=%i" % (num_partitions, psize, mwsize))
 
 			start = 0
 			partitions = []
@@ -351,11 +475,11 @@ class WokEngine(object):
 				t_id = "%s-%04i" % (mnode.m_id, i)
 				task = self._create_task(self.conf, flow, mnode, t_id)
 				tasks += [task]
-				end = min(start + mdepth, psize)
+				end = min(start + mwsize, psize)
 				size = end - start
 				partitions += [{"task" : task, "start" : start,  "size" : size}]
 				self._log.debug("par=%i, start=%i, end=%i, size=%i" % (i, start, end, size))
-				start += mdepth
+				start += mwsize
 				
 			#self._log.debug(repr(partitions))
 
@@ -388,108 +512,290 @@ class WokEngine(object):
 					e["data"] = data.fill_element(e.create_element())
 					pnode.data.last_partition += 1
 
-		self._log.info("Submitting %i tasks for module '%s' ..." % (len(tasks), mnode))
+		mnode.num_tasks = len(tasks)
 		
-		for task in tasks:
-			self._persist_task(task)
-			self._job_sched.submit(task)
-
 		return tasks
 
-	def run(self, flow):
+	def clean(self):
+		self._log.info("Cleaning ...")
+		for path in [self._ports_path, self._tasks_path]:
+			if os.path.exists(path):
+				self._log.debug(path)
+				shutil.rmtree(path)
+			os.makedirs(path)
+		self._job_sched.clean()
+
+	def _initialize(self, flow):
+		self._run_lock.acquire()
+
+		self._flow = flow
 
 		# Clean
-		
-		if self._clean:
-			self._log.info("Cleaning ...")
-			for path in [self._ports_path, self._tasks_path]:
-				if os.path.exists(path):
-					self._log.debug(path)
-					shutil.rmtree(path)
-				os.makedirs(path)
 
-			self._job_sched.clean()
+		if self._clean:
+			self.clean()
 
 		# Initialize
 
-		self._populate_flow(flow)
-		self._populate_dependencies()
-		
+		self._mod_map = {}
+		self._port_map = {}
+
+		self._asc_dep = {} # {"child" : [parents]}
+		#self._des_dep = {} # {"parent" : [children]} FIXME: Not used
+
+		self._waiting = []
+		self._submitted = []
+		self._finished = []
+		self._failed = []
+
+		self._create_graph(flow)
+
+		for mnode in self._mod_map.values():
+			mnode.state = ModNode.S_WAITING
+			self._waiting += [mnode]
+
+			mnode.conf.merge(self.conf)
+			if mnode.module.conf is not None:
+				mnode.conf.merge(mnode.module.conf)
+
 		sb = ["Modules input data:\n"]
 		for m_id, mnode in self._mod_map.iteritems():
 			sb += ["%s\n" % mnode]
 			for pnode in mnode.in_pnodes:
 				sb += ["\t%r\n" % pnode]
 		self._log.debug("".join(sb))
-		
-		# Schedule batches
-		
-		self._log.info("Scheduling flow '%s' with %i modules ..." % (flow.name, len(self._mod_map)))
-		
-		batch_index = 0
-		batch_modules = self._schedule_batch()
-		while len(batch_modules) > 0:
-			sb = ["Batch %i: " % batch_index]
-			sb += [", ".join([str(x) for x in batch_modules])]
-			self._log.info("".join(sb))
 
-			tasks = []
-			
-			# Initializa ports data starting partition
-			for mnode in batch_modules:
-				for pnode in mnode.out_pnodes:
-					pnode.data.start_partition = pnode.data.last_partition
+		self._state = WokEngine.S_READY
 
-			# Schedule modules in a batch
-			for mnode in batch_modules:
-				tasks += self._schedule_module(flow, mnode)
+		self._run_lock.release()
 
-			# Wait for modules to finish
-			self._log.info("Waitting for the %i tasks to finish ..." % len(tasks))
-			self._job_sched.wait()
+	def _run(self):
+		self._run_lock.acquire()
 
-			# Update tasks and check failed ones
-			failed = []
-			for task in tasks:
-				self._persist_task(task)
+		self._state = WokEngine.S_RUNNING
 
-				job = task["job"]
-				if "status" in job:
-					status_code = job["status/code"]
-					status_msg = job["status/msg"]
-					if status_code != 0:
-						failed += [task]
-						sb = ["Task %s exited with code %i\n" % (task["id"], status_code)]
-						# FIXME: Don't log output_path
-						if "output_path" in job:
-							output_path = job["output_path"]
-							if os.path.exists(output_path):
-								f = open(output_path, "r")
-								sb += f.read()
-								f.close()
-						self._log.warn("".join(sb))
-						
-			if len(failed) > 0 and self._stop_on_errors:
-				batch_modules = []
-				continue
+		self._log.info("Scheduling flow '%s' with %i modules ..." % (self._flow.name, len(self._mod_map)))
 
-			if self._autorm_task:
+		try:
+			batch_index = 0
+			batch_modules = self._next_batch()
+			while len(batch_modules) > 0:
+				sb = ["Batch %i: " % batch_index]
+				sb += [", ".join([str(x) for x in batch_modules])]
+				self._log.info("".join(sb))
+
+				tasks = []
+
+				# Initialize ports data starting partition
+				for mnode in batch_modules:
+					for pnode in mnode.out_pnodes:
+						pnode.data.start_partition = pnode.data.last_partition
+
+				# Submit tasks
+				for mnode in batch_modules:
+					self._waiting.remove(mnode)
+					self._submitted.append(mnode)
+					mnode.state = ModNode.S_SUBMITTED
+					mtasks = self._schedule_tasks(self._flow, mnode)
+
+					self._log.info("Submitting %i tasks for module '%s' ..." % (len(mtasks), mnode))
+					for task in mtasks:
+						self._persist_task(task)
+						self._job_sched.submit(task)
+						mnode.submitted_tasks.append(task["id"])
+
+					tasks += mtasks
+
+				# Wait for modules to finish
+				self._log.info("Waitting for the %i tasks to finish ..." % len(tasks))
+				self._run_lock.release()
+				self._job_sched.wait()
+				self._run_lock.acquire()
+
+				# Update tasks and check failed ones
+
+				failed_tasks = []
+				
 				for task in tasks:
-					os.remove(task["__doc_path"])
-									
-			self._finished += batch_modules
-			batch_modules = self._schedule_batch()
-			batch_index += 1
+					self._persist_task(task)
 
-		if len(self._waiting) > 0:
-			self._log.error("Flow finished before completing all modules")
-		
-		if len(failed) > 0:
-			msg = "\n".join(["\t%s" % task["id"] for task in failed])
-			self._log.error("Flow '%s' failed:\n%s" % (flow.name, msg))
-		else:
-			self._log.info("Flow '%s' finished successfully" % flow.name)
+					failed = False
 
+					task_id = task["id"]
+
+					mnode = self._mod_map[task["mnode"]]
+
+					job = task["job"]
+					if "exit" in job:
+						exit_code = job["exit/code"]
+						exit_message = job["exit/message"]
+						exit_exception = job.get("exit/exception", None)
+						if exit_code != 0:
+							failed = True
+							failed_tasks += [task]
+							sb = ["Task %s failed with code %i\n" % (task["id"], exit_code)]
+							#TODO print exception trace if exit_exception is not None
+
+							self._log.error(exit_message)
+							if exit_exception is not None:
+								self._log.error(exit_exception)
+						else:
+							self._log.debug(exit_message)
+							if exit_exception is not None:
+								self._log.error(exit_exception)
+
+					mnode.submitted_tasks.remove(task_id)
+					if failed:
+						mnode.failed_tasks.append(task_id)
+					else:
+						mnode.finished_tasks.append(task_id)
+
+				for mnode in batch_modules:
+					self._submitted.remove(mnode)
+					if len(mnode.failed_tasks) > 0:
+						mnode.state = ModNode.S_FAILED
+						self._failed += [mnode]
+					else:
+						mnode.state = ModNode.S_FINISHED
+						self._finished += [mnode]
+
+				if len(failed_tasks) > 0 and self._stop_on_errors:
+					break
+
+				if self._autorm_task:
+					for task in tasks:
+						os.remove(task["__doc_path"])
+
+				batch_modules = self._next_batch()
+				batch_index += 1
+
+			if len(self._waiting) > 0:
+				self._log.error("Flow finished before completing all modules")
+
+			if len(failed_tasks) > 0:
+				msg = "\n".join(["\t%s" % task["id"] for task in failed_tasks])
+				self._log.error("Flow '%s' failed:\n%s" % (self._flow.name, msg))
+				self._state = WokEngine.S_FAILED
+			else:
+				self._log.info("Flow '%s' finished successfully" % self._flow.name)
+				self._state = WokEngine.S_FINISHED
+
+		except:
+			self._state = WokEngine.S_EXCEPTION
+			raise
+		finally:
+			self._run_lock.acquire(False)
+			self._run_lock.release()
+
+	def _stop(self):
+		pass
+	
+	@synchronized(_engine_lock)
+	def initialize(self, flow):
+		self._initialize(flow)
+
+	@synchronized(_engine_lock)
+	def initialized(self):
+		return self._state != WokEngine.S_UNINITIALIZED
+
+	@synchronized(_engine_lock)
+	def start(self, async = True):
+		if self._state == WokEngine.S_RUNNING:
+			raise WokAlreadyRunningError()
+
+		if self._state not in [WokEngine.S_READY, WokEngine.S_PAUSED, WokEngine.S_FINISHED, WokEngine.S_FAILED, WokEngine.S_EXCEPTION]:
+			raise WokInvalidOperationForStatusError('start', self._state)
+
+		if self._state in [WokEngine.S_FINISHED, WokEngine.S_FAILED, WokEngine.S_EXCEPTION]:
+			self._initialize(self._flow);
+
+		self._run_thread = RunThread(self)
+		self._run_thread.start()
+
+		if not async:
+			_engine_lock.release()
+			self.wait()
+			_engine_lock.acquire()
+
+	@synchronized(_engine_lock)
+	def pause(self):
+		pass
+
+	@synchronized(_engine_lock)
+	def cont(self):
+		pass
+
+	@synchronized(_engine_lock)
+	def stop(self):
+		self._stop()
+
+	@synchronized(_engine_lock)
+	def wait(self):
+		if self._run_thread is not None:
+			self._run_thread.join()
+			self._run_thread = None
+
+	@synchronized(_engine_lock)
 	def exit(self):
-		self._job_sched.exit()
+		self._stop()
 
+		self._state = WokEngine.S_EXITING
+		self._job_sched.exit()
+		self._state = WokEngine.S_EXITED
+
+	@synchronized(_engine_lock)
+	def state(self):
+		s = {}
+		s["name"] = self._state
+		s["title"] = self._state
+
+		s["mnodes"] = mnodes = {}
+		for mnode in self._mod_map.itervalues():
+			mnodes[mnode.m_id] = mnode.fill_element(DataElement()).to_native()
+
+		s["mnodes_by_dep"] = [mnode.m_id for mnode in self._mnodes_by_dep]
+
+		return s
+
+	@synchronized(_engine_lock)
+	def mnode_state(self, m_id):
+		if m_id not in self._mod_map:
+			return None
+
+		mnode = self._mod_map[m_id]
+		return mnode.fill_element(DataElement()).to_native()
+
+	@synchronized(_engine_lock)
+	def task_state(self, task_id):
+		task = self._load_task(task_id)
+		return task
+
+	@synchronized(_engine_lock)
+	def task_conf(self, task_id):
+		task = self._load_task(task_id)
+		return task["conf"]
+
+	@synchronized(_engine_lock)
+	def task_output(self, task_id):
+		task = self._load_task(task_id)
+		if task is None:
+			return None
+
+		output_path = task["job/output_path"]
+		if not os.path.exists(output_path):
+			return None
+
+		f = open(output_path, "r")
+		try:
+			output = f.read()
+			return output
+		finally:
+			f.close()
+
+	@synchronized(_engine_lock)
+	def mnode_conf(self, m_id):
+		if m_id not in self._mod_map:
+			return DataElement(key_sep = "/")
+
+		mnode = self._mod_map[m_id]
+		return mnode.conf

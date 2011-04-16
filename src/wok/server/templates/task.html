@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+{% block body %}
+	<h2>Task: {{ name }}</h2>
+	<ul>
+		<li><a id="name" href="{{ url_for('module', name=task['mnode']) }}">Module</a></li>
+		<li><a id="name" href="{{ url_for('task_conf', name=name, dwl=1) }}">Configuration</a></li>
+		{% if "job/output_path" in task %}
+		<li><a id="name" href="{{ url_for('task_output', name=name, dwl=1) }}">Output</a></li>
+		{% endif %}
+		<li><a id="name" href="{{ url_for('task', name=name, dwl=1) }}">Model</a></li>
+	</ul>
+
+	{% if "job/exit" in task %}
+	<h3>Exit state</h3>
+	{% set exit = task["job/exit"] %}
+	<table class="exit-status-table">
+		{% if "code" in exit %}
+		<tr><td>Code</td><td>{{ exit["code"] }}</td></tr>
+		{% endif %}
+		{% if "message" in exit %}
+		<tr><td>Message</td><td>{{ exit["message"] }}</td></tr>
+		{% endif %}
+		{% if "exception" in exit %}
+		<tr><td>Exception</td><td>{{ exit["exception"] }}</td></tr>
+		{% endif %}
+	</table>
+	{% endif %}
+{% endblock %}

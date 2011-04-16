@@ -15,12 +15,12 @@ class DrmaaJobScheduler(JobScheduler):
 		if len(mf) > 0:
 			raise Exception("Missing configuration: [%s]" % ", ".join(mf))
 
-		self._log = logger.get_logger(conf, "drmaa")
+		self._log = logger.get_logger(conf.get("log"), "drmaa")
 
 		self._work_path = conf["work_path"]
-		self._stdio_path = conf.get("io_path", os.path.join(self._work_path, "io"))
-		if not os.path.exists(self._stdio_path):
-			os.makedirs(self._stdio_path)
+		self._output_path = conf.get("output_path", os.path.join(self._work_path, "output"))
+		if not os.path.exists(self._output_path):
+			os.makedirs(self._output_path)
 		self._shell_path = os.path.join(self._work_path, "sh")
 		if not os.path.exists(self._shell_path):
 			os.makedirs(self._shell_path)
@@ -28,7 +28,7 @@ class DrmaaJobScheduler(JobScheduler):
 		self._working_directory = conf.get("working_directory", None)
 		
 		self._autorm_sh = conf.get("auto_remove.sh", True, dtype=bool)
-		self._autorm_io = conf.get("auto_remove.io", True, dtype=bool)
+		self._autorm_output = conf.get("auto_remove.output", True, dtype=bool)
 
 		self._session = drmaa.Session()
 		self._session.initialize()
@@ -44,7 +44,7 @@ class DrmaaJobScheduler(JobScheduler):
 		self._jobs = {}
 
 	def clean(self):
-		for path in [self._stdio_path, self._shell_path]:
+		for path in [self._output_path, self._shell_path]:
 			if os.path.exists(path):
 				self._log.debug(path)
 				shutil.rmtree(path)
@@ -85,7 +85,7 @@ class DrmaaJobScheduler(JobScheduler):
 
 		shell_cmd = self._create_shell(task, shell, cmd)
 		
-		output_path = os.path.join(self._stdio_path, "%s.io" % task["id"])
+		output_path = os.path.join(self._output_path, "%s.txt" % task["id"])
 		
 		jt = self._session.createJobTemplate()
 		jt.jobName = job_name
@@ -109,7 +109,7 @@ class DrmaaJobScheduler(JobScheduler):
 		self._jobs[jobid] = {
 			"task" : task,
 			"sh_path" : shell_cmd,
-			"io_path" : output_path
+			"output_path" : output_path
 		}
 		
 		task["job"] = job_conf = task.create_element()
@@ -126,7 +126,7 @@ class DrmaaJobScheduler(JobScheduler):
 		
 		self._session.deleteJobTemplate(jt)
 	
-	def wait(self):
+	def wait(self, timeout=None):
 		tasks = []
 		
 		self._session.synchronize(self._waiting, drmaa.Session.TIMEOUT_WAIT_FOREVER, False)
@@ -139,40 +139,43 @@ class DrmaaJobScheduler(JobScheduler):
 				ret = self._session.wait(jobid, drmaa.Session.TIMEOUT_WAIT_FOREVER)
 			
 				sh_path = job["sh_path"]
-				io_path = job["io_path"]
+				output_path = job["output_path"]
 				del self._jobs[jobid]
 
 				if self._autorm_sh:
 					os.remove(sh_path)
 
-				if self._autorm_io:
-					os.remove(io_path)
+				if self._autorm_output:
+					os.remove(output_path)
 
-				status_code = -1
+				exit_code = -1
 				sb = ["Task %s (job %s)" % (task["id"], jobid)]
 				if ret.wasAborted:
 					sb += [" was aborted"]
 					if ret.hasCoreDump:
 						sb += [" with core dump"]
 				elif ret.hasExited:
-					sb += [" has exited with status %s" % ret.exitStatus]
-					status_code = ret.exitStatus
+					sb += [" has exited with code %s" % ret.exitStatus]
+					exit_code = ret.exitStatus
 				elif ret.hasSignal:
 					sb += [" got signal %s" % ret.terminatedSignal]
-				status_msg = "".join(sb)
-				self._log.debug(status_msg)
+				exit_msg = "".join(sb)
+				self._log.debug(exit_msg)
 
-				task["job/status/code"] = status_code
-				task["job/status/msg"] = status_msg
+				task["job/exit/code"] = exit_code
+				task["job/exit/message"] = exit_msg
 			except Exception as e:
 				self._log.exception(e)
-				task["job/status/code"] = -1
-				task["job/status/msg"] = "There was an exception while waiting for the job to finish: %s" % e
+				task["job/exit/code"] = -1
+				task["job/exit/message"] = "There was an exception while waiting for the job to finish: %s" % e
 			
 		self._waiting = []
 		
 		return tasks
 
+	def finished(self):
+		return len(self._waiting) == 0
+	
 	def exit(self):
 		self._session.exit()
 

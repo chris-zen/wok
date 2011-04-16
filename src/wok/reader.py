@@ -1,5 +1,5 @@
 
-from wok.element import dataelement_from_xml
+from wok.element import DataElement, dataelement_from_xml
 from wok.model import *
 
 def str_to_bool(s):
@@ -71,15 +71,15 @@ class FlowReader(object):
 			
 		port = Port(name = attr["name"], ptype = ptype)
 		
-		if "src" in attr:
-			src = [x.strip() for x in e.attrib["src"].split(",")]
-			if len(src) != 1 or len(src[0]) != 0:
-				port.src = src
+		if "link" in attr:
+			link = [x.strip() for x in e.attrib["link"].split(",")]
+			if len(link) != 1 or len(link[0]) != 0:
+				port.link = link
 		
-		if "depth" in attr:
-			port.depth = int(attr["depth"])
-			if port.depth < 1:
-				raise Exception("At port %s: 'depth' should be a number greater than 0" % port.name)
+		if "wsize" in attr:
+			port.wsize = int(attr["wsize"])
+			if port.wsize < 1:
+				raise Exception("At port %s: 'wsize' should be a number greater than 0" % port.name)
 
 		return port
 
@@ -109,7 +109,11 @@ class FlowReader(object):
 		
 		for ep in e.xpath("out"):
 			mod.add_out_port(self.parse_port(ep))
-			
+
+		mod.conf = DataElement()
+		for el in e.xpath("conf"):
+			conf.merge(self.parse_conf(el))
+
 		el = e.xpath("exec")
 		if len(el) == 0:
 			raise Exception("Missing <exec> in module %s" % mod.name)
@@ -119,6 +123,9 @@ class FlowReader(object):
 			raise Exception("More than one <exec> found in module %s" % mod.name)
 
 		return mod
+
+	def parse_conf(self, e):
+		return dataelement_from_xml(e)
 
 	def parse_exec(self, e):
 		attr = e.attrib

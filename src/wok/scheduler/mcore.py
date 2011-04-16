@@ -1,7 +1,9 @@
+import traceback
 import os
 import shutil
 import shlex
 import subprocess as sp
+import time
 	
 import multiprocessing as mp
 
@@ -9,34 +11,51 @@ from wok import logger
 from wok.scheduler import JobScheduler
 from wok.launcher.factory import create_launcher
 
-def _run_job(job):
-	retcode = -128
+def _job_run(job):
+	job.run()
+	return job
 
-	o = open(job["output_path"], "wa")
+class Job(object):
+	def __init__(self):
+		self.cmd = None
+		self.output_path = None
+		self.working_directory = None
+		self.env = None
+		self.task = None
 
-	try:
-		args = shlex.split(str(job["cmd"]))
+		self.elapsed_time = 0
+		self.exit_code = -128
+		self.exit_message = None
+		self.exit_exception = None
 
-		p = sp.Popen(
-					args = args,
-					stdin=None,
-					stdout=o,
-					stderr=sp.STDOUT,
-					cwd=job["working_directory"],
-					env=job["env"])
+	def run(self):
+		o = open(self.output_path, "wa")
 
-		p.wait()
+		try:
+			args = shlex.split(str(self.cmd))
 
-		retcode = p.returncode
-	except:
-		#import traceback
-		#o.write(">>> Exception on job runner:\n")
-		#traceback.print_exc(file=o)
-		pass
-	finally:
-		o.close()
+			start_time = time.time()
 
-	return retcode
+			p = sp.Popen(
+						args = args,
+						stdin=None,
+						stdout=o,
+						stderr=sp.STDOUT,
+						cwd=self.working_directory,
+						env=self.env)
+
+			p.wait()
+
+			self.elapsed_time = time.time() - start_time
+			self.exit_code = p.returncode
+			self.exit_message = "Task %s exited with return code %i" % (self.task["id"], self.exit_code)
+		except:
+			import traceback
+			self.exit_code = -128
+			self.exit_msg = "Exception launching task %s" % self.task["id"]
+			self.exit_exception = traceback.format_exc()
+		finally:
+			o.close()
 
 class McoreJobScheduler(JobScheduler):
 	def __init__(self, conf):
@@ -46,16 +65,16 @@ class McoreJobScheduler(JobScheduler):
 		if len(mf) > 0:
 			raise Exception("Missing configuration: [%s]" % ", ".join(mf))
 
-		self._log = logger.get_logger(conf, "mcore")
+		self._log = logger.get_logger(conf.get("log"), "mcore")
 
 		self._work_path = conf["work_path"]
-		self._stdio_path = conf.get("io_path", os.path.join(self._work_path, "io"))
-		if not os.path.exists(self._stdio_path):
-			os.makedirs(self._stdio_path)
+		self._output_path = conf.get("output_path", os.path.join(self._work_path, "output"))
+		if not os.path.exists(self._output_path):
+			os.makedirs(self._output_path)
 
 		self._working_directory = conf.get("working_directory", None)
 		
-		self._autorm_io = conf.get("auto_remove.io", False, dtype=bool)
+		self._autorm_output = conf.get("auto_remove.output", False, dtype=bool)
 
 		self._waiting = []
 
@@ -66,14 +85,13 @@ class McoreJobScheduler(JobScheduler):
 		self._log.debug("Multi-core scheduler initialized with %i processors" % self._num_proc)
 
 	def clean(self):
-		for path in [self._stdio_path]:
+		for path in [self._output_path]:
 			if os.path.exists(path):
 				self._log.debug(path)
 				shutil.rmtree(path)
 			os.makedirs(path)
 
 	def submit(self, task):
-		#job_name = task["id"]
 		
 		execution = task["exec"]
 		launcher_name = execution.get("launcher", None)
@@ -98,7 +116,7 @@ class McoreJobScheduler(JobScheduler):
 
 		shell_cmd = " ".join([cmd] + args)
 
-		output_path = os.path.join(self._stdio_path, "%s.io" % task["id"])
+		output_path = task["job/output_path"]
 
 		sb = ["%s %s" % (cmd, " ".join(args))]
 		if len(env) > 0:
@@ -107,47 +125,71 @@ class McoreJobScheduler(JobScheduler):
 				sb += ["\t%s=%s" % (k, v)]
 		self._log.debug("".join(sb))
 		
-		job = {}
-		job["cmd"] = shell_cmd
-		job["output_path"] = output_path
-		job["working_directory"] = self._working_directory
-		job["env"] = env
-	
-		result = self._pool.apply_async(_run_job, [job])
+		job = Job()
+		job.name = task["id"]
+		job.cmd = shell_cmd
+		job.output_path = output_path
+		job.working_directory = self._working_directory
+		job.env = env
+		job.task = task
 
-		self._waiting += [(job, task, result)]
+		result = self._pool.apply_async(_job_run, [job])
+
+		self._waiting += [(job, result)]
 		
 		self._log.info("Task %s submited" % task["id"])
 
-	def wait(self):
+	def wait(self, timeout = None):
 		tasks = []
-		
-		for job, task, result in self._waiting:
-			tasks += [task]
 
-			try:
-				status_code = result.get()
+		timeout_raised = False
+		start_time = time.time()
 
-				io_path = job["output_path"]
-				if self._autorm_io and os.path.exists(io_path):
-					os.remove(io_path)
+		while len(self._waiting) > 0 and not timeout_raised:
+			finished = []
+			for job, result in self._waiting:
+				task = job.task
 
-				sb = ["Task %s exited with return code %i" % (task["id"], status_code)]
-				status_msg = "".join(sb)
-				self._log.debug(status_msg)
+				elapsed_time = time.time() - start_time
+				timeout_raised = timeout is not None and elapsed_time >= timeout
+				try:
+					if timeout is not None:
+						result_timeout = min(1, max(0, timeout - elapsed_time))
+						rjob = result.get(timeout = result_timeout)
+					else:
+						rjob = result.get()
 
-				task["job/status/code"] = status_code
-				task["job/status/msg"] = status_msg
-			except Exception as e:
-				self._log.exception(e)
-				task["job/status/code"] = -1
-				task["job/status/msg"] = "There was an exception while waiting for the process to finish: %s" % e
+					if rjob is not None:
+						finished += [(job, result)]
+						tasks += [task]
+						output_path = rjob.output_path
+						if self._autorm_output and os.path.exists(output_path):
+							os.remove(output_path)
 
-		self._waiting = []
-		
+						task["job/elapsed_time"] = rjob.elapsed_time
+						task["job/exit/code"] = rjob.exit_code
+						task["job/exit/message"] = rjob.exit_message
+						if rjob.exit_exception is not None:
+							task["job/exit/exception"] = rjob.exit_exception
+
+				except Exception as e:
+					self._log.exception(e)
+
+					task["job/exit/code"] = -128
+					task["job/exit/message"] = "Exception waiting for the task %s to finish: %s" % (task["id"], e)
+					task["job/exit/exception"] = traceback.format_exc()
+
+				if timeout_raised:
+					break
+
+			for job_result in finished:
+				self._waiting.remove(job_result)
+
 		return tasks
 
+	def finished(self):
+		return len(self._waiting) == 0
+	
 	def exit(self):
 		self._pool.close()
 		self._pool.join()
-
