@@ -11,6 +11,10 @@ h3              { font-size: 1.2em; }
 h4              { font-size: 0.6em; }
 h5              { font-size: 0.2em; }
 
+.index-link {
+	text-decoration: none;
+}
+
 .page           {
 	margin: 1em auto; padding: 0.8em; width: 90%;
 	border: 2px solid #ccc; background: white;

@@ -1,3 +1,4 @@
+from lxml import etree
 
 from wok.element import DataElement, dataelement_from_xml
 from wok.model import *
@@ -20,7 +21,6 @@ class FlowReader(object):
 			self.fp = path
 	
 	def read(self):
-		from lxml import etree
 		doc = etree.parse(self.fp)
 		root = doc.getroot()		
 		flow = self.parse_flow(root)

@@ -1,2 +1,5 @@
-Workflow XML definition
-=======================
+Workflows
+=========
+
+- Definition
+- XML definition

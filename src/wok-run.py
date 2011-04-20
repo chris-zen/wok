@@ -23,6 +23,7 @@ wok_conf = conf["wok"]
 server_mode = wok_conf.get("server.enabled", False, dtype=bool)
 server_host = wok_conf.get("server.host", "localhost", dtype=str)
 server_port = wok_conf.get("server.port", 5000, dtype=int)
+server_debug = wok_conf.get("server.debug", False, dtype=bool)
 
 logger.initialize(wok_conf.get("log"))
 log = logger.get_logger(wok_conf.get("log"))
@@ -52,7 +53,7 @@ def main():
 	if server_mode:
 		from wok.server import app
 		app.config["WOK"] = wok
-		app.run(host=server_host, port=server_port, debug = True)
+		app.run(host=server_host, port=server_port, debug = server_debug)
 	else:
 		wok.start(async = False)
 	

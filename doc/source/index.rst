@@ -11,9 +11,12 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   installation
    configuration
    workflow
-   wok-run
+   tools
+   server
+   developers
 
 Indices and tables
 ==================

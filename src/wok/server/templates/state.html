@@ -13,11 +13,11 @@
 						{% if state.name in ['paused', 'failed'] %}
 							<li><a href="{{ url_for('engine_continue') }}">continue</a></li>
 						{% endif %}
-						{% if state.name == 'runnning' %}
+						{% if state.name == 'running' %}
 							<li><a href="{{ url_for('engine_pause') }}">pause</a></li>
 							<li><a href="{{ url_for('engine_stop') }}">stop</a></li>
 						{% endif %}
-						{% if state.name in ['finished', 'exception'] %}
+						{% if state.name in ['finished', 'failed', 'exception'] %}
 							<li><a href="{{ url_for('engine_start') }}">restart</a></li>
 						{% endif %}
 					</ul>
