@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import uuid
 
 from wok import logger
 from wok.config import Config
@@ -12,18 +13,24 @@ from wok.engine import WokEngine
 def add_options(parser):
 	pass
 
-conf = Config(args_usage = "<flow-file>", add_options = add_options)
+initial_conf = {
+	"wok" : {
+		"__instance" : {
+			"name" : uuid.uuid4()
+		}
+	}
+}
+
+conf = Config(
+	initial_conf = initial_conf,
+	args_usage = "<flow-file>",
+	add_options = add_options)
 
 if "wok" not in conf:
 	print("Missing wok configuration")
 	exit(-1)
 
 wok_conf = conf["wok"]
-
-server_mode = wok_conf.get("server.enabled", False, dtype=bool)
-server_host = wok_conf.get("server.host", "localhost", dtype=str)
-server_port = wok_conf.get("server.port", 5000, dtype=int)
-server_debug = wok_conf.get("server.debug", False, dtype=bool)
 
 logger.initialize(wok_conf.get("log"))
 log = logger.get_logger(wok_conf.get("log"))
@@ -50,12 +57,17 @@ reader.close()
 wok = WokEngine(conf, flow)
 
 def main():
+	server_mode = wok_conf.get("server.enabled", False, dtype=bool)
 	if server_mode:
 		from wok.server import app
 		app.config["WOK"] = wok
+		server_host = wok_conf.get("server.host", "localhost", dtype=str)
+		server_port = wok_conf.get("server.port", 5000, dtype=int)
+		server_debug = wok_conf.get("server.debug", False, dtype=bool)
+
 		app.run(host=server_host, port=server_port, debug = server_debug)
 	else:
 		wok.start(async = False)
-	
+
 if __name__ == "__main__":
 	main()

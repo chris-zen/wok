@@ -12,7 +12,7 @@ class Config(DataElement):
 	and appends new configuration parameters (with -D option)
 	"""
 	
-	def __init__(self, required = [], args_usage = "", add_options = None, expand_vars = False):
+	def __init__(self, initial_conf = None, required = [], args_usage = "", add_options = None, expand_vars = False):
 		DataElement.__init__(self)
 		
 		from optparse import OptionParser
@@ -33,6 +33,11 @@ class Config(DataElement):
 			add_options(parser)
 
 		(self.options, self.args) = parser.parse_args()
+
+		if initial_conf is not None:
+			if isinstance(initial_conf, dict):
+				initial_conf = DataFactory.from_native(initial_conf)
+			self.merge(initial_conf)
 
 		if self.options.log_level is not None:
 			self["wok.log.level"] = self.options.log_level
