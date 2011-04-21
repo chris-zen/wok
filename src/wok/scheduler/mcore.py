@@ -124,6 +124,10 @@ class McoreJobScheduler(JobScheduler):
 			for k, v in env.iteritems():
 				sb += ["\t%s=%s" % (k, v)]
 		self._log.debug("".join(sb))
+
+		#print shell_cmd
+		#import sys
+		#sys.stdout.flush()
 		
 		job = Job()
 		job.name = task["id"]

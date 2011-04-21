@@ -8,7 +8,6 @@ Dependencies
 - lxml
 - drmaa
 - flask
-- jinja2
 
 For developers:
 

@@ -33,7 +33,7 @@ def configuration():
 @web.route('/workflow')
 def workflow():
 	conf = wok().conf
-	path = os.path.join(conf["wok.flow_path"], conf["wok.flow_file"])
+	path = os.path.join(conf["wok.__flow.path"], conf["wok.__flow.file"])
 	f = open(path)
 	try:
 		wf = f.read()

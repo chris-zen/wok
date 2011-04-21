@@ -16,7 +16,7 @@ def add_options(parser):
 initial_conf = {
 	"wok" : {
 		"__instance" : {
-			"name" : uuid.uuid4()
+			"name" : str(uuid.uuid4())
 		}
 	}
 }
@@ -41,10 +41,10 @@ if len(conf.args) != 1:
 
 flow_arg = conf.args[0]
 flow_path = os.path.dirname(os.path.abspath(flow_arg))
-wok_conf["flow_path"] = flow_path
-wok_conf["flow_file"] = os.path.basename(flow_arg)
+wok_conf["__flow.path"] = flow_path
+wok_conf["__flow.file"] = os.path.basename(flow_arg)
 
-wok_conf["cwd"] = os.getcwd()
+wok_conf["__cwd"] = os.getcwd()
 
 conf.expand_vars()
 

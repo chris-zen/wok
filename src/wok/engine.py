@@ -142,6 +142,8 @@ class WokEngine(object):
 		wok_conf = conf["wok"]
 		
 		self._log = logger.get_logger(wok_conf.get("log"), "wok")
+
+		self._instance_name = wok_conf["__instance.name"]
 		
 		self._bin_path = wok_conf["bin_path"]
 		self._work_path = wok_conf["work_path"]
@@ -574,6 +576,7 @@ class WokEngine(object):
 
 		self._state = WokEngine.S_RUNNING
 
+		self._log.info("Running instance '%s' ..." % self._instance_name)
 		self._log.info("Scheduling flow '%s' with %i modules ..." % (self._flow.name, len(self._mod_map)))
 
 		try:

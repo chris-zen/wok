@@ -9,7 +9,7 @@ class PythonLauncher(Launcher):
 	def template(self, exec_conf, task):
 		task_conf = task["conf"]
 		
-		flow_path = task_conf.get("wok.flow_path", os.getcwd())
+		flow_path = task_conf.get("wok.__flow.path", os.getcwd())
 		
 		python_bin = self.conf.get("bin", "python")
 
