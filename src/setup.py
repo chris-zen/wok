@@ -1,3 +1,10 @@
+"""
+
+"""
+
+import distribute_setup
+distribute_setup.use_setuptools()
+
 from setuptools import setup, find_packages
 setup(
     name = "wok",
@@ -10,7 +17,10 @@ setup(
     # Project uses reStructuredText, so ensure that the docutils get
     # installed or upgraded on the target machine
     install_requires = [
-		'docutils>=0.3'
+		'docutils>=0.3',
+		'lxml>=2.3',
+		'drmaa',
+		'Flask>=0.6'
 	],
 
     package_data = {
@@ -24,7 +34,8 @@ setup(
     description = "Workflow management system",
     license = "NOSL",
     keywords = "workflow dataflow analysis",
-    url = "http://bg.upf.edu/forge"
+    url = "http://bg.upf.edu/forge",
+	long_description = __doc__
 
     # could also include long_description, download_url, classifiers, etc.
 )
