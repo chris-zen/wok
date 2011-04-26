@@ -3,11 +3,11 @@
 	<h2>Task: {{ name }}</h2>
 	<ul>
 		<li><a id="name" href="{{ url_for('module', name=task['mnode']) }}">Module</a></li>
-		<li><a id="name" href="{{ url_for('task_conf', name=name, dwl=1) }}">Configuration</a></li>
+		<li><a id="name" href="{{ url_for('task_conf', name=name) }}">Configuration</a></li>
 		{% if "job/output_path" in task %}
-		<li><a id="name" href="{{ url_for('task_output', name=name, dwl=1) }}">Output</a></li>
+		<li><a id="name" href="{{ url_for('task_output', name=name) }}">Output</a></li>
 		{% endif %}
-		<li><a id="name" href="{{ url_for('task', name=name, dwl=1) }}">Model</a></li>
+		<li><a id="name" href="{{ url_for('task_model', name=name) }}">Model</a></li>
 	</ul>
 
 	{% if "job/exit" in task %}

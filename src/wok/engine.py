@@ -156,7 +156,7 @@ class WokEngine(object):
 		else:
 			self._port_data_conf = wok_conf.create_element()
 		
-		self._autorm_task = wok_conf.get("auto_remove.task", True, dtype=bool)
+		self._autorm_task = wok_conf.get("auto_remove.task", False, dtype=bool)
 
 		self._clean = wok_conf.get("clean", True, dtype=bool)
 
@@ -520,7 +520,7 @@ class WokEngine(object):
 
 	def clean(self):
 		self._log.info("Cleaning ...")
-		for path in [self._ports_path, self._tasks_path]:
+		for path in [self._output_path, self._ports_path, self._tasks_path]:
 			if os.path.exists(path):
 				self._log.debug(path)
 				shutil.rmtree(path)
@@ -796,9 +796,36 @@ class WokEngine(object):
 			f.close()
 
 	@synchronized(_engine_lock)
-	def mnode_conf(self, m_id):
+	def module_conf(self, m_id):
 		if m_id not in self._mod_map:
 			return DataElement(key_sep = "/")
 
 		mnode = self._mod_map[m_id]
 		return mnode.conf
+
+	@synchronized(_engine_lock)
+	def module_output(self, m_id):
+		if m_id not in self._mod_map:
+			return ""
+
+		mnode = self._mod_map[m_id]
+		task_ids = mnode.submitted_tasks + mnode.finished_tasks + mnode.failed_tasks
+		sb = []
+		for task_id in sorted(task_ids):
+			sb += ["\n==[ ", task_id, " ]", "=" * (74 - len(task_id)), "\n\n"]
+			task = self._load_task(task_id)
+			if task is None:
+				continue
+
+			output_path = task["job/output_path"]
+			if not os.path.exists(output_path):
+				continue
+
+			f = open(output_path, "r")
+			try:
+				output = f.read()
+				sb += [output]
+			finally:
+				f.close()
+
+		return "".join(sb)

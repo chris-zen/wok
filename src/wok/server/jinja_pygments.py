@@ -54,7 +54,7 @@ class PygmentsExtension(Extension):
 
     def _pygmentize(self, lang_type, caller):
         lexer = None
-        formatter = HtmlFormatter(linenos='table')
+        formatter = HtmlFormatter(linenos=False, noclasses=True)
         content = caller()
 
         if lang_type is None:

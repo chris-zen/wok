@@ -4,6 +4,12 @@
 	<title>Wok</title>
 	<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+
+	{% block stylesheets %}
+	{% endblock %}
+
+	{% block scripts %}
+	{% endblock %}
 </head>
 <body>
 	<div class="page">

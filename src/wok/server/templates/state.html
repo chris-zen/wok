@@ -52,9 +52,9 @@
 				<td>{{ mnode.num_tasks }}</td>
 				<td>
 					<ul class="module-table-options">
-						<li><a href="{{ url_for('module_conf', name=m_id, dwl=1) }}">configuration</a></li>
+						<li><a href="{{ url_for('module_conf', name=m_id) }}">configuration</a></li>
 						{% if mnode.state in ['finished', 'failed', 'exception'] %}
-						<li><a href="{{ url_for('module_output', name=m_id, dwl=1) }}">output</a></li>
+						<li><a href="{{ url_for('module_output', name=m_id) }}">output</a></li>
 						{% endif %}
 					</ul>
 				</td>

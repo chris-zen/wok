@@ -2,23 +2,28 @@ import os
 import json
 import time
 
+from wok.server.common import make_text_response
+
 from flask import Module, request, session, redirect, url_for, \
-	abort, render_template, flash, make_response, current_app
+	render_template, flash, current_app
 
 web = Module(__name__)
 
 def wok():
 	return current_app.config["WOK"]
 
-def json_plain(obj):
-	st = json.dumps(obj, indent=4)
-	response = make_response(st)
-	response.headers["Content-Type"] = "text/plain" # weblication/json
-	return response
+import re
+log_re = re.compile("^.*(DEBUG|INFO|WARN|ERROR).*$")
 
-@web.route("/test")
-def test():
-	return json_plain({"a":1,"b":[1,2,3]})
+def prepare_logs(output):
+	logs = []
+	for line in output.split("\n"):
+		level = ""
+		m = log_re.match(line)
+		if m:
+			level = m.group(1).lower()
+		logs += [{"level" : level, "text" : line}]
+	return logs
 
 @web.route('/')
 def index():
@@ -26,9 +31,9 @@ def index():
 
 @web.route('/conf')
 def configuration():
-	return json_plain(wok().conf.to_native())
-	#return jsonify(conf.to_native())
-	#return render_template('conf.html', conf=conf)
+	conf = wok().conf.to_native()
+	conf_text = json.dumps(conf, indent=4)
+	return render_template('conf.html', conf_text=conf_text)
 
 @web.route('/workflow')
 def workflow():
@@ -44,10 +49,7 @@ def workflow():
 		flash("'%s' not found" % path)
 		return render_template('workflow.html')
 
-	response = make_response(wf)
-	response.headers["Content-Type"] = "text/plain" # weblication/xml
-	return response
-	#return render_template('workflow.html', wf=wf)
+	return render_template('workflow.html', workflow_text=wf)
 
 @web.route('/state')
 def state():
@@ -115,66 +117,79 @@ def engine_exit():
 def module(name):
 	mnode = wok().mnode_state(name)
 	if mnode is None:
-		abort(404)
+		mnode = {}
+		flash("Module configuration not available")
+
 	return render_template('module.html', name=name, mnode=mnode)
 
 @web.route('/module-conf/<name>')
 def module_conf(name):
-	if request.args.get("dwl", 0, type=int) != 1:
-		flash("JSON viewer not implemented yet")
-		return redirect(url_for('state'))
-
-	mnode_conf = wok().mnode_conf(name)
+	title = "Module %s configuration" % name
+	text = ""
+	mnode_conf = wok().module_conf(name)
 	if mnode_conf is None:
-		abort(404)
+		flash("Module configuration not available")
+	else:
+		text = json.dumps(mnode_conf.to_native(), indent=4)
 
-	return json_plain(mnode_conf.to_native())
+	return render_template('pygments.html', title=title, text=text, lang="javascript")
 
 @web.route('/module-output/<name>')
 def module_output(name):
-	"""
-	output = wok().task_output(name)
+	title = "Module %s output" % name
+	output = wok().module_output(name)
 	if output is None:
-		flash("Task '%s' output is not available" % name)
-		return redirect(url_for('task', name=name))
-	"""
-	output = "Not implemented yet"
-	response = make_response(output)
-	response.headers["Content-Type"] = "text/plain"
-	return response
+		logs = []
+		flash("Module output not available")
+	else:
+		logs = prepare_logs(output)
+
+	return render_template('logs.html', title=title, logs=logs)
 
 @web.route('/task/<name>')
 def task(name):
 	task = wok().task_state(name)
 	if task is None:
-		abort(404)
+		task = {}
+		flash("Task state not available")
 
-	if request.args.get("dwl", 0, type=int) == 0:
-		return render_template('task.html', name=name, task=task)
+	return render_template('task.html', name=name, task=task)
+
+@web.route('/task-model/<name>')
+def task_model(name):
+	title = "Task %s model" % name
+	text = ""
+	try:
+		task = wok().task_state(name) # TODO return None if doesn't exist
+	except:
+		task = None
+	if task is None:
+		flash("Task model not available")
 	else:
-		#return jsonify(task.to_native())
-		return json_plain(task.to_native())
+		text = json.dumps(task.to_native(), indent=4)
+
+	return render_template('pygments.html', title=title, text=text, lang="javascript")
 
 @web.route('/task-conf/<name>')
 def task_conf(name):
-	if request.args.get("dwl", 0, type=int) != 1:
-		flash("JSON viewer not implemented yet")
-		return redirect(url_for('task', name=name))
-
+	title = "Task %s configuration" % name
+	text = ""
 	task_conf = wok().task_conf(name)
 	if task_conf is None:
-		abort(404)
+		flash("Task configuration not available")
+	else:
+		text = json.dumps(task_conf.to_native(), indent=4)
 
-	#return jsonify(task_conf.to_native())
-	return json_plain(task_conf.to_native())
+	return render_template('pygments.html', title=title, text=text, lang="javascript")
 
 @web.route('/task-output/<name>')
 def task_output(name):
+	title = "Task %s output" % name
 	output = wok().task_output(name)
 	if output is None:
-		flash("Task '%s' output is not available" % name)
-		return redirect(url_for('task', name=name))
+		logs = []
+		flash("Task output not available")
+	else:
+		logs = prepare_logs(output)
 
-	response = make_response(output)
-	response.headers["Content-Type"] = "text/plain"
-	return response
+	return render_template('logs.html', title=title, logs=logs)

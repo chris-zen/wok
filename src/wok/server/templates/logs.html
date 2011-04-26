@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+
+{% block stylesheets %}
+<style type="text/css">
+pre			{ margin: 0; padding: 0; }
+.debug	{ background-color: #94e6fe; }
+/*.info	{ background-color: #fe9498; }*/
+.warn	{ background-color: #fefe94; }
+.error	{ background-color: #fe9498; }
+</style>
+{% endblock %}
+
+{% block body %}
+	<h2>{{ title }}</h2>
+	{% for log in logs %}
+		{% set level = log["level"] %}
+		<pre class="{{ level }}">{{ log["text"] }}</pre>
+	{% endfor %}
+{% endblock %}
