@@ -1,5 +1,6 @@
 Configuration
 =============
 
-*Explicar brevemente los fundamentos de la configuración de wok*
+Wok implements a flexible system to configure the system based on JSON files
+and command line directives.
 
