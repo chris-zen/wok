@@ -208,7 +208,10 @@ class Data(object):
 		
 	def create_list(self, data = None):
 		return DataElementList(data, key_sep = self.key_sep)
-		
+
+	def clone(self):
+		return deepcopy(self)
+
 	def _repr_level_object(self, sb, level, v):
 		if isinstance(v, DataElement) or isinstance(v, DataElementList):
 			v._repr_level(sb, level)

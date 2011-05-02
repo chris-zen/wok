@@ -6,9 +6,19 @@
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-	<div class="page">
-		<h1><a class="index-link" href="{{ url_for('index') }}">Wok</a></h1>
-		<p>Wok has exited.</p>
+	<div id="doc">
+		<div id="top-bar-outer">
+			<div id="top-bar">
+				<div id="logo">
+					<a href="{{ url_for('index') }}">Wok</a>
+				</div>
+			</div>
+		</div>
+		<div id="page">
+			<div id="content">
+				<p>Exit from Wok.</p>
+			</div>
+		</div>
 	</div>
 </body>
 </html>

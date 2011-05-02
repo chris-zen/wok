@@ -2,7 +2,7 @@ import os
 import json
 import time
 
-from wok.server.common import make_text_response
+from wok.server.common import Breadcrumb, BcLink
 
 from flask import Module, request, session, redirect, url_for, \
 	render_template, flash, current_app
@@ -27,7 +27,7 @@ def prepare_logs(output):
 
 @web.route('/')
 def index():
-	return render_template('index.html')
+	return render_template('index.html', state=wok().state())
 
 @web.route('/conf')
 def configuration():
@@ -51,19 +51,15 @@ def workflow():
 
 	return render_template('workflow.html', workflow_text=wf)
 
-@web.route('/state')
-def state():
-	return render_template('state.html', state=wok().state())
-
 @web.route('/login', methods=['GET', 'POST'])
 def login():
 	error = None
 	if request.method == 'POST':
-		if request.form['password'] != '1234':
+		conf = wok().conf
+		if request.form['password'] != conf.get("wok.server.passwd", "1234"):
 			error = 'Invalid password'
 		else:
 			session['logged_in'] = True
-			flash('You were logged in')
 			return redirect(url_for('index'))
 	return render_template('login.html', error=error)
 
@@ -77,25 +73,25 @@ def logout():
 def engine_start():
 	wok().start()
 	time.sleep(0.5)
-	return redirect(url_for('state'))
+	return redirect(url_for('index'))
 
 @web.route('/engine/pause')
 def engine_pause():
 	wok().pause()
 	time.sleep(0.5)
-	return redirect(url_for('state'))
+	return redirect(url_for('index'))
 
 @web.route('/engine/continue')
 def engine_continue():
 	wok().cont()
 	time.sleep(0.5)
-	return redirect(url_for('state'))
+	return redirect(url_for('index'))
 
 @web.route('/engine/stop')
 def engine_stop():
 	wok().stop()
 	time.sleep(0.5)
-	return redirect(url_for('state'))
+	return redirect(url_for('index'))
 
 def kill_process(pid):
 	import os
@@ -120,7 +116,10 @@ def module(name):
 		mnode = {}
 		flash("Module configuration not available")
 
-	return render_template('module.html', name=name, mnode=mnode)
+	bc = Breadcrumb(name, [
+		BcLink("Home", url_for("index")) ])
+
+	return render_template('module.html', breadcrumb=bc, name=name, mnode=mnode)
 
 @web.route('/module-conf/<name>')
 def module_conf(name):
@@ -132,7 +131,12 @@ def module_conf(name):
 	else:
 		text = json.dumps(mnode_conf.to_native(), indent=4)
 
-	return render_template('pygments.html', title=title, text=text, lang="javascript")
+	bc = Breadcrumb("Configuration", [
+		BcLink("Home", url_for("index")),
+		BcLink(name, url_for("module", name=name)) ])
+
+	return render_template('pygments.html', breadcrumb=bc,
+							title=title, text=text, lang="javascript")
 
 @web.route('/module-output/<name>')
 def module_output(name):
@@ -144,16 +148,29 @@ def module_output(name):
 	else:
 		logs = prepare_logs(output)
 
-	return render_template('logs.html', title=title, logs=logs)
+	bc = Breadcrumb("Output", [
+		BcLink("Home", url_for("index")),
+		BcLink(name, url_for("module", name=name)) ])
+
+	return render_template('logs.html', breadcrumb=bc, title=title, logs=logs)
 
 @web.route('/task/<name>')
 def task(name):
-	task = wok().task_state(name)
+	try:
+		task = wok().task_state(name) # TODO return None if doesn't exist
+	except:
+		task = None
 	if task is None:
+		bc = None
 		task = {}
 		flash("Task state not available")
+	else:
+		mnode = task["mnode"]
+		bc = Breadcrumb(name, [
+			BcLink("Home", url_for("index")),
+			BcLink(mnode, url_for("module", name=mnode)) ])
 
-	return render_template('task.html', name=name, task=task)
+	return render_template('task.html', breadcrumb=bc, name=name, task=task)
 
 @web.route('/task-model/<name>')
 def task_model(name):
@@ -164,32 +181,66 @@ def task_model(name):
 	except:
 		task = None
 	if task is None:
+		bc = None
 		flash("Task model not available")
 	else:
+		mnode = task["mnode"]
+		bc = Breadcrumb("Model", [
+			BcLink("Home", url_for("index")),
+			BcLink(mnode, url_for("module", name=mnode)),
+			BcLink(name, url_for("task", name=name))])
 		text = json.dumps(task.to_native(), indent=4)
 
-	return render_template('pygments.html', title=title, text=text, lang="javascript")
+	return render_template('pygments.html', breadcrumb=bc, title=title, text=text, lang="javascript")
 
 @web.route('/task-conf/<name>')
 def task_conf(name):
 	title = "Task %s configuration" % name
 	text = ""
-	task_conf = wok().task_conf(name)
-	if task_conf is None:
-		flash("Task configuration not available")
+	try:
+		task = wok().task_state(name) # TODO return None if doesn't exist
+	except:
+		task = None
+	if task is None:
+		bc = None
+		flash("Task not available")
 	else:
-		text = json.dumps(task_conf.to_native(), indent=4)
+		mnode = task["mnode"]
+		bc = Breadcrumb("Configuration", [
+			BcLink("Home", url_for("index")),
+			BcLink(mnode, url_for("module", name=mnode)),
+			BcLink(name, url_for("task", name=name))])
 
-	return render_template('pygments.html', title=title, text=text, lang="javascript")
+		task_conf = wok().task_conf(name)
+		if task_conf is None:
+			flash("Task configuration not available")
+		else:
+			text = json.dumps(task_conf.to_native(), indent=4)
+
+	return render_template('pygments.html', breadcrumb=bc, title=title, text=text, lang="javascript")
 
 @web.route('/task-output/<name>')
 def task_output(name):
 	title = "Task %s output" % name
-	output = wok().task_output(name)
-	if output is None:
-		logs = []
-		flash("Task output not available")
+	logs = []
+	try:
+		task = wok().task_state(name) # TODO return None if doesn't exist
+	except:
+		task = None
+	if task is None:
+		bc = None
+		flash("Task not available")
 	else:
-		logs = prepare_logs(output)
+		mnode = task["mnode"]
+		bc = Breadcrumb("Output", [
+			BcLink("Home", url_for("index")),
+			BcLink(mnode, url_for("module", name=mnode)),
+			BcLink(name, url_for("task", name=name))])
 
-	return render_template('logs.html', title=title, logs=logs)
+		output = wok().task_output(name)
+		if output is None:
+			flash("Task output not available")
+		else:
+			logs = prepare_logs(output)
+
+	return render_template('logs.html', breadcrumb=bc, title=title, logs=logs)

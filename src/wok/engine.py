@@ -230,8 +230,6 @@ class WokEngine(object):
 		#TODO: Check that there is no unattached input ports
 
 		self._calculate_dependencies()
-
-		self._mnodes_by_dep = self._mnodes_sorted_by_dependency()
 		
 	def _create_port_nodes(self, ports, ns = ""):
 		pnodes = []
@@ -552,6 +550,8 @@ class WokEngine(object):
 
 		self._create_graph(flow)
 
+		self._mnodes_by_dep = self._mnodes_sorted_by_dependency()
+
 		for mnode in self._mod_map.values():
 			mnode.state = ModNode.S_WAITING
 			self._waiting += [mnode]
@@ -560,9 +560,9 @@ class WokEngine(object):
 			if mnode.module.conf is not None:
 				mnode.conf.merge(mnode.module.conf)
 
-		sb = ["Modules input data:\n"]
-		for m_id, mnode in self._mod_map.iteritems():
-			sb += ["%s\n" % mnode]
+		sb = ["Modules ports mapping:\n"]
+		for mnode in self._mnodes_by_dep:
+			#sb += ["%s\n" % mnode]
 			for pnode in mnode.in_pnodes:
 				sb += ["\t%r\n" % pnode]
 		self._log.debug("".join(sb))

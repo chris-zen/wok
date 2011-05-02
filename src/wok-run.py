@@ -5,6 +5,7 @@ import uuid
 
 from wok import logger
 from wok.config import Config
+from wok.element import DataElement
 from wok.reader import FlowReader
 from wok.engine import WokEngine
 
@@ -64,6 +65,20 @@ def main():
 		server_host = wok_conf.get("server.host", "localhost", dtype=str)
 		server_port = wok_conf.get("server.port", 5000, dtype=int)
 		server_debug = wok_conf.get("server.debug", False, dtype=bool)
+		engine_start = wok_conf.get("server.engine_start", False, dtype=bool)
+
+		log.info("Running server at http://%s:%s" % (server_host, server_port))
+		
+		log_conf = wok_conf.get("server.log")
+		if log_conf is None:
+			log_conf = DataElement()
+			log_conf["level"] = "warn"
+		app_log = logger.get_logger(conf = log_conf, name = "werkzeug")
+		app_log.info("Log configured")
+
+		if engine_start:
+			log.info("Starting engine ...")
+			wok.start()
 
 		app.run(host=server_host, port=server_port, debug = server_debug)
 	else:

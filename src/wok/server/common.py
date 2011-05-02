@@ -17,3 +17,15 @@ def make_text_response(obj):
 	response = make_response(str(obj))
 	response.headers["Content-Type"] = "text/plain"
 	return response
+
+class Breadcrumb(object):
+	def __init__(self, title, links=None):
+		self.title = title
+		if links is None:
+			links = []
+		self.links = links
+
+class BcLink(object):
+	def __init__(self, title, href):
+		self.title = title
+		self.href = href
