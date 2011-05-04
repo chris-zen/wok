@@ -61,16 +61,16 @@ class McoreJobScheduler(JobScheduler):
 	def __init__(self, conf):
 		JobScheduler.__init__(self, conf)
 		
-		mf = conf.missing_fields(["work_path"])
+		mf = conf.missing_fields(["__work_path"])
 		if len(mf) > 0:
 			raise Exception("Missing configuration: [%s]" % ", ".join(mf))
 
 		self._log = logger.get_logger(conf.get("log"), "mcore")
 
-		self._work_path = conf["work_path"]
-		self._output_path = conf.get("output_path", os.path.join(self._work_path, "output"))
-		if not os.path.exists(self._output_path):
-			os.makedirs(self._output_path)
+		self._work_path = conf["__work_path"]
+		#self._output_path = conf.get("__output_path", os.path.join(self._work_path, "output"))
+		#if not os.path.exists(self._output_path):
+		#	os.makedirs(self._output_path)
 
 		self._working_directory = conf.get("working_directory", None)
 		
@@ -80,16 +80,23 @@ class McoreJobScheduler(JobScheduler):
 
 		self._num_proc = conf.get("max_proc", mp.cpu_count(), dtype=int)
 
+		self.init() #TODO this should be done by wok
+
+	def init(self):
+		self._log.info("Initializing multi-core scheduler ...")
+
 		self._pool = mp.Pool(self._num_proc)
-		
+
 		self._log.debug("Multi-core scheduler initialized with %i processors" % self._num_proc)
 
 	def clean(self):
-		for path in [self._output_path]:
-			if os.path.exists(path):
-				self._log.debug(path)
-				shutil.rmtree(path)
-			os.makedirs(path)
+		#for path in [self._work_path]:
+		#	if os.path.exists(path):
+		#		self._log.debug(path)
+		#		shutil.rmtree(path)
+		#	os.makedirs(path)
+		#TODO remove only sh files as tasks finish
+		pass
 
 	def submit(self, task):
 		

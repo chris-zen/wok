@@ -1,9 +1,30 @@
+.. _JSON: http://en.wikipedia.org/wiki/JSON
+.. _DRMAA: http://en.wikipedia.org/wiki/DRMAA
+
 Configuration
 =============
 
-Wok implements a flexible system for configuration based on JSON files and command line directives.
+Wok implements a flexible system for configuration using JSON_ files and command line directives.
 
-The configuration can be splited in many different files and can include not only the configuration required by *Wok* but also the one required by the workflow. All the configuration files and directives are merged in one document. It allows expansion of variables, so one configuration file can reference variables defined in other files. The order in which the files and directives are specified matters. If two configuration files define the same variable, the latter will override the previous one. The overriding is mainly used to change some configuration by using directives. There are also internal configuration variables that are introduced by *Wok*, all of them start with "__" and in some situations it could be useful to use them, for example *wok.__instance.name*.
+Basically a json file allows to repressent structured data using dictionaries, lists and simple types such as text, numbers and boolean (true or false). The configuration file must have a dictionary as the root element, and each key in it represent a section or a parameter.
+
+On the other hand comand line directives allows to specify parameter values using paths, for example the following directive::
+
+	wok.log.level=debug
+
+will result in the following JSON representation::
+
+	{
+		"wok" : {
+			"log" : {
+				"level" : "debug"
+			}
+		}
+	}
+
+The configuration can be splited in many different files and can include not only the configuration required by *Wok* but also the one required by the workflow. All the configuration files and directives are merged in one document. It allows expansion of variables, so one configuration file can reference variables defined in other files. The order in which the files and directives are specified matters. If two configuration files define the same variable, the latter will override the previous one. The overriding is mainly used to change the configuration of an instance without having to modify any file.
+
+There are also internal configuration variables that are introduced by *Wok*, all of them start with "__" and in some situations it could be useful to use them, for example *wok.__instance.name*.
 
 Let's see some examples:
 
@@ -24,10 +45,6 @@ Given this configuration files:
 		"wok" : {
 			"install_path" : "${soft_path}/wok/src",
 			"work_path" : "${base_path}/work/${wok.__instance.name}"
-
-			"log" : {
-				"level" : "warn"
-			}
 		}
 	}
 
@@ -43,7 +60,7 @@ the resulting configuration is::
 
 		"wok" : {
 			"install_path" : "/opt/wok/src",
-			"work_path" : "/tmp/work/43ffa633-e4c0-47ff-a83b-611f1d441fdc"
+			"work_path" : "/tmp/work/43ffa633-e4c0-47ff-a83b-611f1d441fdc",
 
 			"log" : {
 				"level" : "info"
@@ -64,32 +81,128 @@ the resulting configuration is::
 		"wok" : {
 			"install_path" : "/usr/local/wok/src",
 			"work_path" : "/tmp/work/run1"
-
-			"log" : {
-				"level" : "warn"
-			}
 		}
 	}
 
 Wok configuration
 +++++++++++++++++
 
-All the configuration related with Wok system goes inside the wok section.
+**wok**
+	This section contains all the configuration related with the *Wok* system.
 
-wok.install_path
-wok.bin_path
-wok.work_path
-wok.auto_remove.task
-wok.auto_remove.output
-wok.clean
-wok.scheduler
-wok.schedulers
-wok.schedulers.__default
-wok.schedulers.__default.log
-wok.schedulers.__default.log.level
-wok.launchers
-wok.log
-wok.log.level
-wok.defaults
-wok.defaults.maxpar
-wok.defaults.wsize
+	**install_path**
+		This is the path where *Wok* is installed.
+
+	**bin_path**
+		*Is it necessary?????*
+
+	**work_path**
+		The path where the *Wok* state files will be saved. If the path doesn't exist it will be created automatically. One trick to avoid collisions between different instances of *Wok* is to use a path containing ${**wok.__instance.name**}
+
+		Inside this path the following folders will be created:
+
+		- *output*: With the standard output of the executed tasks.
+		- *ports*: With the messages transmitted between modules.
+		- *modules*: The state of the scheduled modules.
+		- *tasks*: The state of the scheduled tasks.
+
+		and the following files:
+
+		- *engine.json*: The state of the engine.
+		- *effective.conf*: The effective configuration.
+
+	**log**
+		This section contains the configuration specific to the *Wok* engine logger.
+
+		**level**
+			This param allows to configure how much verbose the output is. There are four levels from more to less log messages:
+
+			- **debug**: Shows debug messages plus the following level messages.
+			- **info**: Shows information messages plus the following level messages.
+			- **warn**: Shows warning messages plus the following level messages.
+			- **error**: Shows only error messages.
+
+	**auto_remove** [*Internal*]
+
+		**task**
+
+		**output**
+
+	**clean**
+		This parameter determines whether or not all the wok state should be cleaned before starting. It can take true or false. By default is false.
+
+	**scheduler**
+		The scheduler to use to manage tasks. There are two available:
+
+		- **mcore**: To use in multi-core machines. It allows to run tasks in parallel using all the processors of a machine.
+		- **drmaa**: To interface with a DRMAA_ compatible resource manager such as Sun Grid Engine, SLURM, Torque and many more. It is more convenient for running tasks in a cluster.
+
+	**schedulers**
+		This section contains specific configuration for each type of task scheduler. Each scheduler will have its own subsection.
+
+		**default**
+			This section contains configuration applicable to all the schedullers.
+
+			**__work_path** [*Internal*]
+				This variable is automatically managed by the *Wok* engine, but can be overriden. The working path to store state files related with the scheduler.
+
+			**__output_path** [*Internal*]
+				This variable is automatically managed by the *Wok* engine, but can be overriden.The path to store tasks standard output.
+
+			**working_directory**
+				The default working directory for tasks.
+
+			**log**
+				This section contains the configuration specific to the scheduler logger. See **wok.log** for more details.
+
+		**mcore**
+			This section contains configuration specific to the multi-core task scheduler. It allows all the configuration parameters explained in **default** plus:
+
+			**max_proc**
+				The maximum number of processors to use. By default, if it is not specified, it will use all the available processors.
+
+		**drmaa**
+			This section contains configuration for the DRMAA scheduler. It allows all the configuration parameters explained in **default**.
+
+	**launchers**
+		This section contains configuration specific to launchers. Currently there are only one launcher implemented:
+
+		- **python**: Used when the module implementation is written in Python
+
+		**python**
+			This section contains all the configuration specific to python launcher.
+
+			**env**
+				This section allows to define enviroment variables, for example::
+
+					{ "wok" : { "launchers" : { "python : {
+						"env" : {
+							"EDITOR" : "vim",
+							"TERM" : "xterm"
+						}
+					} } } }
+
+			**bin**
+				The path to the python binary to use. By default is *python* so it will take into account the defined *PATH*. This is not recommended as in a cluster enviroment could not coincide in the worker nodes with the launcher node.
+
+			**pythonpath**
+				It is the equivalent to the enviroment variable PYTHONPATH. Example::
+
+					{ "wok" : { "launchers" : { "python : {
+						"pythonpath" : [
+							"${wok.install_path}",
+							"${wok.__flow.path}/..",
+							"/opt/mylib"
+						]
+					} } } }
+	log
+
+		level
+
+	defaults
+
+		maxpar
+
+		wsize
+
+

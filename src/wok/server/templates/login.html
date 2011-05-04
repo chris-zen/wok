@@ -2,7 +2,9 @@
 
 {% block scripts %}
 <script type="text/javascript" >
-  document.getElementById('password').focus();
+	$(document).ready(function(){
+		$("#password").focus();
+	});
 </script>
 {% endblock %}
 

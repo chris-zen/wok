@@ -11,16 +11,16 @@ class DrmaaJobScheduler(JobScheduler):
 	def __init__(self, conf):
 		JobScheduler.__init__(self, conf)
 		
-		mf = conf.missing_fields(["work_path"])
+		mf = conf.missing_fields(["__work_path"])
 		if len(mf) > 0:
 			raise Exception("Missing configuration: [%s]" % ", ".join(mf))
 
 		self._log = logger.get_logger(conf.get("log"), "drmaa")
 
-		self._work_path = conf["work_path"]
-		self._output_path = conf.get("output_path", os.path.join(self._work_path, "output"))
-		if not os.path.exists(self._output_path):
-			os.makedirs(self._output_path)
+		self._work_path = conf["__work_path"]
+		#self._output_path = conf.get("output_path", os.path.join(self._work_path, "output"))
+		#if not os.path.exists(self._output_path):
+		#	os.makedirs(self._output_path)
 		self._shell_path = os.path.join(self._work_path, "sh")
 		if not os.path.exists(self._shell_path):
 			os.makedirs(self._shell_path)
@@ -30,9 +30,17 @@ class DrmaaJobScheduler(JobScheduler):
 		self._autorm_sh = conf.get("auto_remove.sh", True, dtype=bool)
 		self._autorm_output = conf.get("auto_remove.output", True, dtype=bool)
 
+		self._waiting = []
+		self._jobs = {}
+
+		self.init() #TODO this should be done by wok
+
+	def init(self):
+		self._log.info("Initializing DRMAA scheduler ...")
+
 		self._session = drmaa.Session()
 		self._session.initialize()
-		
+
 		sb = ["DRMAA initialized:\n"]
 		sb += ["\tSupported contact strings: %s\n" % self._session.contact]
 		sb += ["\tSupported DRM systems: %s\n" % self._session.drmsInfo]
@@ -40,11 +48,8 @@ class DrmaaJobScheduler(JobScheduler):
 		sb += ["\tVersion %s" % str(self._session.version)]
 		self._log.debug("".join(sb))
 
-		self._waiting = []
-		self._jobs = {}
-
 	def clean(self):
-		for path in [self._output_path, self._shell_path]:
+		for path in [self._shell_path]:
 			if os.path.exists(path):
 				self._log.debug(path)
 				shutil.rmtree(path)
@@ -63,8 +68,6 @@ class DrmaaJobScheduler(JobScheduler):
 		return shell_script
 
 	def submit(self, task):
-		job_name = task["id"]
-		
 		execution = task["exec"]
 		launcher_name = execution.get("launcher", None)
 		if "conf" in execution:
@@ -84,8 +87,11 @@ class DrmaaJobScheduler(JobScheduler):
 		shell, cmd, args, env = launcher.template(exec_conf, task)
 
 		shell_cmd = self._create_shell(task, shell, cmd)
-		
-		output_path = os.path.join(self._output_path, "%s.txt" % task["id"])
+
+		job_name = "-".join([conf["wok.__instance.name"], task["id"]])
+
+		#output_path = os.path.join(self._output_path, "%s.txt" % task["id"])
+		output_path = task["job/output_path"]
 		
 		jt = self._session.createJobTemplate()
 		jt.jobName = job_name

@@ -137,7 +137,7 @@ class WokEngine(object):
 	def __init__(self, conf, flow = None):
 		self.conf = conf
 		
-		conf.check_required(["wok.bin_path", "wok.work_path"])
+		conf.check_required(["wok.work_path"])
 
 		wok_conf = conf["wok"]
 		
@@ -145,7 +145,6 @@ class WokEngine(object):
 
 		self._instance_name = wok_conf["__instance.name"]
 		
-		self._bin_path = wok_conf["bin_path"]
 		self._work_path = wok_conf["work_path"]
 		self._output_path = os.path.join(self._work_path, "output")
 		self._ports_path = os.path.join(self._work_path, "ports")
@@ -183,15 +182,18 @@ class WokEngine(object):
 		sched_name = wok_conf.get("scheduler", "default")
 
 		sched_conf = wok_conf.create_element()
-		if "schedulers.__default" in wok_conf:
-			sched_conf.merge(wok_conf["schedulers.__default"])
+		if "schedulers.default" in wok_conf:
+			sched_conf.merge(wok_conf["schedulers.default"])
 
 		sched_conf_key = "schedulers.%s" % sched_name
 		if sched_conf_key in wok_conf:
 			sched_conf.merge(wok_conf[sched_conf_key])
 
 		if "output_path" not in sched_conf:
-			sched_conf["output_path"] = self._output_path
+			sched_conf["__output_path"] = self._output_path
+
+		if "work_path" not in sched_conf:
+			sched_conf["__work_path"] = os.path.join(self._work_path, sched_name)
 
 		self._log.debug("Creating '%s' scheduler with configuration %s" % (sched_name, sched_conf))
 

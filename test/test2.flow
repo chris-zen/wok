@@ -31,6 +31,9 @@
 			<env>
 				<TEST_MSG>Hello World</TEST_MSG>
 			</env>
+			<conf>
+				<msg>Hola mundo</msg>
+			</conf>
 			<script>test2_3.py</script>
 		</exec>
 	</module>
