@@ -189,10 +189,10 @@ class WokEngine(object):
 		if sched_conf_key in wok_conf:
 			sched_conf.merge(wok_conf[sched_conf_key])
 
-		if "output_path" not in sched_conf:
+		if "__output_path" not in sched_conf:
 			sched_conf["__output_path"] = self._output_path
 
-		if "work_path" not in sched_conf:
+		if "__work_path" not in sched_conf:
 			sched_conf["__work_path"] = os.path.join(self._work_path, sched_name)
 
 		self._log.debug("Creating '%s' scheduler with configuration %s" % (sched_name, sched_conf))

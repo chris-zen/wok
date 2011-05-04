@@ -24,7 +24,7 @@ will result in the following JSON representation::
 
 The configuration can be splited in many different files and can include not only the configuration required by *Wok* but also the one required by the workflow. All the configuration files and directives are merged in one document. It allows expansion of variables, so one configuration file can reference variables defined in other files. The order in which the files and directives are specified matters. If two configuration files define the same variable, the latter will override the previous one. The overriding is mainly used to change the configuration of an instance without having to modify any file.
 
-There are also internal configuration variables that are introduced by *Wok*, all of them start with "__" and in some situations it could be useful to use them, for example *wok.__instance.name*.
+There are also internal configuration parameters that are introduced by *Wok*, all of them start with "__" and in some situations it could be useful to use them, for example *wok.__instance.name*.
 
 Let's see some examples:
 
@@ -84,17 +84,11 @@ the resulting configuration is::
 		}
 	}
 
-Wok configuration
-+++++++++++++++++
+Configuration parameters
+++++++++++++++++++++++++
 
 **wok**
 	This section contains all the configuration related with the *Wok* system.
-
-	**install_path**
-		This is the path where *Wok* is installed.
-
-	**bin_path**
-		*Is it necessary?????*
 
 	**work_path**
 		The path where the *Wok* state files will be saved. If the path doesn't exist it will be created automatically. One trick to avoid collisions between different instances of *Wok* is to use a path containing ${**wok.__instance.name**}
@@ -121,12 +115,6 @@ Wok configuration
 			- **info**: Shows information messages plus the following level messages.
 			- **warn**: Shows warning messages plus the following level messages.
 			- **error**: Shows only error messages.
-
-	**auto_remove** [*Internal*]
-
-		**task**
-
-		**output**
 
 	**clean**
 		This parameter determines whether or not all the wok state should be cleaned before starting. It can take true or false. By default is false.
@@ -195,14 +183,54 @@ Wok configuration
 							"/opt/mylib"
 						]
 					} } } }
-	log
 
-		level
+	**defaults**
+		This section contains default values for common parameters.
 
-	defaults
+		**maxpar**
+			In case a module doesn't specify the *maxpar* parameter this will be the value used. By default it is 0 which means that there is no limit.
 
-		maxpar
+		**wsize**
+			In case a module doesn't specify the *wsize* parameter this will be the value used. By default it is 1.
 
-		wsize
+	**server**
+		This section contains the configuration for the web server.
 
+		**enabled**
+			A boolean (*true* or *false*) specifying if the web server should be enabled.
 
+		**host**
+			It is the network interface where the server listens for requests. By default it is *127.0.0.1* which means that only can be accessed from the local machine where wok-run.py is launched. To have access from other machines it should have the value *0.0.0.0*.
+
+		**port**
+			Determines the TCP port. By default it is 5000, but when many workflows has to be run simultaneusly each one has to listen in a different port.
+
+		**debug**
+			A boolean (*true* or *false*) specifying if the web server should be started in debug mode. It is useful for *Wok* developers only.
+
+		**log**
+			This section contains the configuration specific to the web server logger. See **wok.log** for more details.
+
+	**install_path** [*Internal*]
+		This is the path where *Wok* is installed.
+
+	**auto_remove** [*Internal*]
+
+		**task**
+
+		**output**
+
+Internal parameters
++++++++++++++++++++
+
+**wok**
+
+	**__instance**
+
+		**name**
+
+	**__flow**
+
+		**path**
+
+		**file**
