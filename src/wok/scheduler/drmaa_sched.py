@@ -90,6 +90,8 @@ class DrmaaJobScheduler(JobScheduler):
 
 		job_name = "-".join([conf["wok.__instance.name"], task["id"]])
 
+		native_specification = task_conf.get("wok.schedulers.drmaa.native_specification")
+
 		#output_path = os.path.join(self._output_path, "%s.txt" % task["id"])
 		output_path = task["job/output_path"]
 		
@@ -102,6 +104,8 @@ class DrmaaJobScheduler(JobScheduler):
 		jt.joinFiles = True
 		if self._working_directory is not None:
 			jt.workingDirectory = self._working_directory
+		if native_specification is not None:
+			jt.nativeSpecification = native_specification
 		
 		sb = ["%s %s" % (cmd, " ".join(args))]
 		if len(env) > 0:
@@ -127,6 +131,8 @@ class DrmaaJobScheduler(JobScheduler):
 		job_conf["output_path"] = output_path
 		if self._working_directory is not None:
 			job_conf["working_dir"] = self._working_directory
+		if native_specification is not None:
+			job_conf["native_specification"] = native_specification
 		
 		self._log.info("Task %s submited as job %s." % (task["id"], jobid))
 		

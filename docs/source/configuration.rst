@@ -208,6 +208,9 @@ Configuration parameters
 		**debug**
 			A boolean (*true* or *false*) specifying if the web server should be started in debug mode. It is useful for *Wok* developers only.
 
+		**engine_start**
+			When the web server is enabled, by default, *Wok* is started with the workflow stoped and prepared to be executed, waiting for the user to activate it. You can force *Wok* to start the execution of the workflow just after the web server is started using this parameter. It can take *true* to immediately start the execution or *false* to wait for the user activation. 
+
 		**log**
 			This section contains the configuration specific to the web server logger. See **wok.log** for more details.
 
@@ -226,11 +229,33 @@ Internal parameters
 **wok**
 
 	**__instance**
+		This section contains instance specific parameters.
 
 		**name**
+			The current instance name. It is generated automatically at the begining with a UUID. It can be overriden by the user. This allows to have many instances of the same workflow without collisions if it is used to configure working paths. Example:
+
+			**my.conf**
+			::
+
+				{
+					"base_path" : "/tmp",
+					"wok" : {
+						"work_path" : "${base_path}/work/${wok.__instance.name}"
+					}
+				}
+
+				$ wok-run.py -c my.conf -D x=3 -D wok.__instance.name=test1 my.flow
+
+				$ wok-run.py -c my.conf -D x=7 -D wok.__instance.name=test2 my.flow
 
 	**__flow**
+		This section contains workflow specific parameters.
 
 		**path**
+			The base path of the workflow definition file. 
 
 		**file**
+			The file name of the workflow definition file.
+
+	**__cwd**
+		The path from which *Wok* has been started.
