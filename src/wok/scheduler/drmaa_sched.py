@@ -88,7 +88,7 @@ class DrmaaJobScheduler(JobScheduler):
 
 		shell_cmd = self._create_shell(task, shell, cmd)
 
-		job_name = "-".join([conf["wok.__instance.name"], task["id"]])
+		job_name = "-".join([task_conf["wok.__instance.name"], task["id"]])
 
 		native_specification = task_conf.get("wok.schedulers.drmaa.native_specification")
 
