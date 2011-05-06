@@ -4,6 +4,8 @@ import sys
 import math
 import uuid
 import json
+import os
+import os.path
 
 from threading import Thread, Lock
 
@@ -418,8 +420,10 @@ class WokEngine(object):
 
 	def _effective_maxpar(self, maxpar):
 		if maxpar == 0:
-			maxpar = max(self._maxpar, 1)
-		return maxpar
+			return self._maxpar
+		elif self._maxpar == 0:
+			return maxpar
+		return min(self._maxpar, maxpar)
 
 	def _schedule_tasks(self, flow, mnode):
 		# Calculate input sizes and the minimum wsize
@@ -582,6 +586,10 @@ class WokEngine(object):
 		self._log.info("Scheduling flow '%s' with %i modules ..." % (self._flow.name, len(self._mod_map)))
 
 		try:
+			# check that the output path exists
+			if not os.path.exists(self._output_path):
+				os.makedirs(self._output_path)
+
 			batch_index = 0
 			batch_modules = self._next_batch()
 			while len(batch_modules) > 0:

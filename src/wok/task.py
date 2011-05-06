@@ -6,6 +6,8 @@ from wok import logger
 from wok.config import Config
 from wok.port import PortFactory
 
+WOK_EXIT_CODE_TASK_EXCEPTION=202
+
 class MissingRequiredPorts(Exception):
 	def __init__(self, missing_ports, mode):
 		Exception.__init__(self, "Missing required %s ports: %s" % (mode, ", ".join(missing_ports)))
@@ -30,6 +32,8 @@ class Task(object):
 		self.conf = self.data["conf"]
 		del self.data["conf"]
 
+		self._id = self.data["id"]
+
 		self._run_delegate = run_delegate
 
 		self._start_time = 0
@@ -39,8 +43,10 @@ class Task(object):
 
 		logger.initialize(self.conf.get("log"))
 
-		#log = self.logger()
-		#log.debug("Task:\nData: %s\nConfiguration: %s" % (self.data, self.conf))
+		self._log = self.logger()
+		#self._log.debug("Task:\nData: %s\nConfiguration: %s" % (self.data, self.conf))
+
+		self._log.debug("Task %s initialized" % self._id)
 	
 	def _start_timer(self):
 		self._start_time = time.time()
@@ -57,8 +63,8 @@ class Task(object):
 			port.close()
 
 	def logger(self, name = None):
-		if name is None and "id" in self.data:
-			name = self.data["id"]
+		if name is None:
+			name = self._id
 		log = logger.get_logger(self.conf.get("log"), name)
 		return log
 
@@ -69,19 +75,22 @@ class Task(object):
 		return self.ports[name]
 	
 	def start(self):
+		self._log.debug("Task %s started" % self._id)
+
 		self._start_timer()
 
-		try:		
+		try:
 			if self._run_delegate is not None:
 				retcode = self._run_delegate(self)
 				if retcode is None:
 					retcode = 0
 			else:
 				retcode = self.run()
+
+			self._log.info("Elapsed time: %s" % self.elapsed_time())
 		except:
-			id = self.data.get("id", "UNKNOWN")
-			self.logger().exception("Exception on task %s" % id)
-			retcode = -1
+			self._log.exception("Exception on task %s" % self._id)
+			retcode = WOK_EXIT_CODE_TASK_EXCEPTION
 		finally:
 			self._close_ports()
 	

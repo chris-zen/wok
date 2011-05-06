@@ -7,6 +7,9 @@ from wok import logger
 from wok.scheduler import JobScheduler
 from wok.launcher.factory import create_launcher
 
+WOK_EXIT_CODE_UNKNOWN=200
+WOK_EXIT_CODE_EXCEPTION_WAITING=201
+
 class DrmaaJobScheduler(JobScheduler):
 	def __init__(self, conf):
 		JobScheduler.__init__(self, conf)
@@ -28,7 +31,6 @@ class DrmaaJobScheduler(JobScheduler):
 		self._working_directory = conf.get("working_directory", None)
 		
 		self._autorm_sh = conf.get("auto_remove.sh", True, dtype=bool)
-		self._autorm_output = conf.get("auto_remove.output", True, dtype=bool)
 
 		self._waiting = []
 		self._jobs = {}
@@ -55,14 +57,28 @@ class DrmaaJobScheduler(JobScheduler):
 				shutil.rmtree(path)
 			os.makedirs(path)
 
-	def _create_shell(self, task, shell, cmd):
+	def _create_shell(self, task, shell, cmd, env):
 		if shell is None:
 			shell = "/bin/bash"
 
 		shell_script = os.path.join(self._shell_path, "%s.sh" % task["id"])
+
+		sb = []
+		for k,v in env.items():
+			sb += ["export %s=%s" % (k, v)]
+		env_def = "\n".join(sb)
+
 		f = open(shell_script, "w")
-		f.write("#!%s\n" % shell)
-		f.write("%s $*\n" % cmd)
+		f.write("""#!%s
+
+echo "------------------------------------------------------------------------------------------------------"
+env
+echo "------------------------------------------------------------------------------------------------------"
+
+%s $*
+""" % (shell, cmd))
+		#f.write("#!%s\n" % shell)
+		#f.write("\n%s $*\n" % cmd)
 		f.close()
 		os.chmod(shell_script, S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IWOTH | S_IXOTH)
 		return shell_script
@@ -86,7 +102,7 @@ class DrmaaJobScheduler(JobScheduler):
 
 		shell, cmd, args, env = launcher.template(exec_conf, task)
 
-		shell_cmd = self._create_shell(task, shell, cmd)
+		shell_cmd = self._create_shell(task, shell, cmd, env)
 
 		job_name = "-".join([task_conf["wok.__instance.name"], task["id"]])
 
@@ -157,10 +173,7 @@ class DrmaaJobScheduler(JobScheduler):
 				if self._autorm_sh:
 					os.remove(sh_path)
 
-				if self._autorm_output:
-					os.remove(output_path)
-
-				exit_code = -1
+				exit_code = WOK_EXIT_CODE_UNKNOWN
 				sb = ["Task %s (job %s)" % (task["id"], jobid)]
 				if ret.wasAborted:
 					sb += [" was aborted"]
@@ -171,6 +184,9 @@ class DrmaaJobScheduler(JobScheduler):
 					exit_code = ret.exitStatus
 				elif ret.hasSignal:
 					sb += [" got signal %s" % ret.terminatedSignal]
+				else:
+					sb += [" has finished unexpectedly"]
+
 				exit_msg = "".join(sb)
 				self._log.debug(exit_msg)
 
@@ -178,7 +194,7 @@ class DrmaaJobScheduler(JobScheduler):
 				task["job/exit/message"] = exit_msg
 			except Exception as e:
 				self._log.exception(e)
-				task["job/exit/code"] = -1
+				task["job/exit/code"] = WOK_EXIT_CODE_EXCEPTION_WAITING
 				task["job/exit/message"] = "There was an exception while waiting for the job to finish: %s" % e
 			
 		self._waiting = []
