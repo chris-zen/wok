@@ -153,15 +153,16 @@ body {
 	color: #377BA8;
 } */
 
-.module-table {
+#module-table {
 	border-collapse: collapse;
 }
 
-.module-table th {
-	text-align: left;
+#module-table tr th {
+	text-align: center;
+	font-weight: bold;
 }
 
-.module-table td {
+#module-table td {
 	border: 1px solid #ccc;
 	padding: 0.4em 0.8em;
 }

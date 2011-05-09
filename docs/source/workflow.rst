@@ -46,4 +46,28 @@ XML definition
 
 	- **name**: The module identifier.
 	- **wsize**: This is the desired minimum number of data elements to process per task. It represents the minimum unit of work to guarantee that it won't be wasted more time submitting the task than executing it.
-	- **maxpar**:
+	- **maxpar**: This is the maximum number of partitions allowed for the module. To avoid parallelization of a module put *maxpar="1"* and only one task will be executed.
+
+	Elements:
+
+	- **title**: Title of the module.
+	- **desc**: Description of the module.
+	- **in**: Input port. There can be 0 or more elements.
+	- **out**: Output port. There can be 0 or more elements.
+	- **exec**: This tag defines what to execute.
+
+**exec**
+	This represents the program executed for a module.
+
+	Attributes:
+
+	- **launcher**: The type of program. Possible values: *shell*, *python*, *perl*.
+
+	Elements depending on the launcher selected:
+
+	* **shell**
+
+	* **python**
+
+	* **perl**
+

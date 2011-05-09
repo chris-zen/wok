@@ -3,6 +3,9 @@
 	<div class="state-msg">
 		<table>
 			<tr>
+				<td colspan="2">{{ state.instance }}</td>
+			</tr>
+			<tr>
 				<td class="state-msg-title state-color-{{ state.name }}">{{ state.title }}</td>
 				<td>
 					<ul>
@@ -31,14 +34,17 @@
 
 	{% set mnodes = state.mnodes %}
 
-	<table class="module-table">
+	<table id="module-table">
 		<tr>
-			<th colspan="2"></th>
+			<th colspan="2" rowspan="2"></th>
+			<td colspan="4">Tasks</td>
+			<th rowspan="2"></th>
+		</tr>
+		<tr>
 			<td>submitted</td>
 			<td>finished</td>
 			<td>failed</td>
 			<td>total</td>
-			<th></th>
 		</tr>
 		{% for m_id in state.mnodes_by_dep %}
 			{% set mnode = mnodes[m_id] %}

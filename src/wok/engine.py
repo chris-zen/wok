@@ -762,6 +762,8 @@ class WokEngine(object):
 		s["name"] = self._state
 		s["title"] = self._state
 
+		s["instance"] = self._instance_name
+
 		s["mnodes"] = mnodes = {}
 		for mnode in self._mod_map.itervalues():
 			mnodes[mnode.m_id] = mnode.fill_element(DataElement()).to_native()

@@ -46,7 +46,13 @@ class Task(object):
 		self._log = self.logger()
 		#self._log.debug("Task:\nData: %s\nConfiguration: %s" % (self.data, self.conf))
 
-		self._log.debug("Task %s initialized" % self._id)
+		try:
+			import socket
+			hostname = socket.gethostname()
+		except:
+			hostname = "unknown"
+
+		self._log.debug("Task %s initialized on host %s" % (self._id, hostname))
 	
 	def _start_timer(self):
 		self._start_time = time.time()
