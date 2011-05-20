@@ -1,3 +1,9 @@
+# ******************************************************************
+# Copyright 2009-2011, Universitat Pompeu Fabra
+#
+# Licensed under the Non-Profit Open Software License version 3.0
+# ******************************************************************
+
 import traceback
 import os
 import shutil
@@ -10,6 +16,7 @@ import multiprocessing as mp
 from wok import logger
 from wok.scheduler import JobScheduler
 from wok.launcher.factory import create_launcher
+from wok import exit_codes
 
 def _job_run(job):
 	job.run()
@@ -24,12 +31,12 @@ class Job(object):
 		self.task = None
 
 		self.elapsed_time = 0
-		self.exit_code = -128
+		self.exit_code = exit_codes.LAUNCH_EXCEPTION
 		self.exit_message = None
 		self.exit_exception = None
 
 	def run(self):
-		o = open(self.output_path, "wa")
+		o = open(self.output_path, "a")
 
 		try:
 			args = shlex.split(str(self.cmd))
@@ -51,7 +58,7 @@ class Job(object):
 			self.exit_message = "Task %s exited with return code %i" % (self.task["id"], self.exit_code)
 		except:
 			import traceback
-			self.exit_code = -128
+			self.exit_code = exit_codes.LAUNCH_EXCEPTION
 			self.exit_msg = "Exception launching task %s" % self.task["id"]
 			self.exit_exception = traceback.format_exc()
 		finally:

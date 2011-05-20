@@ -1,3 +1,9 @@
+# ******************************************************************
+# Copyright 2009-2011, Universitat Pompeu Fabra
+#
+# Licensed under the Non-Profit Open Software License version 3.0
+# ******************************************************************
+
 PORT_TYPE_IN = 1
 PORT_TYPE_OUT = 2
 

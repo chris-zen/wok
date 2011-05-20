@@ -10,10 +10,10 @@ This is the script that executes a workflow.
 	  --version             show program's version number and exit
 	  -h, --help            show this help message and exit
 	  -L LOG_LEVEL, --log-level=LOG_LEVEL
-		                Which log level: debug, info, warn, error, critical,
-		                notset
+	                        Which log level: debug, info, warn, error, critical,
+	                        notset
 	  -c FILE, --conf=FILE  Load configuration from a file. Multiple files can be
-		                specified
+	                        specified
 	  -D PARAM=VALUE        External data value. example -D param1=value
 
 Example::

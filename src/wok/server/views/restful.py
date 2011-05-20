@@ -1,3 +1,9 @@
+# ******************************************************************
+# Copyright 2009-2011, Universitat Pompeu Fabra
+#
+# Licensed under the Non-Profit Open Software License version 3.0
+# ******************************************************************
+
 from wok.server.common import make_xml_response, make_json_response, make_text_response
 
 from flask import Module, current_app

@@ -1,3 +1,9 @@
+# ******************************************************************
+# Copyright 2009-2011, Universitat Pompeu Fabra
+#
+# Licensed under the Non-Profit Open Software License version 3.0
+# ******************************************************************
+
 from wok.scheduler.drmaa_sched import DrmaaJobScheduler
 from wok.scheduler.mcore import McoreJobScheduler
 

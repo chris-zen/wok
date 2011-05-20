@@ -1,3 +1,9 @@
+# ******************************************************************
+# Copyright 2009-2011, Universitat Pompeu Fabra
+#
+# Licensed under the Non-Profit Open Software License version 3.0
+# ******************************************************************
+
 """
 This module contains all the classes necessary to work with
 data elements, a type of enhanced maps to manage structured data.
@@ -254,6 +260,10 @@ class DataElementList(Data):
 		
 	def __iter__(self):
 		return iter(self.data)
+
+	def __iadd__(self, value):
+		self.data += value
+		return self
 
 	def merge(self, e):
 		if not (isinstance(e, DataElementList) or isinstance(e, list)):

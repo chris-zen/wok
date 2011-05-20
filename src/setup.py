@@ -8,7 +8,7 @@ distribute_setup.use_setuptools()
 from setuptools import setup, find_packages
 setup(
     name = "wok",
-    version = "2.0.1",
+    version = "2.0.2",
     packages = find_packages(),
     scripts = [
 		'wok-run.py'
@@ -25,14 +25,14 @@ setup(
 
     package_data = {
         # If any package contains *.txt or *.rst files, include them:
-        '' : ['*.txt', '*.rst']
+        '' : ['*.txt', '*.pdf', '*.html']
     },
 
     # metadata for upload to PyPI
     author = "Christian Perez-Llamas",
     author_email = "christian.perez@upf.edu",
     description = "Workflow management system",
-    license = "NOSL",
+    license = "NOSL 3.0",
     keywords = "workflow dataflow analysis",
     url = "http://bg.upf.edu/forge",
 	long_description = __doc__

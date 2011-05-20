@@ -1,3 +1,9 @@
+# ******************************************************************
+# Copyright 2009-2011, Universitat Pompeu Fabra
+#
+# Licensed under the Non-Profit Open Software License version 3.0
+# ******************************************************************
+
 import drmaa
 import os
 import shutil
@@ -6,9 +12,7 @@ from stat import S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, 
 from wok import logger
 from wok.scheduler import JobScheduler
 from wok.launcher.factory import create_launcher
-
-WOK_EXIT_CODE_UNKNOWN=200
-WOK_EXIT_CODE_EXCEPTION_WAITING=201
+from wok import exit_codes
 
 class DrmaaJobScheduler(JobScheduler):
 	def __init__(self, conf):
@@ -21,9 +25,6 @@ class DrmaaJobScheduler(JobScheduler):
 		self._log = logger.get_logger(conf.get("log"), "drmaa")
 
 		self._work_path = conf["__work_path"]
-		#self._output_path = conf.get("output_path", os.path.join(self._work_path, "output"))
-		#if not os.path.exists(self._output_path):
-		#	os.makedirs(self._output_path)
 		self._shell_path = os.path.join(self._work_path, "sh")
 		if not os.path.exists(self._shell_path):
 			os.makedirs(self._shell_path)
@@ -169,7 +170,7 @@ class DrmaaJobScheduler(JobScheduler):
 				if self._autorm_sh:
 					os.remove(sh_path)
 
-				exit_code = WOK_EXIT_CODE_UNKNOWN
+				exit_code = exit_codes.UNKNOWN
 				sb = ["Task %s (job %s)" % (task["id"], jobid)]
 				if ret.wasAborted:
 					sb += [" was aborted"]
@@ -190,7 +191,7 @@ class DrmaaJobScheduler(JobScheduler):
 				task["job/exit/message"] = exit_msg
 			except Exception as e:
 				self._log.exception(e)
-				task["job/exit/code"] = WOK_EXIT_CODE_EXCEPTION_WAITING
+				task["job/exit/code"] = exit_codes.EXCEPTION_WAITING
 				task["job/exit/message"] = "There was an exception while waiting for the job to finish: %s" % e
 			
 		self._waiting = []

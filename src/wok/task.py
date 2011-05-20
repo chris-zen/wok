@@ -1,3 +1,9 @@
+# ******************************************************************
+# Copyright 2009-2011, Universitat Pompeu Fabra
+#
+# Licensed under the Non-Profit Open Software License version 3.0
+# ******************************************************************
+
 import time
 
 from datetime import timedelta
@@ -5,8 +11,7 @@ from datetime import timedelta
 from wok import logger
 from wok.config import Config
 from wok.port import PortFactory
-
-WOK_EXIT_CODE_TASK_EXCEPTION=202
+from wok import exit_codes
 
 class MissingRequiredPorts(Exception):
 	def __init__(self, missing_ports, mode):
@@ -96,7 +101,7 @@ class Task(object):
 			self._log.info("Elapsed time: %s" % self.elapsed_time())
 		except:
 			self._log.exception("Exception on task %s" % self._id)
-			retcode = WOK_EXIT_CODE_TASK_EXCEPTION
+			retcode = exit_codes.TASK_EXCEPTION
 		finally:
 			self._close_ports()
 	

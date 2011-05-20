@@ -56,7 +56,7 @@ XML definition
 	- **out**: Output port. There can be 0 or more elements.
 	- **exec**: This tag defines what to execute.
 
-**exec**
+**<exec>**
 	This represents the program executed for a module.
 
 	Attributes:
