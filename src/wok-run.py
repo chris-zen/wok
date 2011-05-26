@@ -12,7 +12,7 @@ import uuid
 from wok import logger
 from wok.config import Config
 from wok.element import DataElement
-from wok.reader import FlowReader
+from wok.flow.reader import FlowReader
 from wok.engine import WokEngine
 
 # Wok initialization
@@ -73,7 +73,7 @@ def main():
 		server_debug = wok_conf.get("server.debug", False, dtype=bool)
 		engine_start = wok_conf.get("server.engine_start", False, dtype=bool)
 
-		log.info("Running server at http://%s:%s" % (server_host, server_port))
+		log.info("Running server at http://{0}:{1}".format(server_host, server_port))
 		
 		log_conf = wok_conf.get("server.log")
 		if log_conf is None:

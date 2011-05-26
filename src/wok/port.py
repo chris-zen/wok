@@ -6,6 +6,9 @@
 
 from wok.portio.factory import PortDataFactory
 
+PORT_MODE_IN = "in"
+PORT_MODE_OUT = "out"
+
 class PortFactory(object):
 	@staticmethod
 	def create_port(name, conf):
@@ -16,9 +19,9 @@ class PortFactory(object):
 		mode = conf["mode"]
 		data = PortDataFactory.create_port_data(conf["data"])
 		
-		if mode == "in":
+		if mode == PORT_MODE_IN:
 			return InPort(name, data)
-		elif mode == "out":
+		elif mode == PORT_MODE_OUT:
 			return OutPort(name, data)
 		else:
 			raise Exception("Unknown port mode: %s" % mode)
@@ -27,7 +30,8 @@ class Port(object):
 	def __init__(self, name, data):
 		self.name = name
 		self.data = data
-		
+
+	@property
 	def mode(self):
 		raise Exception("Unsupported method")
 		
@@ -37,8 +41,9 @@ class InPort(Port):
 		
 		self._reader = self.data.reader()
 
+	@property
 	def mode(self):
-		return "in"
+		return PORT_MODE_IN
 
 	def _open(self):
 		self._reader = self.data.reader()
@@ -79,8 +84,9 @@ class OutPort(Port):
 		
 		self._writer = self.data.writer()
 
+	@property
 	def mode(self):
-		return "out"
+		return PORT_MODE_OUT
 
 	def _open(self):
 		self._writer = self.data.writer()

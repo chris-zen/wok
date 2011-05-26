@@ -72,7 +72,7 @@ class Flow(object):
 		return "".join(sb)
 			
 class Port(object):
-	def __init__(self, name, ptype, link = None, wsize = 0):
+	def __init__(self, name, ptype, link = None, wsize = 0, serializer = None):
 		self.name = name
 		self.ptype = ptype
 		if link is None:
@@ -80,6 +80,7 @@ class Port(object):
 		else:
 			self.link = link
 		self.wsize = wsize
+		self.serializer = serializer
 	
 	def is_input(self):
 		return self._ptype == PORT_TYPE_IN
@@ -93,23 +94,27 @@ class Port(object):
 		else:
 			ptype = "Out"
 		sb += [_INDENT * level]
-		sb += ["%s %s:\n" % (ptype, self.name)]
+		sb += [ptype," ", self.name, ":\n"]
 		level += 1
 		if self.link is not None and len(self.link) > 0:
 			sb += [_INDENT * level]
-			sb += ["link: %s\n" % ", ".join(self.link)]
+			sb += ["link: ", ", ".join(self.link), "\n"]
 		if self.wsize > 1:
 			sb += [_INDENT * level]
-			sb += ["wsize: %i\n" % self.wsize]
+			sb += ["wsize: {0}\n".format(self.wsize)]
+		sb += [_INDENT * level]
+		if self.serializer is not None:
+			sb += ["serializer: ", self.serializer,"\n"]
 		return sb
 
 	def __repr__(self):
 		return "".join(self.repr_level([], 0))
 							
 class Module(object):
-	def __init__(self, name, maxpar = 0, priority = 0, enabled = True, depends = None, in_ports = None, out_ports = None, execution = None):
+	def __init__(self, name, maxpar = 0, wsize = 0, priority = 0, enabled = True, depends = None, serializer = None, in_ports = None, out_ports = None, execution = None):
 		self.name = name
 		self.maxpar = maxpar
+		self.wsize = wsize
 		self.priority = priority
 		self.enabled = enabled
 
@@ -117,6 +122,8 @@ class Module(object):
 			self.depends = []
 		else:
 			self.depends = depends
+
+		self.serializer = serializer
 
 		if in_ports is None:
 			self.in_ports = []
@@ -159,6 +166,8 @@ class Module(object):
 			sb += [_INDENT * level, "Enabled: False\n"]
 		if self.depends is not None and len(self.depends) > 0:
 			sb += [_INDENT * level, "Depends: %s\n" % ", ".join(self.depends)]
+		if self.serializer is not None:
+			sb += [_INDENT * level, "Serializer: ", serializer, "\n"]
 		for p in self.in_ports:
 			p.repr_level(sb, level)
 		for p in self.out_ports:

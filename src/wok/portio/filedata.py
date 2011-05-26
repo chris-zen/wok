@@ -11,7 +11,9 @@ from wok.portio import PortData, DataReader
 TYPE_FILE_DATA = "file_data"
 
 class FileData(PortData):
-	def __init__(self, path = None, start = 0, size = -1, conf = None):
+	def __init__(self, serializer = None, path = None, start = 0, size = -1, conf = None):
+		PortData.__init__(self, serializer, conf)
+
 		if conf is not None:
 			self._path = conf.get("path", path)
 			self._start = conf.get("start", start, dtype=int)
@@ -24,6 +26,8 @@ class FileData(PortData):
 			self._seek_pos = -1
 
 	def fill_element(self, e):
+		PortData.fill_element(self, e)
+
 		e["type"] = TYPE_FILE_DATA
 		e["path"] = self._path
 		e["start"] = self._start
@@ -37,7 +41,7 @@ class FileData(PortData):
 			start = self._start
 		if size is None:
 			size = self._size
-		return FileData(self._path, start, size)
+		return FileData(self._serializer, self._path, start, size)
 
 	def size(self):
 		if self._size == -1:
@@ -51,10 +55,7 @@ class FileData(PortData):
 		return self._size
 
 	def reader(self):
-		return FileDataReader(self._path, self._start, self._size, self._seek_pos)
-
-	def writer(self):
-		raise Exception("Unimplemented")
+		return FileDataReader(self._serializer, self._path, self._start, self._size, self._seek_pos)
 
 	def __repr__(self):
 		sb = [self._path]
@@ -65,7 +66,9 @@ class FileData(PortData):
 		return "".join(sb)
 		
 class FileDataReader(DataReader):
-	def __init__(self, path, start, size, seek_pos = -1):
+	def __init__(self, serializer, path, start, size, seek_pos = -1):
+		DataReader.__init__(self, serializer)
+
 		self._path = path
 		self._start = start
 		self._size = size
@@ -101,6 +104,7 @@ class FileDataReader(DataReader):
 			self._open()
 
 		data = self._data_f.readline().rstrip()
+		data = self._serializer.unmarshall(data)
 
 		self._size -= 1
 

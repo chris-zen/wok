@@ -92,7 +92,7 @@ class McoreJobScheduler(JobScheduler):
 	def init(self):
 		self._log.info("Initializing multi-core scheduler ...")
 
-		self._pool = mp.Pool(self._num_proc)
+		self._pool = mp.Pool(self._num_proc, maxtasksperchild = 8)
 
 		self._log.debug("Multi-core scheduler initialized with %i processors" % self._num_proc)
 

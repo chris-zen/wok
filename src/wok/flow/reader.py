@@ -7,7 +7,7 @@
 from lxml import etree
 
 from wok.element import DataElement, dataelement_from_xml
-from wok.model import *
+from wok.flow.model import *
 
 def str_to_bool(s):
 	s2b = {
@@ -87,6 +87,9 @@ class FlowReader(object):
 			if port.wsize < 1:
 				raise Exception("At port %s: 'wsize' should be a number greater than 0" % port.name)
 
+		if "serializer" in attr:
+			port.serializer = attr["serializer"]
+
 		return port
 
 	def parse_module(self, e):
@@ -102,6 +105,11 @@ class FlowReader(object):
 			if mod.maxpar < 1:
 				raise Exception("'maxpar' should be an integer greater or equal to 1 for module %s" % mod.name)
 
+		if "wsize" in attr:
+			mod.wsize = int(attr["wsize"])
+			if mod.wsize < 1:
+				raise Exception("At module %s: 'wsize' should be a number greater than 0" % mod.name)
+
 		if "enabled" in attr:
 			mod.enabled = str_to_bool(attr["enabled"])
 
@@ -109,6 +117,9 @@ class FlowReader(object):
 			depends = attr["depends"].split(",")
 			if len(depends) != 1 or len(depends[0]) != 0:
 				mod.depends = depends
+
+		if "serializer" in attr:
+			mod.serializer = attr["serializer"]
 
 		for ep in e.xpath("in"):
 			mod.add_in_port(self.parse_port(ep))
@@ -118,7 +129,7 @@ class FlowReader(object):
 
 		mod.conf = DataElement()
 		for el in e.xpath("conf"):
-			conf.merge(self.parse_conf(el))
+			mod.conf.merge(self.parse_conf(el))
 
 		el = e.xpath("exec")
 		if len(el) == 0:

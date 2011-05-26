@@ -4,27 +4,56 @@
 # Licensed under the Non-Profit Open Software License version 3.0
 # ******************************************************************
 
+from wok.serializer import DEFAULT_SERIALIZER_NAME
+from wok.serializer import SerializerFactory
+
 class PortData(object):
-	def __init__(self, conf = None):
+	def __init__(self, serializer = None, conf = None):
+		"""Initialize the port data"""
+
+		if conf is not None:
+			self._serializer = conf.get("serializer", DEFAULT_SERIALIZER_NAME)
+		else:
+			if serializer is None:
+				self._serializer = DEFAULT_SERIALIZER_NAME
+			else:
+				self._serializer = serializer
+
+	def fill_element(self, e):
+		"""Fill the DataElement e with attributes of the port data"""
+
+		e["serializer"] = self._serializer
+		return e
+
+	def reset(self):
+		"""Reset port data state"""
 		pass
 
 	def size(self):
+		"""Get the port data size"""
 		raise Exception("Unimplemented")
 		
-	def get_slice(self, partition = None, start = None, size = None):
+	def get_slice(self, start = None, size = None):
+		"""Get an slice of the port data. It is only used for input ports"""
 		raise Exception("Unimplemented")
 
-	def fill_element(self, e):
-		raise Exception("Unimplemented")
+	def get_partition(self, partition):
+		"""Get a partition of the port data. It is only used for output ports"""
+		raise Exception("Read only port can not give partitions")
 		
 	def reader(self):
-		raise Exception("Unimplemented")
+		"""Get a port data reader"""
+		raise Exception("Port doesn't support reading")
 		
 	def writer(self):
-		raise Exception("Unimplemented")
+		"""Get a port data writer"""
+		raise Exception("Port doesn't support writing")
 
 
 class DataReader(object):
+	def __init__(self, serializer):
+		self._serializer = SerializerFactory.create(serializer)
+
 	def next(self):
 		raise Exception("Unimplemented")
 
@@ -55,3 +84,7 @@ class DataReader(object):
 			return data[0]
 		else:
 			return data
+
+class DataWriter(object):
+	def __init__(self, serializer):
+		self._serializer = SerializerFactory.create(serializer)

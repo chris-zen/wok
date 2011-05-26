@@ -17,6 +17,7 @@ from threading import Thread, Lock
 
 from wok import logger
 from wok.scheduler.factory import create_job_scheduler
+from wok.serializer import DEFAULT_SERIALIZER_NAME
 from wok.portio.filedata import FileData
 from wok.portio.pathdata import PathData
 from wok.portio.multidata import MultiData
@@ -33,9 +34,10 @@ class WokUninitializedError(Exception):
 	pass
 
 class PortNode(object):
-	def __init__(self, p_id, port, data = None):
+	def __init__(self, p_id, port, serializer = DEFAULT_SERIALIZER_NAME, data = None):
 		self.p_id = p_id
 		self.port = port
+		self.serializer = serializer
 		self.data = data
 
 	def __str__(self):
@@ -43,6 +45,8 @@ class PortNode(object):
 		
 	def __repr__(self):
 		sb = [self.p_id]
+		if self.serializer is not None:
+			sb += [" [", self.serializer, "]"]
 		if self.data is not None:
 			sb += [" <--> %s" % self.data]
 		return "".join(sb)
@@ -60,7 +64,7 @@ class ModNode(object):
 		self.module = module
 		self.state = self.S_UNINITIALIZED
 		self.in_pnodes = None
-		self.out_nodes = None
+		self.out_pnodes = None
 		self.conf = DataElement()
 		self.num_tasks = 0
 		self.submitted_tasks = []
@@ -145,15 +149,13 @@ class WokEngine(object):
 	def __init__(self, conf, flow = None):
 		self.conf = conf
 		
-		conf.check_required(["wok.work_path"])
-
 		wok_conf = conf["wok"]
 		
 		self._log = logger.get_logger(wok_conf.get("log"), "wok")
 
 		self._instance_name = wok_conf["__instance.name"]
 		
-		self._work_path = wok_conf["work_path"]
+		self._work_path = wok_conf.get("work_path", os.path.join(os.getcwd(), "wok"))
 		self._output_path = os.path.join(self._work_path, "output")
 		self._ports_path = os.path.join(self._work_path, "ports")
 		self._tasks_path = os.path.join(self._work_path, "tasks")
@@ -232,32 +234,40 @@ class WokEngine(object):
 
 		for m_id, mnode in self._mod_map.iteritems():
 			m = mnode.module
-			mnode.in_pnodes = self._create_port_nodes(m.in_ports, m_id)
-			mnode.out_pnodes = self._create_port_nodes(m.out_ports, m_id)
+			mnode.in_pnodes = self._create_port_nodes(m.in_ports, m, m_id)
+			mnode.out_pnodes = self._create_port_nodes(m.out_ports, m, m_id)
 
 		self._connect_ports()
 
-		#TODO: Check that there is no unattached input ports
-
 		self._calculate_dependencies()
 		
-	def _create_port_nodes(self, ports, ns = ""):
+	def _create_port_nodes(self, ports, module = None, ns = ""):
 		pnodes = []
 		for p in ports:
+			# pnode id
 			p_id = self._ns_name(ns, p.name)
-			pnode = PortNode(p_id, p)
-			pnodes += [pnode]
 			if p_id in self._port_map:
 				sb = ["Duplicated port name '%s'" % p.name]
 				if len(ns) > 0:
 					sb += [" at '%s'" % ns]
 				raise Exception("".join(sb))
+			
+			# serializer
+			serializer = None #DEFAULT_SERIALIZER_NAME
+			if module is not None and module.serializer is not None:
+				serializer = module.serializer
+			if p.serializer is not None:
+				serializer = p.serializer
+
+			pnode = PortNode(p_id, p, serializer)
 			self._port_map[p_id] = pnode
+			pnodes += [pnode]
+
 		return pnodes
 
 	def _connect_ports(self):
 		# create ports data
-		
+
 		# first the ports which are source for others
 		for p_id, pnode in self._port_map.iteritems():
 			port = pnode.port
@@ -272,17 +282,23 @@ class WokEngine(object):
 						raise Exception("File not found: %s" % path)
 
 					if os.path.isdir(path):
-						pnode.data = PathData(path)
+						pnode.data = PathData(pnode.serializer, path)
 					elif os.path.isfile(path):
-						pnode.data = FileData(path)
+						pnode.data = FileData(pnode.serializer, path)
 					else:
 						raise Exception("Unexpected path type: %s" % path)
+					
+					pnode.serializer = DEFAULT_SERIALIZER_NAME
+
 			elif len(port.link) == 0: # link not defined (they are source ports)
 				rel_path = p_id.replace(".", "/")
 				path = os.path.join(self._work_path, "ports", rel_path)
 				if not os.path.exists(path):
 					os.makedirs(path)
-				pnode.data = PathData(path)
+				pnode.data = PathData(pnode.serializer, path)
+
+				if pnode.serializer is None:
+					pnode.serializer = DEFAULT_SERIALIZER_NAME
 
 		# then the ports that link to source ports
 		for p_id, pnode in self._port_map.iteritems():
@@ -294,7 +310,12 @@ class WokEngine(object):
 						raise Exception("Port %s references a non-existent port: %s" % (p_id, link))
 		
 					link_port = self._port_map[link]
+
+					if pnode.serializer is not None and pnode.serializer != link_port.serializer:
+						raise Exception("Unmatching serializer found while linking port '{0}' [{1}] with '{2}' [{3}]".format(pnode.p_id, pnode.serializer, link_port.p_id, link_port.serializer))
+
 					data += [link_port.data.get_slice()]
+
 				if len(data) == 1:
 					pnode.data = data[0]
 				else:
@@ -439,7 +460,7 @@ class WokEngine(object):
 			psize = pnode.data.size()
 			psizes += [psize]
 			pwsize = self._effective_wsize(pnode.port.wsize)
-			self._log.debug("%s: size=%i, wsize=%i" % (pnode.p_id, psize, pwsize))
+			self._log.debug("{0}: size={1}, wsize={2}".format(pnode.p_id, psize, pwsize))
 			if pwsize < mwsize:
 				mwsize = pwsize
 
@@ -447,7 +468,8 @@ class WokEngine(object):
 		
 		if len(psizes) == 0:
 			# Submit a task for the module without input ports information
-			t_id = "%s-%05i" % (mnode.m_id, 0)
+			#t_id = "%s-%04i" % (mnode.m_id, 0)
+			t_id = mnode.m_id + "-0000"
 			task = self._create_task(self.conf, flow, mnode, t_id)
 			tasks += [task]
 
@@ -455,10 +477,9 @@ class WokEngine(object):
 				task_ports = task["ports"]
 				e = task_ports.create_element()
 				task_ports[pnode.port.name] = e
-				data = pnode.data.get_slice(partition = pnode.data.last_partition)
+				data = pnode.data.get_partition()
 				e["mode"] = "out"
 				e["data"] = data.fill_element(e.create_element())
-				pnode.data.last_partition += 1
 		else:
 			# Check whether all inputs have the same size
 			psize = psizes[0]
@@ -472,14 +493,17 @@ class WokEngine(object):
 				num_partitions = 1
 				self._log.warn("Unable to partition a module with inputs of different size")
 			else:
-				#TODO: Check mwsize == 0 --> some empty port
-				num_partitions = int(math.ceil(psize / float(mwsize)))
-				maxpar = self._effective_maxpar(mnode.module.maxpar)
-				self._log.debug("%s.maxpar=%i" % (mnode.module.name, maxpar))
-				if maxpar > 0 and num_partitions > maxpar:
-					num_partitions = maxpar
-					mwsize = int(math.ceil(psize / float(num_partitions)))
-				self._log.debug("num_par=%i, psize=%i, mwsize=%i" % (num_partitions, psize, mwsize))
+				if mwsize == 0:
+					num_partitions = 1
+					self._log.warn("Empty port, no partitioning")
+				else:
+					num_partitions = int(math.ceil(psize / float(mwsize)))
+					maxpar = self._effective_maxpar(mnode.module.maxpar)
+					self._log.debug("%s.maxpar=%i" % (mnode.module.name, maxpar))
+					if maxpar > 0 and num_partitions > maxpar:
+						num_partitions = maxpar
+						mwsize = int(math.ceil(psize / float(num_partitions)))
+					self._log.debug("num_par=%i, psize=%i, mwsize=%i" % (num_partitions, psize, mwsize))
 
 			start = 0
 			partitions = []
@@ -509,7 +533,7 @@ class WokEngine(object):
 					#	size = psizes[pi]
 					#else:
 					#	size = partition["size"]
-					data = pnode.data.get_slice(start = partition["start"], size = partition["size"])
+					data = pnode.data.get_slice(partition["start"], partition["size"])
 					e["mode"] = "in"
 					e["data"] = data.fill_element(e.create_element())
 
@@ -519,10 +543,9 @@ class WokEngine(object):
 					task_ports = task["ports"]
 					e = task_ports.create_element()
 					task_ports[pnode.port.name] = e
-					data = pnode.data.get_slice(partition = pnode.data.last_partition)
+					data = pnode.data.get_partition()
 					e["mode"] = "out"
 					e["data"] = data.fill_element(e.create_element())
-					pnode.data.last_partition += 1
 
 		mnode.num_tasks = len(tasks)
 		
@@ -576,7 +599,7 @@ class WokEngine(object):
 		for mnode in self._mnodes_by_dep:
 			#sb += ["%s\n" % mnode]
 			for pnode in mnode.in_pnodes:
-				sb += ["\t%r\n" % pnode]
+				sb += ["\t", repr(pnode), "\n"]
 		self._log.debug("".join(sb))
 
 		self._state = WokEngine.S_READY
@@ -606,9 +629,9 @@ class WokEngine(object):
 				tasks = []
 
 				# Initialize ports data starting partition
-				for mnode in batch_modules:
+				"""for mnode in batch_modules:
 					for pnode in mnode.out_pnodes:
-						pnode.data.start_partition = pnode.data.last_partition
+						pnode.data.reset()"""
 
 				# Submit tasks
 				for mnode in batch_modules:

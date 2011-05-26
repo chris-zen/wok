@@ -1,0 +1,48 @@
+<flow name="mrna">
+
+	<title>Simple workflow</title>
+	<desc>Simple workflow that calculates sum(x^2) for all 0&lt;x&lt;N</desc>
+
+	<module name="generate_values" enabled="1">
+		<title>Values generator</title>
+		<desc>Generate values 0&lt;x&lt;N</desc>
+
+		<conf>
+			<N>10000</N>
+		</conf>
+
+		<out name="x" serializer="json">
+			<desc>Value</desc>
+		</out>
+
+		<exec launcher="python">
+			<script>generate_values.py</script>
+		</exec>
+	</module>
+
+	<module name="square" enabled="1">
+		<title>X Square calculation</title>
+		<desc>Calculate square of x</desc>
+
+		<in name="x" link="generate_values.x" />
+
+		<out name="x_square" serializer="json"/>
+
+		<exec launcher="python">
+			<script>square.py</script>
+		</exec>
+	</module>
+
+	<module name="sum" maxpar="1" enabled="1">
+		<title>Sumatory</title>
+		<desc>Calculate sum of values</desc>
+
+		<in name="x" link="square.x_square" />
+
+		<out name="sum" />
+
+		<exec launcher="python">
+			<script>sum.py</script>
+		</exec>
+	</module>
+</flow>

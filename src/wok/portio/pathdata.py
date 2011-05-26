@@ -7,12 +7,14 @@
 import os
 import struct
 
-from wok.portio import PortData, DataReader
+from wok.portio import PortData, DataReader, DataWriter
 
 TYPE_PATH_DATA = "path_data"
 
 class PathData(PortData):
-	def __init__(self, path = None, partition = -1, start = 0, size = -1, conf = None):
+	def __init__(self, serializer = None, path = None, partition = -1, start = 0, size = -1, conf = None):
+		PortData.__init__(self, serializer, conf)
+
 		if conf is not None:
 			self._path = conf.get("path", path)
 			self._partition = conf.get("partition", partition, dtype=int)
@@ -24,16 +26,19 @@ class PathData(PortData):
 			self._start = start
 			self._size = size
 
-		self.first_partition = 0
-		self.last_partition = 0
+		self._last_partition = 0
 
 	def fill_element(self, e):
+		PortData.fill_element(self, e)
 		e["type"] = TYPE_PATH_DATA
 		e["path"] = self._path
 		e["partition"] = self._partition
 		e["start"] = self._start
 		e["size"] = self._size
 		return e
+
+	def reset(self):
+		self._last_partition = 0
 
 	def _partition_size(self, partition):
 		path = os.path.join(self._path, "%06i.index" % partition)
@@ -42,12 +47,13 @@ class PathData(PortData):
 		else:
 			return 0
 
+	"""
 	def get_slice(self, partition = None, start = None, size = None):
 		if start is None and size is None:
 			if partition is not None:
-				return PathData(self._path, partition)
+				return PathData(self._path, partition = partition)
 			else:
-				return PathData(self._path, self._partition)
+				return PathData(self._path, partition = self._partition)
 		
 		if partition is None:
 			partition = 0
@@ -66,37 +72,35 @@ class PathData(PortData):
 			size = 0
 
 		return PathData(self._path, partition, start, size)
-		
-		"""
-		sz = min(ps - start, size)
-		partitions = [PathData(self._path, partition, start, sz)]
+	"""
 
-		size -= sz
-		while size > 0:
-			partition += 1
-			ps = self._partition_size[partition]
-			sz = min(ps, size)
-			partitions += [PathData(self._path, partition, 0, sz)]
-			size -= sz
+	def get_slice(self, start = None, size = None):
+		if start is None and size is None:
+			return PathData(self._serializer, self._path, self._partition, self._start, self._size)
 
-		if len(partitions) == 1:
-			return partitions[0]
+		partition = 0
+
+		ps = self._partition_size(partition)
+
+		if start is None:
+			start = 0
 		else:
-			return MultiData(partitions)
-		"""
-	"""
-	def _calc_partition_sizes(self):
-		self._partition_size = []
-		if os.path.exists(self._path):
-			for f in os.listdir(self._path):
-				if f.endswith(".index"):
-					p = int(f[:-6])
-					s = len(self._partition_size)
-					if p >= s:
-						self._partition_size += [0] * (p - s + 1)
-					path = os.path.join(self._path, f)
-					self._partition_size[p] = os.path.getsize(path) / 8
-	"""
+			while start > ps:
+				partition += 1
+				start -= ps
+				ps = self._partition_size(partition)
+
+		if size is None:
+			size = 0
+
+		return PathData(self._serializer, self._path, partition, start, size)
+
+	def get_partition(self, partition = None):
+		if partition is None:
+			partition = self._last_partition
+			self._last_partition += 1
+
+		return PathData(self._serializer, self._path, partition = partition)
 	
 	def size(self):
 		if not os.path.exists(self._path):
@@ -120,27 +124,29 @@ class PathData(PortData):
 		if self._partition == -1 or self._size == -1:
 			raise Exception("A reader can not be created without knowing the partition and/or size")
 	
-		return PartitionDataReader(self._path, self._partition, self._start, self._size)
+		return PartitionDataReader(self._serializer, self._path, self._partition, self._start, self._size)
 	
 	def writer(self):
 		if self._partition == -1:
 			raise Exception("A writer can not be created without knowing the partition")
 
-		return PartitionDataWriter(self._path, self._partition)
+		return PartitionDataWriter(self._serializer, self._path, self._partition)
 		
 	def __repr__(self):
 		sb = [self._path]
 		if self._partition != -1 or self._start != 0 or self._size != -1:
 			sb += [" "]
 			if self._partition != -1:
-				sb + ["%i." % self._partition]
-			sb += ["%i" % self._start]
+				sb + [str(self._partition), "."]
+			sb += [str(self._start)]
 			if self._size != -1:
-				sb += [":%i" % (self._start + self._size - 1)]
+				sb += [":", str(self._start + self._size - 1)]
 		return "".join(sb)
 
 class PartitionDataReader(DataReader):
-	def __init__(self, path, partition, start, size):
+	def __init__(self, serializer, path, partition, start, size):
+		DataReader.__init__(self, serializer)
+
 		self._path = path
 		self._partition = partition
 		self._start = start
@@ -197,13 +203,16 @@ class PartitionDataReader(DataReader):
 		pos = struct.unpack("Q", d)[0]
 		self._data_f.seek(pos)
 		data = self._data_f.readline().rstrip()
+		data = self._serializer.unmarshall(data)
 		
 		self._size -= 1
 
 		return data
 	
-class PartitionDataWriter(object):
-	def __init__(self, path, partition):
+class PartitionDataWriter(DataWriter):
+	def __init__(self, serializer, path, partition):
+		DataWriter.__init__(self, serializer)
+
 		self._path = path
 		self._partition = partition
 
@@ -243,10 +252,9 @@ class PartitionDataWriter(object):
 			self._index_f.write(struct.pack("Q", pos))
 		
 			# Write the data
-			# TODO encode \n from data
-			self._data_f.write(d.replace("\n", r"\n"))
+			d = self._serializer.marshall(d)
+			self._data_f.write(d)
 			self._data_f.write("\n")
 
 	def __repr__(self):
 		return "%s/%06i" % (self._path, self._partition)
-
