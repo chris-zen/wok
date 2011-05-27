@@ -121,7 +121,7 @@ class PathData(PortData):
 		return self._size
 
 	def reader(self):
-		if self._partition == -1 or self._size == -1:
+		if self._partition == -1 and self._size == -1:
 			raise Exception("A reader can not be created without knowing the partition and/or size")
 	
 		return PartitionDataReader(self._serializer, self._path, self._partition, self._start, self._size)

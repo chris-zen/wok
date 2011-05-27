@@ -19,6 +19,10 @@ class PortData(object):
 			else:
 				self._serializer = serializer
 
+	@property
+	def serializer(self):
+		return self._serializer
+
 	def fill_element(self, e):
 		"""Fill the DataElement e with attributes of the port data"""
 
@@ -51,8 +55,11 @@ class PortData(object):
 
 
 class DataReader(object):
-	def __init__(self, serializer):
-		self._serializer = SerializerFactory.create(serializer)
+	def __init__(self, serializer = None):
+		if serializer:
+			self._serializer = SerializerFactory.create(serializer)
+		else:
+			self._serializer = None
 
 	def next(self):
 		raise Exception("Unimplemented")

@@ -1,9 +1,9 @@
-<flow name="mrna">
+<flow name="simple">
 
 	<title>Simple workflow</title>
 	<desc>Simple workflow that calculates sum(x^2) for all 0&lt;x&lt;N</desc>
 
-	<module name="generate_values" enabled="1">
+	<module name="generate_values">
 		<title>Values generator</title>
 		<desc>Generate values 0&lt;x&lt;N</desc>
 
@@ -20,7 +20,7 @@
 		</exec>
 	</module>
 
-	<module name="square" enabled="1">
+	<module name="square" maxpar="20">
 		<title>X Square calculation</title>
 		<desc>Calculate square of x</desc>
 
@@ -33,7 +33,8 @@
 		</exec>
 	</module>
 
-	<module name="sum" maxpar="1" enabled="1">
+	<!-- enabled attribute is true by default -->
+	<module name="sum" maxpar="1" enabled="true">
 		<title>Sumatory</title>
 		<desc>Calculate sum of values</desc>
 

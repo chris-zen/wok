@@ -92,7 +92,11 @@ class McoreJobScheduler(JobScheduler):
 	def init(self):
 		self._log.info("Initializing multi-core scheduler ...")
 
-		self._pool = mp.Pool(self._num_proc, maxtasksperchild = 8)
+		try:
+			# maxtasksperchild requires python 2.7+
+			self._pool = mp.Pool(self._num_proc, maxtasksperchild = 8)
+		except:
+			self._pool = mp.Pool(self._num_proc)
 
 		self._log.debug("Multi-core scheduler initialized with %i processors" % self._num_proc)
 

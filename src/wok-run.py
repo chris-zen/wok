@@ -7,7 +7,8 @@
 # ******************************************************************
 
 import os
-import uuid
+import os.path
+from datetime import datetime
 
 from wok import logger
 from wok.config import Config
@@ -20,10 +21,23 @@ from wok.engine import WokEngine
 def add_options(parser):
 	pass
 
+instance_name = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+print instance_name
+
+print __file__
+install_path = os.path.dirname(os.path.realpath(__file__))
+print install_path
+
 initial_conf = {
 	"wok" : {
 		"__instance" : {
-			"name" : str(uuid.uuid4())
+			"name" : instance_name
+		},
+
+		"launchers" : {
+			"python" : {
+				"pythonpath" : [install_path]
+			}
 		}
 	}
 }

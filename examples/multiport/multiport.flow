@@ -1,0 +1,68 @@
+<flow name="multiport">
+
+	<title>Multiport workflow</title>
+	<desc>Workflow with modules having multiple ports</desc>
+
+	<module name="generate1">
+		<title>Values generator</title>
+		<desc>Generate values start&lt;x&lt;start+size</desc>
+
+		<conf>
+			<start>0</start>
+			<size>10</size>
+		</conf>
+
+		<out name="value" serializer="json">
+			<desc>Value</desc>
+		</out>
+
+		<exec launcher="python">
+			<script>generate.py</script>
+		</exec>
+	</module>
+
+	<module name="generate2">
+		<title>Values generator</title>
+		<desc>Generate values start&lt;x&lt;start+size</desc>
+
+		<conf>
+			<start>10</start>
+			<size>13</size>
+		</conf>
+
+		<out name="value" serializer="json">
+			<desc>Value</desc>
+		</out>
+
+		<exec launcher="python">
+			<script>generate.py</script>
+		</exec>
+	</module>
+
+	<module name="square" maxpar="3">
+		<title>X Square calculation</title>
+		<desc>Calculate square of x</desc>
+
+		<in name="x" link="generate1.value, generate2.value" />
+
+		<out name="x_square" serializer="json"/>
+
+		<exec launcher="python">
+			<script>square.py</script>
+		</exec>
+	</module>
+
+	<module name="sum" maxpar="1" enabled="true">
+		<title>Sumatory</title>
+		<desc>Calculate sum of values</desc>
+
+		<in name="x" link="square.x_square" />
+
+		<out name="count" />
+		<out name="sum" />
+
+		<exec launcher="python">
+			<script>sum.py</script>
+		</exec>
+	</module>
+</flow>
