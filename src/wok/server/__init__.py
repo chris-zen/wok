@@ -15,6 +15,7 @@ from wok.server.views.web import web
 from wok.server.views.restful import restful
 
 class FlaskWithPygments(Flask):
+
 	jinja_options = ImmutableDict(
 		extensions = [
 			'jinja2.ext.autoescape',

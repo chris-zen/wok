@@ -22,11 +22,7 @@ def add_options(parser):
 	pass
 
 instance_name = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-print instance_name
-
-print __file__
 install_path = os.path.dirname(os.path.realpath(__file__))
-print install_path
 
 initial_conf = {
 	"wok" : {
@@ -54,7 +50,7 @@ if "wok" not in conf:
 wok_conf = conf["wok"]
 
 logger.initialize(wok_conf.get("log"))
-log = logger.get_logger(wok_conf.get("log"))
+log = logger.get_logger(wok_conf.get("log"), name = "wok-run")
 
 if len(conf.args) != 1:
 	log.error("Incorrect number of arguments")
@@ -75,12 +71,11 @@ reader = FlowReader(flow_arg)
 flow = reader.read()
 reader.close()
 
-wok = WokEngine(conf, flow)
-
 def main():
 	server_mode = wok_conf.get("server.enabled", False, dtype=bool)
 	if server_mode:
 		from wok.server import app
+		wok = WokEngine(conf, flow)
 		app.config["WOK"] = wok
 		server_host = wok_conf.get("server.host", "localhost", dtype=str)
 		server_port = wok_conf.get("server.port", 5000, dtype=int)
@@ -102,6 +97,7 @@ def main():
 
 		app.run(host=server_host, port=server_port, debug = server_debug)
 	else:
+		wok = WokEngine(conf, flow)
 		wok.start(async = False)
 
 if __name__ == "__main__":

@@ -35,7 +35,8 @@ class PortsAccessor(object):
 				ports = [self.__ports[name] for name in names]
 			except:
 				raise Exception("Unknown port: {0}".format(e.args[0]))
-		return ports
+
+		return tuple(ports)
 
 	def keys(self):
 		return self.__ports.keys()
@@ -80,8 +81,8 @@ class Task(object):
 		self._main = None
 		self._generators = []
 		self._mappers = []
-		self._before_main = None
-		self._after_main = None
+		self._begin = None
+		self._end = None
 
 		self._start_time = 0
 		self._end_time = self._start_time
@@ -128,14 +129,14 @@ class Task(object):
 
 		## Execute before main
 
-		if self._before_main:
-			self._log.debug("Processing before main ...")
-			self._before_main()
+		if self._begin:
+			self._log.debug("Processing task begin ...")
+			self._begin()
 
 		## Execute generators
 
 		if self._generators:
-			self._log.debug("Processing generators ...")
+			self._log.debug("Processing task generators ...")
 
 		for generator in self._generators:
 			func, out_ports = generator
@@ -152,7 +153,7 @@ class Task(object):
 		## Execute mappers
 
 		if self._mappers:
-			self._log.debug("Processing mappers ...")
+			self._log.debug("Processing task mappers ...")
 
 		# initialize mappers
 		mappers = []
@@ -194,9 +195,9 @@ class Task(object):
 					writer.write(ret[i])
 
 		## Execute after main
-		if self._after_main:
-			self._log.debug("Processing after main ...")
-			self._after_main()
+		if self._end:
+			self._log.debug("Processing task end ...")
+			self._end()
 
 		return 0
 
@@ -346,26 +347,26 @@ class Task(object):
 			return f
 		return decorator
 
-	def set_before_main(self, f):
+	def set_begin(self, f):
 		"""Set the function that will be executed before starting the main function"""
-		self._before_main = f
+		self._begin = f
 
-	def before_main(self):
+	def begin(self):
 		"""A decorator that is used to specify the function that will be
 		executed before starting the main function"""
 		def decorator(f):
-			self.set_before_main(f)
+			self.set_begin(f)
 			return f
 		return decorator
 
-	def set_after_main(self, f):
+	def set_end(self, f):
 		"""Set the function that will be executed before starting the main function"""
-		self._after_main = f
+		self._end = f
 
-	def after_main(self):
+	def end(self):
 		"""A decorator that is used to specify the function that will be
 		executed after executing the main function"""
 		def decorator(f):
-			self.set_after_main(f)
+			self.set_end(f)
 			return f
 		return decorator

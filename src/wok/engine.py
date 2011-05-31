@@ -151,7 +151,7 @@ class WokEngine(object):
 		
 		wok_conf = conf["wok"]
 		
-		self._log = logger.get_logger(wok_conf.get("log"), "wok")
+		self._log = logger.get_logger(wok_conf.get("log"), "engine")
 
 		self._instance_name = wok_conf["__instance.name"]
 		
@@ -440,10 +440,14 @@ class WokEngine(object):
 			raise
 		return task
 
-	def _effective_wsize(self, wsize):
-		if wsize == 0:
-			wsize = max(self._wsize, 1)
-		return wsize
+	def _effective_wsize(self, mnode_wsize, pnode_wsize):
+		if pnode_wsize == 0:
+			if mnode_wsize == 0:
+				return max(self._wsize, 1)
+			else:
+				return mnode_wsize
+		else:
+			return pnode_wsize
 
 	def _effective_maxpar(self, maxpar):
 		if maxpar == 0:
@@ -453,13 +457,14 @@ class WokEngine(object):
 		return min(self._maxpar, maxpar)
 
 	def _schedule_tasks(self, flow, mnode):
+		self._log.debug("_schedule_tasks():start")
 		# Calculate input sizes and the minimum wsize
 		psizes = []
 		mwsize = sys.maxint
 		for pnode in mnode.in_pnodes:
 			psize = pnode.data.size()
 			psizes += [psize]
-			pwsize = self._effective_wsize(pnode.port.wsize)
+			pwsize = self._effective_wsize(mnode.module.wsize, pnode.port.wsize)
 			self._log.debug("{0}: size={1}, wsize={2}".format(pnode.p_id, psize, pwsize))
 			if pwsize < mwsize:
 				mwsize = pwsize
@@ -501,8 +506,8 @@ class WokEngine(object):
 					maxpar = self._effective_maxpar(mnode.module.maxpar)
 					self._log.debug("%s.maxpar=%i" % (mnode.module.name, maxpar))
 					if maxpar > 0 and num_partitions > maxpar:
-						num_partitions = maxpar
-						mwsize = int(math.ceil(psize / float(num_partitions)))
+						mwsize = int(math.ceil(psize / float(maxpar)))
+						num_partitions = int(math.ceil(psize / float(mwsize)))
 					self._log.debug("num_par=%i, psize=%i, mwsize=%i" % (num_partitions, psize, mwsize))
 
 			start = 0
@@ -548,7 +553,8 @@ class WokEngine(object):
 					e["data"] = data.fill_element(e.create_element())
 
 		mnode.num_tasks = len(tasks)
-		
+
+		self._log.debug("_schedule_tasks():end")
 		return tasks
 
 	def clean(self):
