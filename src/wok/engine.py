@@ -229,19 +229,19 @@ class WokEngine(object):
 				self._mnodes_by_flow.append(mnode)
 
 		# create port nodes
-		self._create_port_nodes(flow.in_ports)
-		self._create_port_nodes(flow.out_ports)
+		self._create_port_nodes(flow.in_ports, flow = flow)
+		self._create_port_nodes(flow.out_ports, flow = flow)
 
 		for m_id, mnode in self._mod_map.iteritems():
 			m = mnode.module
-			mnode.in_pnodes = self._create_port_nodes(m.in_ports, m, m_id)
-			mnode.out_pnodes = self._create_port_nodes(m.out_ports, m, m_id)
+			mnode.in_pnodes = self._create_port_nodes(m.in_ports, m, flow, m_id)
+			mnode.out_pnodes = self._create_port_nodes(m.out_ports, m, flow, m_id)
 
 		self._connect_ports()
 
 		self._calculate_dependencies()
 		
-	def _create_port_nodes(self, ports, module = None, ns = ""):
+	def _create_port_nodes(self, ports, module = None, flow = None, ns = ""):
 		pnodes = []
 		for p in ports:
 			# pnode id
@@ -253,11 +253,14 @@ class WokEngine(object):
 				raise Exception("".join(sb))
 			
 			# serializer
-			serializer = None #DEFAULT_SERIALIZER_NAME
-			if module is not None and module.serializer is not None:
-				serializer = module.serializer
 			if p.serializer is not None:
 				serializer = p.serializer
+			elif module is not None and module.serializer is not None:
+				serializer = module.serializer
+			elif flow is not None and flow.serializer is not None:
+				serializer = flow.serializer
+			else:
+				serializer = None
 
 			pnode = PortNode(p_id, p, serializer)
 			self._port_map[p_id] = pnode
@@ -457,7 +460,6 @@ class WokEngine(object):
 		return min(self._maxpar, maxpar)
 
 	def _schedule_tasks(self, flow, mnode):
-		self._log.debug("_schedule_tasks():start")
 		# Calculate input sizes and the minimum wsize
 		psizes = []
 		mwsize = sys.maxint
@@ -534,10 +536,6 @@ class WokEngine(object):
 					task_ports = task["ports"]
 					e = task_ports.create_element()
 					task_ports[pnode.port.name] = e
-					#if num_partitions == 1:
-					#	size = psizes[pi]
-					#else:
-					#	size = partition["size"]
 					data = pnode.data.get_slice(partition["start"], partition["size"])
 					e["mode"] = "in"
 					e["data"] = data.fill_element(e.create_element())
@@ -554,7 +552,6 @@ class WokEngine(object):
 
 		mnode.num_tasks = len(tasks)
 
-		self._log.debug("_schedule_tasks():end")
 		return tasks
 
 	def clean(self):

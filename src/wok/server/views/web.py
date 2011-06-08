@@ -28,6 +28,7 @@ def prepare_logs(output):
 		m = log_re.match(line)
 		if m:
 			level = m.group(1).lower()
+		line = line.decode("utf-8", "replace")
 		logs += [{"level" : level, "text" : line}]
 	return logs
 

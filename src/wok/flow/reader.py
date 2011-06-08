@@ -4,7 +4,28 @@
 # Licensed under the Non-Profit Open Software License version 3.0
 # ******************************************************************
 
-from lxml import etree
+try:
+	from lxml import etree
+except ImportError:
+	try:
+		# Python 2.5
+		import xml.etree.cElementTree as etree
+	except ImportError:
+		try:
+			# Python 2.5+
+			import xml.etree.ElementTree as etree
+		except ImportError:
+			try:
+				# normal cElementTree install
+				import cElementTree as etree
+			except ImportError:
+				try:
+					# normal ElementTree install
+					import elementtree.ElementTree as etree
+				except ImportError:
+					import sys
+					sys.stderr.write("Failed to import ElementTree from any known place\n")
+					raise
 
 from wok.element import DataElement, dataelement_from_xml
 from wok.flow.model import *
@@ -40,7 +61,7 @@ class FlowReader(object):
 			raise Exception("'name' attribute not found for tag <flow>")
 		
 		name = root.attrib["name"]
-		
+
 		title = root.findall("title")
 		if len(title) == 0:
 			title = name
@@ -50,7 +71,10 @@ class FlowReader(object):
 			raise Exception("More than one <title> found")
 		
 		flow = Flow(name = name, title = title)
-		
+
+		if "serializer" in root.attrib:
+			flow.serializer = root.attrib["serializer"]
+
 		for e in root.xpath("in"):
 			flow.add_in_port(self.parse_port(e))
 		
@@ -116,7 +140,7 @@ class FlowReader(object):
 		if "depends" in attr:
 			depends = attr["depends"].split(",")
 			if len(depends) != 1 or len(depends[0]) != 0:
-				mod.depends = depends
+				mod.depends = [d.strip() for d in depends]
 
 		if "serializer" in attr:
 			mod.serializer = attr["serializer"]

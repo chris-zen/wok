@@ -31,12 +31,15 @@ class PortsAccessor(object):
 		else:
 			try:
 				if isinstance(names, basestring):
-					ports = [names]
+					names = [names]
 				ports = [self.__ports[name] for name in names]
-			except:
+			except Exception as e:
 				raise Exception("Unknown port: {0}".format(e.args[0]))
 
-		return tuple(ports)
+		if len(ports) == 1:
+			return ports[0]
+		else:
+			return tuple(ports)
 
 	def keys(self):
 		return self.__ports.keys()

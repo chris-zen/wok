@@ -10,9 +10,10 @@ PORT_TYPE_OUT = 2
 _INDENT = "\t"
 
 class Flow(object):
-	def __init__(self, name, title = "", in_ports = None, out_ports = None, modules = None):
+	def __init__(self, name, title = "", serializer = None, in_ports = None, out_ports = None, modules = None):
 		self.name = name
 		self.title = title
+		self.serializer = None
 		
 		if in_ports is None:
 			self.in_ports = []
@@ -60,8 +61,10 @@ class Flow(object):
 		return self.module_map[name]
 		
 	def __repr__(self):
-		sb = ["Flow %s:\n" % self.name]
-		sb += ["\ttitle: %s\n" % self.title]
+		sb = ["Flow ", self.name, ":\n"]
+		sb += ["\ttitle: ", self.title, "\n"]
+		if self.serializer is not None:
+			sb += ["\tserializer: ", self.serializer, "\n"]
 		for p in self.in_ports:
 			p.repr_level(sb, 1)
 		for p in self.out_ports:
@@ -104,7 +107,7 @@ class Port(object):
 			sb += ["wsize: {0}\n".format(self.wsize)]
 		sb += [_INDENT * level]
 		if self.serializer is not None:
-			sb += ["serializer: ", self.serializer,"\n"]
+			sb += ["serializer: ", self.serializer, "\n"]
 		return sb
 
 	def __repr__(self):

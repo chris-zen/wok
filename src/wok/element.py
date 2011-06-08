@@ -87,12 +87,26 @@ def _expand(key, value, context, path = None):
 	return "".join(res)
 
 def dataelement_from_xml(xmle):
-	if len(xmle) == 0:
+	elen = len(xmle)
+	if elen == 0:
 		return xmle.text
 	else:
-		data = DataElement(key_sep = "/")
+		tags = {}
 		for e in xmle:
-			data[e.tag] = dataelement_from_xml(e)
+			if e.tag in tags:
+				tags[e.tag] += [e]
+			else:
+				tags[e.tag] = [e]
+
+		data = DataElement(key_sep = "/")
+		for tag, elist in tags.items():
+			if len(elist) == 1:
+				data[tag] = dataelement_from_xml(elist[0])
+			else:
+				l = DataElementList(key_sep = "/")
+				for e in elist:
+					l += [dataelement_from_xml(e)]
+				data[tag] = l
 
 	return data
 
