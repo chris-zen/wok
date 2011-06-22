@@ -25,13 +25,23 @@ class PortsAccessor(object):
 	def __init__(self, ports):
 		self.__ports = ports
 
-	def __call__(self, names, mode = [PORT_MODE_IN, PORT_MODE_OUT]):
-		if names is None:
+	def __call__(self, *args, **kargs):
+		if "mode" in kargs:
+			mode = kargs["mode"]
+		else:
+			mode = [PORT_MODE_IN, PORT_MODE_OUT]
+
+		if args is None or len(args) == 0:
 			ports = [port for port in self.__ports.values() if port.mode in mode]
 		else:
+			names = []
+			for arg in args:
+				if isinstance(arg, list):
+					names += arg
+				else:
+					names += [arg]
+
 			try:
-				if isinstance(names, basestring):
-					names = [names]
 				ports = [self.__ports[name] for name in names]
 			except Exception as e:
 				raise Exception("Unknown port: {0}".format(e.args[0]))

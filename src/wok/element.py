@@ -40,6 +40,7 @@ It offers many more functionalities such as:
 """
 
 import re
+import json
 from copy import deepcopy
 
 _IDENTIFIER_PAT = re.compile("^[a-zA-Z_]+$")
@@ -116,12 +117,14 @@ def dataelement_from_json(obj):
 	elif isinstance(obj, list):
 		return DataElementList(obj, key_sep = "/")
 	else:
-		raise Exception("Simple value can not be translated to DataElement: %s" % str(obj))
+		raise Exception("Simple value can not be translated to DataElement: {}".format(obj))
 
 def dataelement_from_json_path(path):
-	return dataelement_from_json(json.load(open(path, "r")))
-
-import json
+	f = open(path, "r")
+	d = json.load(f)
+	e = dataelement_from_json(d)
+	f.close()
+	return e
 
 class DataElementJsonEncoder(json.JSONEncoder):
 	def default(self, obj):
