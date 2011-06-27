@@ -105,7 +105,7 @@ def synchronized(lock):
 	""" Synchronization decorator. """
 
 	def wrap(f):
-		def new_function(*args, ** kw):
+		def new_function(*args, **kw):
 			from wok.logger import get_logger
 			get_logger(None, "wok").debug("acquire %s" % f.__name__)
 			lock.acquire()
@@ -174,6 +174,8 @@ class WokEngine(object):
 		self._maxpar = wok_conf.get("defaults.maxpar", 0, dtype=int)
 
 		self._wsize = wok_conf.get("defaults.wsize", 0, dtype=int)
+
+		self._start_module = wok_conf.get("start_module")
 
 		self._flow = None
 		
@@ -586,19 +588,34 @@ class WokEngine(object):
 		self._finished = []
 		self._failed = []
 
+		# create module nodes graph
 		self._create_graph(flow)
 
+		# get the list of module nodes sorted by dependencies
 		self._mnodes_by_dep = self._mnodes_sorted_by_dependency()
 
-		for mnode in self._mod_map.values():
-			mnode.state = ModNode.S_WAITING
-			self._waiting += [mnode]
+		# initialize module nodes state
+		i = 0
+		mnode_count = len(self._mnodes_by_dep)
 
+		# If specified, start on the specified module
+		if self._start_module is not None:
+			while i < mnode_count and self._mnodes_by_dep[i].m_id != self._start_module:
+				self._mnodes_by_dep[i].state = ModNode.S_FINISHED
+				i += 1
+
+		while i < mnode_count:
+			self._mnodes_by_dep[i].state = ModNode.S_WAITING
+			self._waiting += [self._mnodes_by_dep[i]]
+			i += 1
+
+		# initialize module nodes configuration
+		for mnode in self._mod_map.values():
 			mnode.conf.merge(self.conf)
 			if mnode.module.conf is not None:
 				mnode.conf.merge(mnode.module.conf)
 
-		sb = ["Modules ports mapping:\n"]
+		sb = ["Modules input ports mapping:\n"]
 		for mnode in self._mnodes_by_dep:
 			#sb += ["%s\n" % mnode]
 			for pnode in mnode.in_pnodes:
