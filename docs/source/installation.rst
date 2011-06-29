@@ -8,6 +8,7 @@ Dependencies
 - lxml
 - drmaa
 - flask
+- pygments
 
 For developers:
 
@@ -16,7 +17,7 @@ For developers:
 Installing from distribution
 ++++++++++++++++++++++++++++
 
-easy_install ???
+easy_install ??? pip ???
 
 - download & unzip
 - install dependencies

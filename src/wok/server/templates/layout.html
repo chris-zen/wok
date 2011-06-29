@@ -69,13 +69,15 @@
 					<div class="flash">{{ message }}</div>
 				{% endfor %}
 
-				{% if session.logged_in %}
+				{# {% if session.logged_in %}
 					{% block body %}{% endblock %}
 				{% else %}
 					{% block login %}
 						<p>Log in to start session</p>
 					{% endblock %}
-				{% endif %}
+				{% endif %} #}
+
+				{% block body %}{% endblock %}
 			</div>
 		</div>
 	</div>

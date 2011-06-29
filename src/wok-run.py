@@ -70,6 +70,7 @@ conf.expand_vars()
 reader = FlowReader(flow_arg)
 flow = reader.read()
 reader.close()
+wok_conf["__flow.name"] = flow.name
 
 def main():
 	server_mode = wok_conf.get("server.enabled", False, dtype=bool)
