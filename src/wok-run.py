@@ -49,28 +49,33 @@ if "wok" not in conf:
 
 wok_conf = conf["wok"]
 
+# initialize logging
+
 logger.initialize(wok_conf.get("log"))
 log = logger.get_logger(wok_conf.get("log"), name = "wok-run")
+
+# check arguments
 
 if len(conf.args) != 1:
 	log.error("Incorrect number of arguments")
 	exit(-1)
 
+# read the workflow definition
+
 flow_arg = conf.args[0]
-flow_path = os.path.dirname(os.path.abspath(flow_arg))
-wok_conf["__flow.path"] = flow_path
-wok_conf["__flow.file"] = os.path.basename(flow_arg)
-
-wok_conf["__cwd"] = os.getcwd()
-
-conf.expand_vars()
-
-#log.debug("Configuration: %s" % conf)
-
 reader = FlowReader(flow_arg)
 flow = reader.read()
 reader.close()
 wok_conf["__flow.name"] = flow.name
+wok_conf["__flow.path"] = os.path.dirname(os.path.abspath(flow_arg))
+wok_conf["__flow.file"] = os.path.basename(flow_arg)
+
+wok_conf["__cwd"] = os.getcwd()
+
+# expand variables
+
+conf.expand_vars()
+#log.debug("Configuration: %s" % conf)
 
 def main():
 	server_mode = wok_conf.get("server.enabled", False, dtype=bool)
