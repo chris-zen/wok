@@ -456,8 +456,12 @@ class DataElement(Data):
 				return key_in_data
 		elif key_in_data:
 			obj = self.data[p0.name]
-			key_in_data = key_in_data and isinstance(obj, DataElement)
-			return key_in_data and path.subpath(1) in obj
+			if p0.is_list():
+				key_in_data = isinstance(obj, (DataElementList, list))
+				return key_in_data and path in obj
+			else:
+				key_in_data = isinstance(obj, (DataElement, dict))
+				return key_in_data and path.subpath(1) in obj
 		else:
 			return False
 
