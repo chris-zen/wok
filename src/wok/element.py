@@ -209,7 +209,21 @@ class DataFactory(object):
 class Data(object):
 	def __init__(self, key_sep = _DEFAULT_KEY_SEP):
 		self.key_sep = key_sep
-	
+
+	def _path(self, key):
+		if key is None:
+			raise KeyError("None key")
+
+		if isinstance(key, KeyPath):
+			path = key
+		else:
+			path = KeyPath(key, sep = self.key_sep)
+
+		if len(path) == 0:
+			raise KeyError("Empty key")
+
+		return path
+
 	def _wrap(self, obj):
 		if isinstance(obj, dict):
 			return DataElement(obj, self.key_sep)
@@ -267,10 +281,41 @@ class DataElementList(Data):
 		return len(self.data)
 		
 	def __getitem__(self, key):
-		return self.data[key]
+		if isinstance(key, int):
+			return self.data[key]
+		else:
+			path = self._path(key)
+			p0 = path[0]
+			if not p0.is_list():
+				raise TypeError("list indices must be integers, not '{}'".format(p0.name))
+
+			if p0.index >= len(self.data):
+				raise IndexError(p0.index)
+
+			obj = self.data[p0.index]
+			if obj is None:
+				return None
+
+			if len(path) == 1:
+				return obj
+			else:
+				return obj[key.subpath(1)]
 		
 	def __setitem__(self, key, value):
-		self.data[key] = value
+		if isinstance(key, int):
+			self.data[key] = value
+		else:
+			path = self._path(key)
+			p0 = path[0]
+			if not p0.is_list():
+				raise TypeError("list indices must be integers, not '{}'".format(p0.name))
+
+			self.ensure_index(p0.index)
+			obj = self.data[p0.index]
+			if obj is None:
+				self.data[p0.index] = obj = DataElement(key_sep = self.key_sep)
+
+			obj[key.subpath(1)] = value
 	
 	def __delitem__(self, key):
 		del self.data[key]
@@ -281,6 +326,11 @@ class DataElementList(Data):
 	def __iadd__(self, value):
 		self.data += value
 		return self
+
+	def ensure_index(self, index):
+		list_len = len(self.data)
+		if index >= list_len:
+			self.data += [None] * (index + 1 - list_len)
 
 	def merge(self, e):
 		if not (isinstance(e, DataElementList) or isinstance(e, list)):
@@ -334,25 +384,11 @@ class DataElement(Data):
 	def keys(self):
 		return self.data.keys()
 
-	def __path(self, key):
-		if key is None:
-			raise KeyError("None key")
-		
-		if isinstance(key, KeyPath):
-			path = key
-		else:
-			path = KeyPath(key, sep = self.key_sep)
-
-		if len(path) == 0:
-			raise KeyError("Empty key")
-			
-		return path
-
 	def __len__(self):
 		return len(self.data)
 
 	def __getitem__(self, key):
-		path = self.__path(key)
+		path = self._path(key)
 		p0 = path[0]
 		obj = self.data[p0.name]
 		if p0.is_list():
@@ -361,10 +397,13 @@ class DataElement(Data):
 		if len(path) == 1:
 			return obj
 		else:
+			#if p0.is_list():
+			#	return obj[path]
+			#else:
 			return obj[path.subpath(1)]
 
 	def __setitem__(self, key, value):
-		path = self.__path(key)
+		path = self._path(key)
 		p0 = path[0]
 		
 		if len(path) == 1:
@@ -376,11 +415,19 @@ class DataElement(Data):
 				self.data[p0.name] = value
 		else:
 			if p0.name not in self.data:
-				self.data[p0.name] = DataElement(key_sep = self.key_sep)
-			self.data[p0.name][path.subpath(1)] = value
+				if p0.is_list():
+					self.data[p0.name] = DataElementList(key_sep = self.key_sep)
+				else:
+					self.data[p0.name] = DataElement(key_sep = self.key_sep)
+
+			if p0.is_list():
+				#TODO check that self.data[p0.name] is a list
+				self.data[p0.name][path] = value
+			else:
+				self.data[p0.name][path.subpath(1)] = value
 
 	def __delitem__(self, key):
-		path = self.__path(key)
+		path = self._path(key)
 		p0 = path[0]
 		
 		if len(path) == 1:
@@ -398,7 +445,7 @@ class DataElement(Data):
 		return iter(self.data)
 
 	def __contains__(self, key):
-		path = self.__path(key)
+		path = self._path(key)
 		p0 = path[0]
 		key_in_data = p0.name in self.data
 		
