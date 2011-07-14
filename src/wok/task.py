@@ -318,8 +318,13 @@ class Task(object):
 
 	def add_generator(self, generator_func, out_ports = None):
 		"""Add a port data generator function"""
-		self._generators += [(generator_func,
-				self.ports(out_ports, PORT_MODE_OUT))]
+		if out_ports is None:
+			ports = self.ports(mode = PORT_MODE_OUT)
+		else:
+			ports = self.ports(out_ports, mode = PORT_MODE_OUT)
+		if not isinstance(ports, (tuple, list)):
+			ports = (ports,)
+		self._generators += [(generator_func, ports)]
 
 	def generator(self, out_ports = None):
 		"""
@@ -342,9 +347,19 @@ class Task(object):
 
 	def add_mapper(self, mapper_func, in_ports = None, out_ports = None):
 		"""Add a port data processing function"""
-		self._mappers += [(mapper_func,
-				self.ports(in_ports, PORT_MODE_IN),
-				self.ports(out_ports, PORT_MODE_OUT))]
+		if in_ports is None:
+			iports = self.ports(mode = PORT_MODE_IN)
+		else:
+			iports = self.ports(in_ports, mode = PORT_MODE_IN)
+		if not isinstance(iports, (tuple, list)):
+			iports = (iports,)
+		if out_ports is None:
+			oports = self.ports(mode = PORT_MODE_OUT)
+		else:
+			oports = self.ports(out_ports, mode = PORT_MODE_OUT)
+		if not isinstance(oports, (tuple, list)):
+			oports = (oports,)
+		self._mappers += [(mapper_func, iports, oports)]
 
 	def mapper(self, in_ports = None, out_ports = None):
 		"""
