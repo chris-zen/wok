@@ -4,5 +4,5 @@
 # Licensed under the Non-Profit Open Software License version 3.0
 # ******************************************************************
 
-__version__ = '2.0.3'
+__version__ = '2.0.4'
 
