@@ -4,6 +4,7 @@
 # Licensed under the Non-Profit Open Software License version 3.0
 # ******************************************************************
 
+import os
 import os.path
 import json
 
@@ -18,7 +19,10 @@ class Config(DataElement):
 	and appends new configuration parameters (with -D option)
 	"""
 	
-	def __init__(self, initial_conf = None, required = [], args_usage = "", add_options = None, expand_vars = False):
+	def __init__(self, initial_conf_files = None, initial_conf = None,
+					required = [], args_usage = "",
+					add_options = None, expand_vars = False):
+
 		DataElement.__init__(self)
 		
 		from optparse import OptionParser
@@ -40,6 +44,8 @@ class Config(DataElement):
 
 		(self.options, self.args) = parser.parse_args()
 
+		self.parser = parser
+		
 		if initial_conf is not None:
 			if isinstance(initial_conf, dict):
 				initial_conf = DataFactory.from_native(initial_conf)
@@ -48,14 +54,17 @@ class Config(DataElement):
 		if self.options.log_level is not None:
 			self["wok.log.level"] = self.options.log_level
 
-		if len(self.options.conf_files) > 0:
-			base_path = "" #TODO current dir
+		conf_files = self.options.conf_files
+		if initial_conf_files is not None:
+			conf_files.extend(initial_conf_files)
+
+		if len(conf_files) > 0:
 			files = []
-			for conf_file in self.options.conf_files:
+			for conf_file in conf_files:
 				if os.path.isabs(conf_file):
 					files.append(conf_file)
 				else:
-					files.append(os.path.join(base_path, conf_file))
+					files.append(os.path.abspath(conf_file))
 				try:
 					f = open(conf_file, "r")
 					conf = DataFactory.from_native(json.load(f))
