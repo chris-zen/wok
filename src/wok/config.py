@@ -55,9 +55,9 @@ class Config(DataElement):
 			self["wok.log.level"] = self.options.log_level
 
 		conf_files = []
-		conf_files.extend(self.options.conf_files)
 		if initial_conf_files is not None:
 			conf_files.extend(initial_conf_files)
+		conf_files.extend(self.options.conf_files)
 
 		if len(conf_files) > 0:
 			files = []
