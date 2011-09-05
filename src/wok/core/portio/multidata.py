@@ -4,7 +4,7 @@
 # Licensed under the Non-Profit Open Software License version 3.0
 # ******************************************************************
 
-from wok.portio import PortData, DataReader
+from wok.core.portio import PortData, DataReader
 
 TYPE_MULTI_DATA = "multi_data"
 
@@ -31,6 +31,10 @@ class MultiData(PortData):
 				self._serializer = self._sources[i].serializer
 				i += 1
 
+	@property
+	def sources(self):
+		return self._sources
+	
 	def size(self):
 		return sum([src.size() for src in self._sources])
 

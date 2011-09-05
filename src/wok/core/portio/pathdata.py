@@ -7,7 +7,7 @@
 import os
 import struct
 
-from wok.portio import PortData, DataReader, DataWriter
+from wok.core.portio import PortData, DataReader, DataWriter
 
 TYPE_PATH_DATA = "path_data"
 

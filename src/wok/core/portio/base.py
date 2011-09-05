@@ -4,6 +4,7 @@
 # Licensed under the Non-Profit Open Software License version 3.0
 # ******************************************************************
 
+from wok.element import DataElement
 from wok.serializer import DEFAULT_SERIALIZER_NAME
 from wok.serializer import SerializerFactory
 
@@ -29,6 +30,9 @@ class PortData(object):
 		e["serializer"] = self._serializer
 		return e
 
+	def to_element(self, key_sep = None):
+		return self.fill_element(DataElement(key_sep = key_sep))
+
 	def reset(self):
 		"""Reset port data state"""
 		pass
@@ -36,7 +40,7 @@ class PortData(object):
 	def size(self):
 		"""Get the port data size"""
 		raise Exception("Unimplemented")
-		
+
 	def get_slice(self, start = None, size = None):
 		"""Get an slice of the port data. It is only used for input ports"""
 		raise Exception("Unimplemented")
@@ -44,11 +48,11 @@ class PortData(object):
 	def get_partition(self, partition):
 		"""Get a partition of the port data. It is only used for output ports"""
 		raise Exception("Read only port can not give partitions")
-		
+
 	def reader(self):
 		"""Get a port data reader"""
 		raise Exception("Port doesn't support reading")
-		
+
 	def writer(self):
 		"""Get a port data writer"""
 		raise Exception("Port doesn't support writing")

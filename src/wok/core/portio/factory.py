@@ -1,12 +1,12 @@
 # ******************************************************************
-# Copyright 2009-2011, Universitat Pompeu Fabra
+# Copyright 2009, Universitat Pompeu Fabra
 #
 # Licensed under the Non-Profit Open Software License version 3.0
 # ******************************************************************
 
-from filedata import TYPE_FILE_DATA, FileData
-from pathdata import TYPE_PATH_DATA, PathData
-from multidata import TYPE_MULTI_DATA, MultiData
+from wok.core.portio.filedata import TYPE_FILE_DATA, FileData
+from wok.core.portio.pathdata import TYPE_PATH_DATA, PathData
+from wok.core.portio.multidata import TYPE_MULTI_DATA, MultiData
 
 _PORT_DATA_TYPES = {
 	TYPE_FILE_DATA : FileData,

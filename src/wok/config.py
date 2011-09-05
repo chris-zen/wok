@@ -10,7 +10,66 @@ import json
 from wok import __version__
 from wok.element import DataElement, DataFactory
 
-class Config(DataElement):
+class ConfigFile(object):
+	def __init__(self, path):
+		self.path = os.path.abspath(path)
+
+	def merge_into(self, conf):
+		f = open(self.path, "r")
+		v = json.load(f)
+		cf = DataFactory.from_native(v)
+		conf.merge(cf)
+		f.close()
+
+class ConfigValue(object):
+	def __init__(self, key, value):
+		self.key = key
+		self.value = value
+
+	def merge_into(self, conf):
+		try:
+			v = json.loads(self.value)
+		except:
+			v = self.value
+		conf[self.key] = DataFactory.from_native(v)
+
+class ConfigElement(object):
+	def __init__(self, element):
+		self.element = element
+
+	def merge_into(self, conf):
+		conf.merge(self.element)
+
+class ConfigBuilder(object):
+	def __init__(self):
+		self.__parts = []
+
+	def add_file(self, path):
+		self.__parts += [ConfigFile(path)]
+
+	def add_value(self, key, value):
+		self.__parts += [ConfigValue(key, value)]
+
+	def add_element(self, element):
+		self.__parts += [ConfigElement(element)]
+
+	def add_builder(self, builder):
+		self.__parts += [builder]
+
+	def merge_into(self, conf):
+		for part in self.__parts:
+			part.merge_into(conf)
+
+	def get_conf(self, conf = None):
+		if conf is None:
+			conf = DataElement()
+		self.merge_into(conf)
+		return conf
+
+	def __call__(self, conf = None):
+		return self.get_conf(conf)
+
+class OptionsConfig(DataElement):
 	"""
 	Command line options parser and configuration loader.
 
@@ -40,42 +99,32 @@ class Config(DataElement):
 
 		(self.options, self.args) = parser.parse_args()
 
+		self.builder = ConfigBuilder()
+
 		if initial_conf is not None:
 			if isinstance(initial_conf, dict):
 				initial_conf = DataFactory.from_native(initial_conf)
-			self.merge(initial_conf)
+			self.builder.add_element(initial_conf)
 
 		if self.options.log_level is not None:
-			self["wok.log.level"] = self.options.log_level
+			self.builder.add_value("wok.log.level", self.options.log_level)
 
 		if len(self.options.conf_files) > 0:
-			base_path = "" #TODO current dir
 			files = []
 			for conf_file in self.options.conf_files:
-				if os.path.isabs(conf_file):
-					files.append(conf_file)
-				else:
-					files.append(os.path.join(base_path, conf_file))
-				try:
-					f = open(conf_file, "r")
-					conf = DataFactory.from_native(json.load(f))
-					self.merge(conf)
-					f.close()
-				except:
-					from wok import logger
-					log_conf = self.get("wok.log")
-					logger.initialize(log_conf)
-					logger.get_logger(log_conf, "config").error("Error reading configuration file: %s" % conf_file)
-					raise
+				self.builder.add_file(conf_file)
+				files.append(os.path.abspath(conf_file))
 
-			self["__files"] = DataFactory.from_native(files)
+			self.builder.add_value("__files", DataFactory.from_native(files))
 
 		for data in self.options.data:
 			d = data.split("=")
 			if len(d) != 2:
 				raise Exception("Data argument wrong: " + data)
 
-			self[d[0]] = d[1]
+			self.builder.add_value(d[0], d[1])
+
+		self.builder.merge_into(self)
 
 		if len(required) > 0:
 			self.check_required(required)

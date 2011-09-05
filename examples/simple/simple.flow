@@ -26,7 +26,7 @@
 
 		<in name="x" link="generate_values.x" />
 
-		<out name="x_square" serializer="json"/>
+		<out name="x_square" serializer="json" />
 
 		<exec launcher="python">
 			<script>square.py</script>

@@ -1,0 +1,33 @@
+<flow name="operations" library="edu.upf.wok.examples.subflows" version="0.1" serializer="json">
+
+	<title>Sub workflow</title>
+	<desc>Sub-flow used by the main flow</desc>
+
+	<in name="time">
+		<title>Operations time</title>
+	</in>
+
+	<out name="time2" />
+
+	<module name="operation1" maxpar="20">
+		<title>Operation 1</title>
+		<desc>Represents an operation that takes 'time' seconds</desc>
+
+		<in name="time" link="time" />
+
+		<out name="time2" />
+
+		<run>wait.py</run>
+	</module>
+
+	<module name="operation2">
+		<title>Operation 2</title>
+		<desc>Represents an operation that takes 'time' seconds</desc>
+
+		<in name="time" link="operation1.time2" />
+
+		<out name="time2" link="time2" />
+
+		<run>wait.py</run>
+	</module>
+</flow>

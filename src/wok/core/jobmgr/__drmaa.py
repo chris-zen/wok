@@ -36,10 +36,8 @@ class DrmaaJobScheduler(JobScheduler):
 		self._waiting = []
 		self._jobs = {}
 
-		self.init() #TODO this should be done by wok
-
-	def init(self):
-		self._log.info("Initializing DRMAA scheduler ...")
+	def start(self):
+		self._log.info("Starting DRMAA scheduler ...")
 
 		self._session = drmaa.Session()
 		self._session.initialize()
@@ -201,6 +199,6 @@ class DrmaaJobScheduler(JobScheduler):
 	def finished(self):
 		return len(self._waiting) == 0
 	
-	def exit(self):
+	def stop(self):
 		self._session.exit()
 

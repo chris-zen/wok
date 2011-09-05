@@ -1,5 +1,5 @@
 # ******************************************************************
-# Copyright 2009-2011, Universitat Pompeu Fabra
+# Copyright 2009, Universitat Pompeu Fabra
 #
 # Licensed under the Non-Profit Open Software License version 3.0
 # ******************************************************************
@@ -82,7 +82,7 @@ class Task(object):
 	def __init__(self, start_func = None, required_conf = []):
 
 		# Read data and configuration
-		self.data = Config(required = required_conf)
+		self.data = OptionsConfig(required = required_conf)
 		self.conf = self.data["conf"]
 		del self.data["conf"]
 

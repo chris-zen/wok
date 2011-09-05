@@ -1,0 +1,46 @@
+<flow name="main" library="edu.upf.wok.examples.subflows" version="0.1">
+
+	<title>Main workflow</title>
+	<desc>Main workflows including sub-flows</desc>
+
+	<module name="random_values">
+		<title>Values generator</title>
+		<desc>Generate N random values MIN&lt;x&lt;MAX</desc>
+
+		<conf>
+			<N>10</N>
+			<MIN>1</MIN>
+			<MAX>4</MAX>
+		</conf>
+
+		<out name="value" serializer="json">
+			<desc>Generated value</desc>
+		</out>
+
+		<run>random_values.py</run>
+	</module>
+
+	<module name="ops">
+		<title>Operations</title>
+		<desc>Do operations</desc>
+
+		<in name="time" link="random_values.value">
+			<title>ops time</title>
+		</in>
+
+		<out name="time2" />
+
+		<flow version="0.1">operations</flow>
+	</module>
+
+	<module name="end">
+		<title>End operation</title>
+		<desc>Represents an ending operation</desc>
+
+		<in name="time" link="ops.time2" />
+
+		<out name="time2" />
+
+		<run>wait.py</run>
+	</module>
+</flow>

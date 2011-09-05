@@ -11,7 +11,7 @@ import os.path
 from datetime import datetime
 
 from wok import logger
-from wok.config import Config
+from wok.config import OptionsConfig
 from wok.element import DataElement
 from wok.flow.reader import FlowReader
 from wok.engine import WokEngine
@@ -38,7 +38,7 @@ initial_conf = {
 	}
 }
 
-conf = Config(
+conf = OptionsConfig(
 	initial_conf = initial_conf,
 	args_usage = "<flow-file>",
 	add_options = add_options)
