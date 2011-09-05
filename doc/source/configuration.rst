@@ -90,7 +90,7 @@ Configuration parameters
 **wok**
 	This section contains all the configuration related with the *Wok* system.
 
-	**work_path**
+	**work_path** *deprecated*
 		The path where the *Wok* state files will be saved. If the path doesn't exist it will be created automatically. One trick to avoid collisions between different instances of *Wok* is to use a path containing ${**wok.__instance.name**}
 
 		Inside this path the following folders will be created:
@@ -99,11 +99,6 @@ Configuration parameters
 		- *ports*: With the messages transmitted between modules.
 		- *modules*: The state of the scheduled modules.
 		- *tasks*: The state of the scheduled tasks.
-
-		and the following files:
-
-		- *engine.json*: The state of the engine.
-		- *effective.conf*: The effective configuration.
 
 	**log**
 		This section contains the configuration specific to the *Wok* engine logger.
@@ -116,22 +111,28 @@ Configuration parameters
 			- **warn**: Shows warning messages plus the following level messages.
 			- **error**: Shows only error messages.
 
-	**clean**
+	**clean** *deprecated*
 		This parameter determines whether or not all the wok state should be cleaned before starting. It can take true or false. By default is false.
 
-	**scheduler**
+	**storage**
+		*TODO*
+
+	**job_mgr**
+		*TODO*
+
+	**scheduler** *deprecated*
 		The scheduler to use to manage tasks. There are two available:
 
 		- **mcore**: To use in multi-core machines. It allows to run tasks in parallel using all the processors of a machine.
 		- **drmaa**: To interface with a DRMAA_ compatible resource manager such as Sun Grid Engine, SLURM, Torque and many more. It is more convenient for running tasks in a cluster.
 
-	**schedulers**
+	**schedulers** *deprecated*
 		This section contains specific configuration for each type of task scheduler. Each scheduler will have its own subsection.
 
 		**default**
 			This section contains configuration applicable to all the schedullers.
 
-			**__work_path** [*Internal*]
+			**work_path**
 				This variable is automatically managed by the *Wok* engine, but can be overriden. The working path to store state files related with the scheduler.
 
 			**__output_path** [*Internal*]
@@ -153,35 +154,54 @@ Configuration parameters
 			This section contains configuration for the DRMAA scheduler. It allows all the configuration parameters explained in **default**.
 
 	**launchers**
-		This section contains configuration specific to launchers. Currently there are only one launcher implemented:
+		This section contains configuration specific to launchers:
 
-		- **python**: Used when the module implementation is written in Python
+		- **native**: Used when the module implementation is written using the wok framework
+		- **shell**: Used when the module implementation is a shell command
 
-		**python**
-			This section contains all the configuration specific to python launcher.
+		**native**
+			This section contains all the configuration specific to the native launcher.
 
 			**env**
 				This section allows to define enviroment variables, for example::
 
-					{ "wok" : { "launchers" : { "python : {
+					{ "wok" : { "launchers" : { "native" : {
 						"env" : {
 							"EDITOR" : "vim",
 							"TERM" : "xterm"
 						}
 					} } } }
 
+			**python**
+				When the python implementation of the wok framework is used these parameters can be configured:
+
+				**bin**
+					The path to the python binary to use. By default is *python* so it will take into account the defined *PATH*. This is not recommended as in a cluster enviroment could not coincide in the worker nodes with the launcher node.
+
+				**lib_path**
+					The paths that will be suffixed to the system defined enviroment variable PYTHONPATH. Example::
+
+						{ "wok" : { "launchers" : { "native" : { "python" : {
+							"lib_path" : [
+								"${wok.install_path}",
+								"/opt/mylib"
+							]
+						} } } } }
+
+		**shell**
+			This section contains all the configuration specific to the shell launcher.
+
 			**bin**
-				The path to the python binary to use. By default is *python* so it will take into account the defined *PATH*. This is not recommended as in a cluster enviroment could not coincide in the worker nodes with the launcher node.
+				The default shell binary path to use. By default the one defined in the system is used.
 
-			**pythonpath**
-				It is the equivalent to the enviroment variable PYTHONPATH. Example::
+			**env**
+				This section allows to define enviroment variables, for example::
 
-					{ "wok" : { "launchers" : { "python : {
-						"pythonpath" : [
-							"${wok.install_path}",
-							"${wok.__flow.path}/..",
-							"/opt/mylib"
-						]
+					{ "wok" : { "launchers" : { "shell" : {
+						"env" : {
+							"EDITOR" : "vim",
+							"TERM" : "xterm"
+						}
 					} } } }
 
 	**defaults**
