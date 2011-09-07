@@ -184,7 +184,9 @@ class FlowReader(object):
 		execution = Exec()
 		
 		if "launcher" in xmle.attrib:
-			execution.launcher = xmle.attrib["launcher"]
+			execution.mode = xmle.attrib["launcher"].lower()
+			if execution.mode == "python":
+				execution.mode = "native"
 
 		execution.conf = dataelement_from_xml(xmle)
 
@@ -195,9 +197,9 @@ class FlowReader(object):
 			raise Exception("Missing script name for <run> in module {}".format(mod.name))
 
 		execution = Exec()
-		execution.launcher = "wok"
+		execution.mode = "native"
 		execution.conf = DataElement()
-		execution.conf["path"] = xmle.text
+		execution.conf["script_path"] = xmle.text
 
 		return execution
 

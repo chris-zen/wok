@@ -4,14 +4,18 @@
 # Licensed under the Non-Profit Open Software License version 3.0
 # ******************************************************************
 
-from Queue import PriorityQueue
+from Queue import PriorityQueue, Empty
 import multiprocessing as mp
 from threading import Thread, Lock, Condition
+import subprocess
+import tempfile
+import time
 
+from wok import exit_codes
 from wok.core import runstates
 from wok.core.jobmgr.base import JobManager, Job
 
-class DummyJob(Job):
+class McoreJob(Job):
 	def __init__(self, job_id, task):
 		Job.__init__(self, job_id, task)
 
@@ -32,9 +36,21 @@ class McoreJobManager(JobManager):
 
 		self._waiting_queue = PriorityQueue()
 
+		self._task_output_files = {}
+
+	def _next_job(self):
+		element = None
+		while element is None:
+			try:
+				element = self._waiting_queue.get(timeout=1)
+			except Empty:
+				element = None
+
+		return element[1]
+
 	def _run(self):
 		while True:
-			job = self._waiting_queue.get()[1]
+			job = self._next_job()
 			if job is None:
 				break
 
@@ -47,82 +63,73 @@ class McoreJobManager(JobManager):
 
 			self.engine.notify()
 
-			# TODO subprocess.call
-			self._job_run(job)
+			task = job.task
+			task_id = task.id
 
-			result.state = job.state = runstates.FINISHED
+			# Prepare command
+			cmd, args, env = self._prepare_cmd(task)
 
-			self.engine.notify()
+			# Run command
 
-			with self._run_lock:
-				self._log.debug("Finished task [{}] {} ...".format(job.id, job.task.id))
-				self._run_cvar.notify()
+			if task_id not in self._task_output_files:
+				output_path = self.conf.get("output_path")
+				if output_path is None:
+					output_file = tempfile.mkstemp(prefix = task_id + "-", suffix = ".txt")[1]
+				else:
+					output_file = os.path.join(output_path, "{}.txt".format(task_id))
 
-	def _job_run(self, job):
-		task = job.task
-		task_id = task.id
-		task_conf = task.conf
-		execution = task.parent.execution
+				self._task_output_files[task_id] = output_file
 
-		# Prepare command
+			o = open(self._task_output_files[task_id], "a")
 
-		launcher_name = execution.launcher
-		if launcher_name is None:
-			launcher_name = DEFAULT_LAUNCHER
+			cwd = self.conf.get("working_directory")
 
-		launcher_conf_key = "wok.launchers.{}".format(launcher_name)
-		if launcher_conf_key in task_conf:
-			launcher_conf = task_conf[launcher_conf_key]
-		else:
-			launcher_conf = task_conf.create_element()
-
-		launcher = create_launcher(launcher_name, launcher_conf)
-
-		cmd, args, env = launcher.prepare(task, task_file)
-
-		shell_cmd = " ".join([cmd] + args)
-
-		sb = [cmd, " ", " ".join(args)]
-		if len(env) > 0:
-			sb += ["\n"]
-			for k, v in env.iteritems():
-				sb += ["\t", str(k), "=", str(v)]
-		self._log.debug("".join(sb))
-
-		#import sys
-		#sys.stdout.flush()
-
-		# Run command
-
-		o = open(output_file, "a")
-
-		try:
 			args = [cmd] + args
 
-			start_time = time.time()
+			result.start_time = time.time()
 
-			p = sp.Popen(
-						args = args,
-						stdin=None,
-						stdout=o,
-						stderr=sp.STDOUT,
-						cwd=working_directory,
-						env=env)
+			try:
+				p = subprocess.Popen(
+									args = args,
+									stdin=None,
+									stdout=o,
+									stderr=subprocess.STDOUT,
+									cwd=cwd,
+									env=env)
 
-			p.wait()
+				p.wait()
 
-			elapsed_time = time.time() - start_time
-			exit_code = p.returncode
-			exit_message = "Task {} exited with return code {}".format(task_id, exit_code)
+				result.end_time = time.time()
 
-			#TODO take results and update task node
-		except:
-			import traceback
-			exit_code = exit_codes.LAUNCH_EXCEPTION
-			exit_message = "Exception launching task {}".format(task_id)
-			exit_exception = traceback.format_exc()
-		finally:
-			o.close()
+				if p.returncode == 0:
+					result.state = job.state = runstates.FINISHED
+				else:
+					result.state = job.state = runstates.FAILED
+				result.exit_code = p.returncode
+				result.exit_message = "Task exited with return code {}".format(result.exit_code)
+
+				#TODO take results and update task node
+
+			except Exception as e:
+				result.end_time = time.time()
+
+				self._log.exception(e)
+				import traceback
+				result.state = job.state = runstates.FAILED
+				result.exit_code = exit_codes.EXEC_EXCEPTION
+				result.exit_message = "Exception {}".format(str(e))
+				result.exception_trace = traceback.format_exc()
+			finally:
+				o.close()
+
+			with self._run_lock:
+				if result.state == runstates.FINISHED:
+					self._log.debug("Task finished [{}] {}".format(job.id, job.task.id))
+				else:
+					self._log.debug("Task failed [{}] {}: {}".format(job.id, job.task.id, result.exit_message))
+				
+				self.engine.notify()
+				self._run_cvar.notify()
 
 	def start(self):
 		with self._run_lock:
@@ -141,7 +148,7 @@ class McoreJobManager(JobManager):
 			for task in tasks:
 				job_id = self._next_id()
 				job_ids += [job_id]
-				job = DummyJob(job_id, task)
+				job = McoreJob(job_id, task)
 				self._jobs[job_id] = job
 				priority = max(min(1 - task.priority, 1), 0)
 				self._waiting_queue.put((priority, job))
@@ -164,7 +171,7 @@ class McoreJobManager(JobManager):
 				raise UnknownJob(job_id)
 
 			job = self._jobs[job_id]
-			while self._running and job.state not in [runstates.FINISHED, runstates.FINISHED]:
+			while self._running and job.state not in [runstates.FINISHED, runstates.FAILED]:
 				self._run_cvar.wait(2)
 
 			return job.result
@@ -180,7 +187,7 @@ class McoreJobManager(JobManager):
 					raise UnknownJob(job_id)
 
 				job = self._jobs[job_id]
-				while self._running and job.state not in [runstates.FINISHED, runstates.FINISHED]:
+				while self._running and job.state not in [runstates.FINISHED, runstates.FAILED]:
 					self._run_cvar.wait(2)
 
 				results += job.result

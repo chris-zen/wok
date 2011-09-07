@@ -8,7 +8,7 @@ import time
 from datetime import timedelta
 
 from wok import logger
-from wok.config import Config
+from wok.config import OptionsConfig
 from wok.port import PortFactory, PORT_MODE_IN, PORT_MODE_OUT
 from wok import exit_codes
 
@@ -76,20 +76,20 @@ class Task(object):
 	"""
 	Processes a data partition of a module in a flow.
 	"""
-
-	__DEFAULT_SERIALIZER = "json"
 	
-	def __init__(self, start_func = None, required_conf = []):
+	def __init__(self):
+
+		# Get task_id and storage configuration
+		cmd_conf = OptionsConfig()
+		print repr(cmd_conf)
+		exit(-1)
 
 		# Read data and configuration
-		self.data = OptionsConfig(required = required_conf)
+		self.data = OptionsConfig()
 		self.conf = self.data["conf"]
 		del self.data["conf"]
 
 		self._id = self.data["id"]
-
-		# deprecated
-		self._start_func = start_func
 
 		self._main = None
 		self._generators = []
@@ -159,7 +159,7 @@ class Task(object):
 
 			params = {}
 			for port in out_ports:
-				params[port.name] = port
+				params[str(port.name)] = port
 
 			func(**params)
 
@@ -193,7 +193,7 @@ class Task(object):
 
 				params = {}
 				for port in in_ports:
-					params[port.name] = data[port.name]
+					params[str(port.name)] = data[port.name]
 
 				ret = func(**params)
 
@@ -223,13 +223,6 @@ class Task(object):
 		log = logger.get_logger(self.conf.get("log"), name)
 		return log
 
-	# deprecated, use ports() instead
-	def port(self, name):
-		if name not in self._port_map:
-			raise Exception("Port '{0}' doesn't exist".format(name))
-
-		return self._port_map[name]
-
 	@property
 	def ports(self):
 		return self.__ports_accessor
@@ -244,26 +237,6 @@ class Task(object):
 			raise MissingRequiredConf(missing_keys)
 
 		return missing_keys
-
-	# deprecated
-	def check_ports(self, port_names, mode, exit_on_error = True):
-		missing_ports = []
-		for port_name in port_names:
-			if port_name not in self._port_map or self._port_map[port_name].mode != mode:
-				missing_ports += [port_name]
-
-		if exit_on_error and len(missing_ports) > 0:
-			raise MissingRequiredPorts(missing_ports, mode)
-
-		return missing_ports
-
-	# deprecated
-	def check_in_ports(self, port_names, exit_on_error = True):
-		return self.check_ports(port_names, PORT_MODE_IN, exit_on_error)
-
-	# deprecated
-	def check_out_ports(self, port_names, exit_on_error = True):
-		return self.check_ports(port_names, PORT_MODE_OUT, exit_on_error)
 
 	def start(self):
 		try:
@@ -280,10 +253,6 @@ class Task(object):
 			if self._main is not None:
 				self._log.debug("Processing main ...")
 				retcode = self._main()
-				if retcode is None:
-					retcode = 0
-			elif self._start_func is not None:
-				retcode = self._start_func(self)
 				if retcode is None:
 					retcode = 0
 			else:

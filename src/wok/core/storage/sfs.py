@@ -9,7 +9,7 @@ import os.path
 import json
 
 from wok import logger
-from wok.element import DataFactory, DataElementJsonEncoder
+from wok.element import DataElement, DataFactory, DataElementJsonEncoder
 from wok.core.storage.base import Storage, StorageContext
 
 class SfsStorage(Storage):
@@ -25,7 +25,13 @@ class SfsStorage(Storage):
 		else:
 			self.work_path = self.execution_path
 
-		self._log = logger.get_logger(conf.get("log"), "storage-sfs")
+		self._log = logger.get_logger(conf.get("log"), "sfs")
+
+	@property
+	def basic_conf(self):
+		c = DataElement()
+		c["work_path"] = self.work_path
+		return c
 
 	def save_task_config(self, task):
 

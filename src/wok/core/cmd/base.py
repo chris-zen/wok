@@ -4,7 +4,7 @@
 # Licensed under the Non-Profit Open Software License version 3.0
 # ******************************************************************
 
-class Launcher(object):
+class CmdBuilder(object):
 	def __init__(self, conf):
 		self.conf = conf
 

@@ -88,26 +88,25 @@ class WokEngine(object):
 		self._job_mgr = self._create_job_manager(wok_conf)
 
 	def _create_job_manager(self, wok_conf):
-		# TODO configuration scheduler --> job_manager
-		sched_name = wok_conf.get("scheduler", "default", dtype=str)
+		jobmgr_name = wok_conf.get("job_manager", "mcore", dtype=str)
 		
-		sched_conf = wok_conf.create_element()
-		if "schedulers.default" in wok_conf:
-			sched_conf.merge(wok_conf["schedulers.default"])
+		jobmgr_conf = wok_conf.create_element()
+		if "job_managers.default" in wok_conf:
+			jobmgr_conf.merge(wok_conf["job_managers.default"])
 
-		sched_conf_key = ".".join(["schedulers", sched_name])
-		if sched_conf_key in wok_conf:
-			sched_conf.merge(wok_conf[sched_conf_key])
+		jobmgr_conf_key = ".".join(["job_managers", jobmgr_name])
+		if jobmgr_conf_key in wok_conf:
+			jobmgr_conf.merge(wok_conf[jobmgr_conf_key])
 
 #		if "__output_path" not in sched_conf:
 #			sched_conf["__output_path"] = self._output_path
 
-		if "work_path" not in sched_conf:
-			sched_conf["work_path"] = os.path.join(self._work_path, sched_name)
+		if "work_path" not in jobmgr_conf:
+			jobmgr_conf["work_path"] = os.path.join(self._work_path, jobmgr_name)
 
-		self._log.debug("Creating '{}' scheduler with configuration {}".format(sched_name, repr(sched_conf)))
+		self._log.debug("Creating '{}' scheduler with configuration {}".format(jobmgr_name, repr(jobmgr_conf)))
 
-		return create_job_manager(sched_name, self, sched_conf)
+		return create_job_manager(jobmgr_name, self, jobmgr_conf)
 
 	@property
 	def flow_loader(self):
@@ -181,7 +180,7 @@ class WokEngine(object):
 				updated_modules = set()
 
 				job_states = job_mgr.state()
-
+				
 				#self._log.debug("Job states:\n" + "\n".join("\t{}: {}".format(jid, jst) for jid, jst in job_states))
 
 				for job_id, state in job_states:

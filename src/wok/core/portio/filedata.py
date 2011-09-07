@@ -6,7 +6,7 @@
 
 import os
 
-from wok.core.portio import PortData, DataReader
+from wok.core.portio.base import PortData, DataReader
 
 TYPE_FILE_DATA = "file_data"
 

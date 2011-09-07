@@ -4,7 +4,7 @@
 # Licensed under the Non-Profit Open Software License version 3.0
 # ******************************************************************
 
-from wok.core.portio import PortData, DataReader
+from wok.core.portio.base import PortData, DataReader
 
 TYPE_MULTI_DATA = "multi_data"
 

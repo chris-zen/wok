@@ -207,20 +207,20 @@ class Port(_BasePort):
 
 class Exec(_Base):
 	def __init__(self, launcher = None, conf = None):
-		self.launcher = launcher
+		self.mode = launcher
 		self.conf = conf
 	
 	def fill_element(self, e):
-		if self.launcher:
-			e["launcher"] = self.launcher
+		if self.mode:
+			e["mode"] = self.mode
 		if self.conf:
 			e["conf"] = self.conf
 		return e
 		
 	def repr_level(self, sb, level):
 		sb.extend([self._INDENT * level, "Exec "])
-		if self.launcher is not None:
-			sb.append(self.launcher)
+		if self.mode is not None:
+			sb.append(self.mode)
 		if self.conf is not None:
 			sb.append(" ")
 			self.conf.repr_level(sb, level)

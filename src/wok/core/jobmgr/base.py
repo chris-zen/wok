@@ -4,12 +4,14 @@
 # Licensed under the Non-Profit Open Software License version 3.0
 # ******************************************************************
 
+from wok.core.cmd.factory import create_cmd_builder
 import os.path
 from datetime import timedelta
 
 from wok import logger
 from wok.core import runstates
 from wok.core.jobmgr.errors import *
+from wok.core.cmd.factory import create_cmd_builder
 
 class JobManager(object):
 
@@ -34,19 +36,47 @@ class JobManager(object):
 		self.__next_id += 1
 		return id
 
+	def _prepare_cmd(self, task):
+		task_conf = task.conf
+		execution = task.parent.execution
+
+		exec_mode = execution.mode
+
+		exec_conf_key = "wok.execution.mode.{}".format(exec_mode)
+		if exec_conf_key in task_conf:
+			exec_conf = task_conf[exec_conf_key]
+		else:
+			exec_conf = task_conf.create_element()
+
+		if execution.conf is not None:
+			exec_conf.merge(execution.conf)
+
+		cmd_builder = create_cmd_builder(exec_mode, exec_conf)
+
+		cmd, args, env = cmd_builder.prepare(task)
+
+		sb = [cmd, " ", " ".join(args)]
+		if len(env) > 0:
+			sb += ["\n"]
+			for k, v in env.iteritems():
+				sb += ["\t", str(k), "=", str(v)]
+		self._log.debug("".join(sb))
+
+		return cmd, args, env
+
 	def start(self):
 		raise Exception("Unimplemented")
 
-	def clean(self):
-		raise Exception("Unimplemented")
-
-	def submit(self, task):
+	def submit(self, tasks):
 		raise Exception("Unimplemented")
 
 	def state(self, job_ids = None):
 		raise Exception("Unimplemented")
 
-	def wait(self, job_ids = None):
+	def join(self, job_id):
+		raise Exception("Unimplemented")
+
+	def join_all(self, job_ids = None):
 		raise Exception("Unimplemented")
 
 	def stop(self):
@@ -57,6 +87,9 @@ class JobResult(object):
 		self.state = None
 		self.start_time = 0
 		self.end_time = 0
+		self.exit_code = 0
+		self.exit_message = ""
+		self.exception_trace = None
 
 	@property
 	def elapsed_time(self):

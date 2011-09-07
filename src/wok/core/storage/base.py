@@ -35,7 +35,6 @@ class Storage(object):
 			pe = DataElement(key_sep = "/")
 			pe["name"] = port_node.name
 			task.out_port_data[i].fill_element(pe.create_element("data"))
-			print repr(pe)
 			out_ports.append(pe)
 		
 		return e

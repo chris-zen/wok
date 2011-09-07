@@ -47,7 +47,7 @@ class Instance(object):
 
 		self._work_path = inst_conf["work_path"] # TODO deprecated
 
-		self._storage = self._create_storage(wok_conf)
+		self.storage = self._create_storage(wok_conf)
 
 		if "port_map" in wok_conf:
 			self._port_data_conf = wok_conf["port_map"]
@@ -395,9 +395,9 @@ class Instance(object):
 					require_rescheduling = True
 					#self._log.debug("FINISHED: {}".format(repr(module)))
 				else:
-					#TODO self._storage.remove_task(task) ???
+					#TODO self.storage.remove_task(task) ???
 					for task in module.tasks:
-						self._storage.save_task_config(task)
+						self.storage.save_task_config(task)
 
 					tasks += module.tasks
 					self.change_module_state(module, runstates.WAITING)

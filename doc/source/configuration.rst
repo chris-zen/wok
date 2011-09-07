@@ -90,15 +90,21 @@ Configuration parameters
 **wok**
 	This section contains all the configuration related with the *Wok* system.
 
-	**work_path** *deprecated*
-		The path where the *Wok* state files will be saved. If the path doesn't exist it will be created automatically. One trick to avoid collisions between different instances of *Wok* is to use a path containing ${**wok.__instance.name**}
+	**work_path**
+		The path where the engine state files will be saved. If the path doesn't exist it will be created automatically.
+		One trick to avoid collisions between different instances of *Wok* is to use a path containing ${**wok.__instance.name**}
 
-		Inside this path the following folders will be created:
+	**defaults**
+		This section contains default values for common parameters.
 
-		- *output*: With the standard output of the executed tasks.
-		- *ports*: With the messages transmitted between modules.
-		- *modules*: The state of the scheduled modules.
-		- *tasks*: The state of the scheduled tasks.
+		**maxpar**
+			In case a module doesn't specify the *maxpar* parameter this will be the value used. By default it is 0 which means that there is no limit.
+
+		**wsize**
+			In case a module doesn't specify the *wsize* parameter this will be the value used. By default it is 1.
+
+	**install_path** [*Internal*]
+		This is the path where *Wok* is installed.
 
 	**log**
 		This section contains the configuration specific to the *Wok* engine logger.
@@ -110,108 +116,6 @@ Configuration parameters
 			- **info**: Shows information messages plus the following level messages.
 			- **warn**: Shows warning messages plus the following level messages.
 			- **error**: Shows only error messages.
-
-	**clean** *deprecated*
-		This parameter determines whether or not all the wok state should be cleaned before starting. It can take true or false. By default is false.
-
-	**storage**
-		*TODO*
-
-	**job_mgr**
-		*TODO*
-
-	**scheduler** *deprecated*
-		The scheduler to use to manage tasks. There are two available:
-
-		- **mcore**: To use in multi-core machines. It allows to run tasks in parallel using all the processors of a machine.
-		- **drmaa**: To interface with a DRMAA_ compatible resource manager such as Sun Grid Engine, SLURM, Torque and many more. It is more convenient for running tasks in a cluster.
-
-	**schedulers** *deprecated*
-		This section contains specific configuration for each type of task scheduler. Each scheduler will have its own subsection.
-
-		**default**
-			This section contains configuration applicable to all the schedullers.
-
-			**work_path**
-				This variable is automatically managed by the *Wok* engine, but can be overriden. The working path to store state files related with the scheduler.
-
-			**__output_path** [*Internal*]
-				This variable is automatically managed by the *Wok* engine, but can be overriden.The path to store tasks standard output.
-
-			**working_directory**
-				The default working directory for tasks.
-
-			**log**
-				This section contains the configuration specific to the scheduler logger. See **wok.log** for more details.
-
-		**mcore**
-			This section contains configuration specific to the multi-core task scheduler. It allows all the configuration parameters explained in **default** plus:
-
-			**max_proc**
-				The maximum number of processors to use. By default, if it is not specified, it will use all the available processors.
-
-		**drmaa**
-			This section contains configuration for the DRMAA scheduler. It allows all the configuration parameters explained in **default**.
-
-	**launchers**
-		This section contains configuration specific to launchers:
-
-		- **native**: Used when the module implementation is written using the wok framework
-		- **shell**: Used when the module implementation is a shell command
-
-		**native**
-			This section contains all the configuration specific to the native launcher.
-
-			**env**
-				This section allows to define enviroment variables, for example::
-
-					{ "wok" : { "launchers" : { "native" : {
-						"env" : {
-							"EDITOR" : "vim",
-							"TERM" : "xterm"
-						}
-					} } } }
-
-			**python**
-				When the python implementation of the wok framework is used these parameters can be configured:
-
-				**bin**
-					The path to the python binary to use. By default is *python* so it will take into account the defined *PATH*. This is not recommended as in a cluster enviroment could not coincide in the worker nodes with the launcher node.
-
-				**lib_path**
-					The paths that will be suffixed to the system defined enviroment variable PYTHONPATH. Example::
-
-						{ "wok" : { "launchers" : { "native" : { "python" : {
-							"lib_path" : [
-								"${wok.install_path}",
-								"/opt/mylib"
-							]
-						} } } } }
-
-		**shell**
-			This section contains all the configuration specific to the shell launcher.
-
-			**bin**
-				The default shell binary path to use. By default the one defined in the system is used.
-
-			**env**
-				This section allows to define enviroment variables, for example::
-
-					{ "wok" : { "launchers" : { "shell" : {
-						"env" : {
-							"EDITOR" : "vim",
-							"TERM" : "xterm"
-						}
-					} } } }
-
-	**defaults**
-		This section contains default values for common parameters.
-
-		**maxpar**
-			In case a module doesn't specify the *maxpar* parameter this will be the value used. By default it is 0 which means that there is no limit.
-
-		**wsize**
-			In case a module doesn't specify the *wsize* parameter this will be the value used. By default it is 1.
 
 	**server**
 		This section contains the configuration for the web server.
@@ -229,19 +133,101 @@ Configuration parameters
 			A boolean (*true* or *false*) specifying if the web server should be started in debug mode. It is useful for *Wok* developers only.
 
 		**engine_start**
-			When the web server is enabled, by default, *Wok* is started with the workflow stoped and prepared to be executed, waiting for the user to activate it. You can force *Wok* to start the execution of the workflow just after the web server is started using this parameter. It can take *true* to immediately start the execution or *false* to wait for the user activation. 
+			When the web server is enabled, by default, *Wok* is started with the workflow stoped and prepared to be executed, waiting for the user to activate it.
+			You can force *Wok* to start the execution of the workflow just after the web server is started using this parameter.
+			It can be *true* to immediately start the execution or *false* to wait for the user activation.
 
 		**log**
 			This section contains the configuration specific to the web server logger. See **wok.log** for more details.
 
-	**install_path** [*Internal*]
-		This is the path where *Wok* is installed.
+	**job_manager**
+		The job manager to use to manage task execution. There are two available:
 
-	**auto_remove** [*Internal*]
+		- **mcore**: To use in multi-core machines. It allows to run tasks in parallel using all the processors of a machine.
+		- **drmaa**: To interface with a DRMAA_ compatible resource manager such as Sun Grid Engine, SLURM, Torque and many more. It is more convenient for running tasks in a cluster.
 
-		**task**
+	**job_managers**
+		This section contains default configuration for each type of job manager.
+		Each job manager will have its own subsection.
 
-		**output**
+		**default**
+			This section contains configuration applicable to all the schedullers.
+
+			**work_path**
+				This variable is automatically managed by the *Wok* engine, but can be overriden. The working path to store state files related with the scheduler.
+
+			**output_path**
+				This variable is automatically managed by the *Wok* engine, but can be overriden.The path to store tasks standard output and error.
+
+			**working_directory**
+				The default working directory for tasks.
+
+			**log**
+				This section contains the configuration specific to the job manager logger. See **wok.log** for more details.
+
+		**mcore**
+			This section contains configuration specific to the multi-core job manager. It allows all the configuration parameters explained in **default** plus:
+
+			**max_cores**
+				The maximum number of cores to use. By default, it will use all the available cores.
+
+		**drmaa**
+			This section contains configuration for the DRMAA job manager. It allows all the configuration parameters explained in **default**.
+
+	**execution**
+		This section contains configuration specific to execution of tasks:
+
+		**mode**
+			A module can be executed in different ways depending on the workflow specification.
+			In this section the default configuration for the different execution modes available can be specified.
+
+			**native**
+				This execution mode is used for wok native task implementations.
+
+				**env**
+					This section allows to define enviroment variables, for example::
+
+						{ "wok" : { "launchers" : { "native" : {
+							"env" : {
+								"EDITOR" : "vim",
+								"TERM" : "xterm"
+							}
+						} } } }
+
+				**python**
+					When the python implementation of the wok framework is used these parameters can be configured:
+
+					**bin**
+						The path to the python binary to use. By default is *python* so it will take into account the defined *PATH*. This is not recommended as in a cluster enviroment could not coincide in the worker nodes with the launcher node.
+
+					**lib_path**
+						The paths that will be suffixed to the system defined enviroment variable PYTHONPATH. Example::
+
+							{ "wok" : { "launchers" : { "native" : { "python" : {
+								"lib_path" : [
+									"${wok.install_path}",
+									"/opt/mylib"
+								]
+							} } } } }
+
+			**shell**
+				This execution mode is used when a command line is directly specified in the module.
+
+				**bin**
+					The default shell binary path to use. By default the one defined in the system is used.
+
+				**env**
+					This section allows to define enviroment variables, for example::
+
+						{ "wok" : { "launchers" : { "shell" : {
+							"env" : {
+								"EDITOR" : "vim",
+								"TERM" : "xterm"
+							}
+						} } } }
+
+	**storage**
+		*TODO*
 
 Internal parameters
 +++++++++++++++++++
