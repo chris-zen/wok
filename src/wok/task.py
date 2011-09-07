@@ -159,7 +159,7 @@ class Task(object):
 
 			params = {}
 			for port in out_ports:
-				params[port.name] = port
+				params[str(port.name)] = port
 
 			func(**params)
 
@@ -193,7 +193,7 @@ class Task(object):
 
 				params = {}
 				for port in in_ports:
-					params[port.name] = data[port.name]
+					params[str(port.name)] = data[port.name]
 
 				ret = func(**params)
 
