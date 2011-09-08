@@ -4,6 +4,8 @@
 # Licensed under the Non-Profit Open Software License version 3.0
 # ******************************************************************
 
+import os
+import os.path
 from Queue import PriorityQueue, Empty
 import multiprocessing as mp
 from threading import Thread, Lock, Condition
@@ -72,17 +74,27 @@ class McoreJobManager(JobManager):
 			# Run command
 
 			if task_id not in self._task_output_files:
-				output_path = self.conf.get("output_path")
-				if output_path is None:
-					output_file = tempfile.mkstemp(prefix = task_id + "-", suffix = ".txt")[1]
+				work_path = self.conf.get("work_path")
+				if work_path is not None:
+					work_path = os.path.abspath(work_path)
 				else:
-					output_file = os.path.join(output_path, "{}.txt".format(task_id))
+					work_path = tempfile.mkdtemp(prefix = "wok-")
 
-				self._task_output_files[task_id] = output_file
+				default_output_path = os.path.join(work_path, "output")
+				if not os.path.exists(default_output_path):
+					os.makedirs(default_output_path)
 
-			o = open(self._task_output_files[task_id], "a")
+				output_path = self.conf.get("output_path", default_output_path)
+				output_file = os.path.abspath(os.path.join(
+								output_path, "{}.txt".format(task_id)))
+
+				self._task_output_files[task_id] = (work_path, output_file)
+
+			o = open(self._task_output_files[task_id][1], "a")
 
 			cwd = self.conf.get("working_directory")
+			if cwd is not None:
+				cwd = os.path.abspath(cwd)
 
 			args = [cmd] + args
 
@@ -126,7 +138,10 @@ class McoreJobManager(JobManager):
 				if result.state == runstates.FINISHED:
 					self._log.debug("Task finished [{}] {}".format(job.id, job.task.id))
 				else:
-					self._log.debug("Task failed [{}] {}: {}".format(job.id, job.task.id, result.exit_message))
+					sb = ["Task failed [{}] {}: {}".format(job.id, job.task.id, result.exit_message)]
+					if result.exception_trace is not None:
+						sb += ["\n", result.exception_trace]
+					self._log.debug("".join(sb))
 				
 				self.engine.notify()
 				self._run_cvar.notify()

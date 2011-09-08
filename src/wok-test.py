@@ -28,9 +28,13 @@ initial_conf = {
 			"name" : instance_name
 		},
 
-		"launchers" : {
-			"python" : {
-				"pythonpath" : [install_path]
+		"execution" : {
+			"mode" : {
+				"native" : {
+					"python" : {
+						"lib_path" : [install_path]
+					}
+				}
 			}
 		}
 	}
@@ -67,7 +71,8 @@ conf.expand_vars()
 
 def main():
 		wok = WokEngine(conf)
-		wok.create_instance(instance_name, conf.builder, conf.args[0])
+		c = conf.builder()
+		wok.create_instance(c["wok.__instance.name"], conf.builder, conf.args[0])
 		wok.start(async = True)
 		wok.wait()
 #		import time

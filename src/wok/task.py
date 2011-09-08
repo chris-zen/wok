@@ -8,9 +8,11 @@ import time
 from datetime import timedelta
 
 from wok import logger
+from wok import exit_codes
 from wok.config import OptionsConfig
 from wok.port import PortFactory, PORT_MODE_IN, PORT_MODE_OUT
-from wok import exit_codes
+from wok.core.storage.base import StorageContext
+from wok.core.storage.factory import create_storage
 
 class MissingRequiredPorts(Exception):
 	def __init__(self, missing_ports, mode):
@@ -79,21 +81,35 @@ class Task(object):
 	
 	def __init__(self):
 
-		# Get task_id and storage configuration
-		cmd_conf = OptionsConfig()
-		print repr(cmd_conf)
-		exit(-1)
+		# Get task key and storage configuration
+		cmd_conf = OptionsConfig(required = ["instance_name", "module_name",
+											"task_index", "storage.type"])
+
+		instance_name = cmd_conf["instance_name"]
+		module_name = cmd_conf["module_name"]
+		task_index = cmd_conf["task_index"]
+
+		storage_conf = cmd_conf["storage"]
+		storage = create_storage(
+								storage_conf["type"],
+								StorageContext.EXECUTION,
+								storage_conf)
 
 		# Read data and configuration
-		self.data = OptionsConfig()
+		self.data = storage.load_task_config(
+								instance_name, module_name, task_index)
+
 		self.conf = self.data["conf"]
 		del self.data["conf"]
 
-		self._id = self.data["id"]
+		self.id = self.data["id"]
+		self.name = self.data["name"]
+		self.module_name = self.data["module"]
+		self.instance_name = self.data["instance"]
 
 		self._main = None
 		self._generators = []
-		self._mappers = []
+		self._processors = []
 		self._begin = None
 		self._end = None
 
@@ -106,16 +122,33 @@ class Task(object):
 		self.__initialize_ports()
 
 		self.__ports_accessor = PortsAccessor(self._port_map)
-		
-		self.context = None
+
+		# The context field is free to be used by the task user to
+		# save variables related with the whole task life cycle.
+		# By default it is initialized with a dictionary but can be
+		# overwrited with any value by the user. Wok will never use it.
+		self.context = {}
 		
 		#self._log.debug("Task:\nData: %s\nConfiguration: %s" % (self.data, self.conf))
 	
 	def __initialize_ports(self):
 		self._port_map = {}
+		self._in_ports = []
+		self._out_ports = []
+
 		if "ports" in self.data:
-			for port_name, port_conf in self.data["ports"].iteritems():
-				self._port_map[port_name] = PortFactory.create_port(port_name, port_conf)
+			ports_conf = self.data["ports"]
+			self.iteration_strategy = ports_conf.get("iteration_strategy", "dot")
+			
+			for port_conf in ports_conf.get("in", []):
+				port = PortFactory.create_port(PORT_MODE_IN, port_conf)
+				self._port_map[port.name] = port
+				self._in_ports += [port]
+
+			for port_conf in ports_conf.get("out", []):
+				port = PortFactory.create_port(PORT_MODE_OUT, port_conf)
+				self._port_map[port.name] = port
+				self._out_ports += [port]
 		
 	def __close_ports(self):
 		for port in self._port_map.values():
@@ -143,13 +176,13 @@ class Task(object):
 		## Execute before main
 
 		if self._begin:
-			self._log.debug("Processing task begin ...")
+			self._log.debug("Running task begin ...")
 			self._begin()
 
 		## Execute generators
 
 		if self._generators:
-			self._log.debug("Processing task generators ...")
+			self._log.debug("Running task generators ...")
 
 		for generator in self._generators:
 			func, out_ports = generator
@@ -159,53 +192,62 @@ class Task(object):
 
 			params = {}
 			for port in out_ports:
-				params[str(port.name)] = port
+				params[port.name] = port
 
 			func(**params)
 
-		## Execute mappers
+		## Execute processors
 
-		if self._mappers:
-			self._log.debug("Processing task mappers ...")
+		if self._processors:
+			self._log.debug("Running task processor ...")
 
-		# initialize mappers
-		mappers = []
-		for mapper in self._mappers:
-			func, in_ports, out_ports = mapper
+		# initialize processors
+		processors = []
+		for processor in self._processors:
+			func, in_ports, out_ports = processor
 			
 			writers = [port.data.writer() for port in out_ports]
 
-			mappers += [(func, in_ports, out_ports, writers)]
+			processors += [(func, in_ports, out_ports, writers)]
 
 			self._log.debug("".join([func.__name__,
 				"(in_ports=[", ", ".join([p.name for p in in_ports]),
 				"], out_ports=[", ", ".join([p.name for p in out_ports]), "])"]))
 
 		# determine input port data iteration strategy
-		# currently only dot strategy supported
-		port_data_strategy = self.__dot_product
+		if self._iteration_strategy == "dot":
+			iteration_strategy = self.__dot_product
+		elif self._iteration_strategy == "cross":
+			iteration_strategy = self.__cross_product
+		else:
+			raise Exception("Unknown port data iteration strategy: %s" % self._iteration_strategy)
 
 		# process each port data iteration element
-		ports = [port for port in self._port_map.values() if port.mode == PORT_MODE_IN]
-		for data in port_data_strategy(ports):
-			for mapper in mappers:
-				func, in_ports, out_ports, writers = mapper
+		ports = [port for port in self._in_ports]
+		for data in iteration_strategy(ports):
+			for processor in processors:
+				func, in_ports, out_ports, writers = processor
 
 				params = {}
 				for port in in_ports:
-					params[str(port.name)] = data[port.name]
+					params[port.name] = data[port.name]
 
 				ret = func(**params)
 
-				if not isinstance(ret, list):
-					ret = [ret]
+				# it is not mandatory to send data through output ports
+				# for each data element
+				if ret is not None:
+					if not isinstance(ret, list):
+						ret = [ret]
 
-				if len(ret) != len(out_ports):
-					port_list = ", ".join([p.name for p in out_ports])
-					raise Exception("The number of values returned by '{0}' doesn't match the expected output ports: {1}".format(func.__name__, port_list))
+					if len(ret) != len(out_ports):
+						port_list = ", ".join([p.name for p in out_ports])
+						raise Exception("The number of values returned by '%s' doesn't match the expected number of output ports: [%s]" % (func.__name__, port_list))
 
-				for i, writer in enumerate(writers):
-					writer.write(ret[i])
+					for i, writer in enumerate(writers):
+						writer.write(ret[i])
+				#elif len(out_ports) > 0:
+				#	raise Exception("The processor should return the data to write through the output ports: [%s]" % ", ".join([p.name for p in out_ports]))
 
 		## Execute after main
 		if self._end:
@@ -219,7 +261,7 @@ class Task(object):
 
 	def logger(self, name = None):
 		if name is None:
-			name = self._id
+			name = self.name
 		log = logger.get_logger(self.conf.get("log"), name)
 		return log
 
@@ -245,7 +287,7 @@ class Task(object):
 		except:
 			hostname = "unknown"
 
-		self._log.debug("Task {0} started on host {1}".format(self._id, hostname))
+		self._log.debug("Task {0} started on host {1}".format(self.id, hostname))
 
 		self._start_time = time.time()
 
@@ -260,7 +302,7 @@ class Task(object):
 
 			self._log.info("Elapsed time: {0}".format(self.elapsed_time()))
 		except:
-			self._log.exception("Exception on task {0}".format(self._id))
+			self._log.exception("Exception on task {0}".format(self.id))
 			retcode = exit_codes.TASK_EXCEPTION
 		finally:
 			self.__close_ports()
@@ -314,7 +356,7 @@ class Task(object):
 			return f
 		return decorator
 
-	def add_mapper(self, mapper_func, in_ports = None, out_ports = None):
+	def add_processor(self, processor_func, in_ports = None, out_ports = None):
 		"""Add a port data processing function"""
 		if in_ports is None:
 			iports = self.ports(mode = PORT_MODE_IN)
@@ -328,19 +370,19 @@ class Task(object):
 			oports = self.ports(out_ports, mode = PORT_MODE_OUT)
 		if not isinstance(oports, (tuple, list)):
 			oports = (oports,)
-		self._mappers += [(mapper_func, iports, oports)]
+		self._processors += [(processor_func, iports, oports)]
 
-	def mapper(self, in_ports = None, out_ports = None):
+	def processor(self, in_ports = None, out_ports = None):
 		"""
 		A decorator that is used to specify which is the function that will
 		process each port input data. Example::
 
-			@task.mapper(in_ports = ["in1", "in2"])
+			@task.processor(in_ports = ["in1", "in2"])
 			def process(name, value):
 				return name + " = " + str(value)
 		"""
 		def decorator(f):
-			self.add_mapper(f, in_ports, out_ports)
+			self.add_processor(f, in_ports, out_ports)
 			return f
 		return decorator
 

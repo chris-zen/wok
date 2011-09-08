@@ -26,15 +26,16 @@ class NativeCmdBuilder(CmdBuilder):
 			env.merge(env2)
 		return env
 
-	def _storage_conf(self, value, path = None):
+	def _storage_conf(self, value, path = None):		
 		if path is None:
 			path = []
 
 		if not isinstance(value, DataElement):
 			yield (".".join(path), value)
 		else:
-			for key in value:
-				self._storage_conf(path + [key], value[key])
+			for key in value.keys():
+				for k, v in self._storage_conf(value[key], path + [key]):
+					yield (k, v)
 
 	def prepare(self, task):
 		wok_conf = task.instance.conf.get("wok")
@@ -59,19 +60,20 @@ class NativeCmdBuilder(CmdBuilder):
 			args = [self._task_absolute_path(task, script_path)]
 			env = self._merge_env(lang_conf.get("env"), self.conf.get("env"))
 
-#			TODO lib_path should be appended to sys.path by the task script
-#			if "lib_path" in lang_conf:
-#				if "PYTHONPATH" in env:
-#					env["PYTHONPATH"] = ":".join(lang_conf["lib_path"]) + ":" + env["PYTHONPATH"]
-#				else:
-#					env["PYTHONPATH"] = ":".join(lang_conf["lib_path"])
+			if "lib_path" in lang_conf:
+				if "PYTHONPATH" in env:
+					env["PYTHONPATH"] = ":".join(lang_conf["lib_path"]) + ":" + env["PYTHONPATH"]
+				else:
+					env["PYTHONPATH"] = ":".join(lang_conf["lib_path"])
 		else:
 			raise UnknownNativeCmdBuilderLanguage(lang)
 
-		args += ["-D", "task_id=" + task.id]
+		args += ["-D", "instance_name=" + task.instance.name,
+				"-D", "module_name=" + task.parent.name,
+				"-D", "task_index=" + str(task.index)]
 
 		for key, value in self._storage_conf(task.instance.storage.basic_conf):
-			args += ["-D", "{}={}".format(key, value)]
+			args += ["-D", "storage.{}={}".format(key, value)]
 
 		return cmd, args, env.to_native()
 

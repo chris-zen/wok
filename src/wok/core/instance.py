@@ -94,7 +94,13 @@ class Instance(object):
 		if storage_conf is None:
 			storage_conf = wok_conf.create_element()
 
-		return create_storage(storage_conf.get("type"), StorageContext.SERVER, storage_conf)
+		storage_type = storage_conf.get("type", "sfs")
+
+		if "work_path" not in storage_conf:
+			wok_work_path = wok_conf.get("work_path", os.path.join(os.getcwd(), "wok"))
+			storage_conf["work_path"] = os.path.join(wok_work_path, storage_type)
+
+		return create_storage(storage_type, StorageContext.SERVER, storage_conf)
 
 	def _create_tree(self, flow_def, parent = None, namespace = ""):
 

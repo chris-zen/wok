@@ -4,19 +4,19 @@
 # Licensed under the Non-Profit Open Software License version 3.0
 # ******************************************************************
 
-from wok.portio.factory import PortDataFactory
+from wok.core.portio.factory import PortDataFactory
 
 PORT_MODE_IN = "in"
 PORT_MODE_OUT = "out"
 
 class PortFactory(object):
 	@staticmethod
-	def create_port(name, conf):
-		mf = conf.missing_fields(["mode", "data"])
+	def create_port(mode, conf):
+		mf = conf.missing_fields(["name", "data"])
 		if len(mf) > 0:
-			raise Exception("Port '%s' missing configuration: [%s]" % (name, ",".join(mf)))
-		
-		mode = conf["mode"]
+			raise Exception("Port missing configuration: [%s]" % (name, ",".join(mf)))
+
+		name = str(conf["name"])
 		data = PortDataFactory.create_port_data(conf["data"])
 		
 		if mode == PORT_MODE_IN:
