@@ -1,3 +1,5 @@
+from random import random
+
 from wok.task import Task
 
 task = Task()

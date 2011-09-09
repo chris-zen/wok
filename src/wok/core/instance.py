@@ -100,7 +100,7 @@ class Instance(object):
 			wok_work_path = wok_conf.get("work_path", os.path.join(os.getcwd(), "wok"))
 			storage_conf["work_path"] = os.path.join(wok_work_path, storage_type)
 
-		return create_storage(storage_type, StorageContext.SERVER, storage_conf)
+		return create_storage(storage_type, StorageContext.CONTROLLER, storage_conf)
 
 	def _create_tree(self, flow_def, parent = None, namespace = ""):
 
@@ -474,7 +474,7 @@ class Instance(object):
 				end = min(start + mwsize, psize)
 				size = end - start
 				partitions += [(task, start,  size)]
-				self._log.debug("{}[{:04i}]: start={}, end={}, size={}".format(module.id, i, start, end, size))
+				self._log.debug("{}[{:04d}]: start={}, end={}, size={}".format(module.id, i, start, end, size))
 				start += mwsize
 
 			#self._log.debug(repr(partitions))

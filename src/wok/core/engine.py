@@ -7,13 +7,6 @@
 import os
 import os.path
 
-import time
-import shutil
-import sys
-import math
-import uuid
-import json
-
 from threading import Thread, Lock, Condition
 
 from wok import logger
@@ -170,7 +163,7 @@ class WokEngine(object):
 				self._log.debug("Waiting for events ...")
 
 				while not self._notified and self._running:
-					self._cvar.wait(2)
+					self._cvar.wait(1)
 				self._notified = False
 
 				if not self._running:
@@ -213,7 +206,9 @@ class WokEngine(object):
 		except Exception:
 			self._log.exception("Exception in wok-engine run thread")
 		finally:
+			self._lock.release()
 			job_mgr.stop()
+			self._lock.acquire()
 
 	@synchronized
 	def start(self, async = True):
@@ -234,13 +229,20 @@ class WokEngine(object):
 		if self._run_thread is not None:
 			self._lock.release()
 
+			key_int = False
 			while self._run_thread.isAlive():
 				try:
 					self._run_thread.join(1)
 				except KeyboardInterrupt:
 					with self._lock:
-						self._log.warn("Ctrl-C pressed, stopping the engine ...")
-						self._running = False
+						if not key_int:
+							self._log.warn("Ctrl-C pressed, stopping the engine ...")
+							self._running = False
+							key_int = True
+						else:
+							self._log.warn("Ctrl-C pressed, killing the process ...")
+							import signal
+							os.kill(os.getpid(), signal.SIGTERM)
 				except Exception:
 					with self._lock:
 						self._log.exception("Exception while waiting for the engine to finish, stopping the engine ...")

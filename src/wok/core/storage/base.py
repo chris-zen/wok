@@ -8,6 +8,11 @@ from wok import logger
 from wok.element import DataElement
 
 class Storage(object):
+	"""
+	Abstract Storage interface.
+	An Storage implementation manages any piece of information that should be shared between controller and execution nodes.
+	"""
+
 	def __init__(self, context, conf, name):
 		self.context = context
 		self.conf = conf
@@ -26,7 +31,11 @@ class Storage(object):
 		e["conf"] = task.conf
 
 		ports = e.create_element("ports")
-		ports["iteration_strategy"] = "dot" #TODO depends on module
+		
+		#TODO depends on module definition
+		iter = ports.create_element("iteration")
+		iter["strategy"] = "dot"
+		iter["size"] = 0
 
 		in_ports = ports.create_list("in")
 		for i, port_node in enumerate(task.parent.in_ports):
@@ -45,5 +54,7 @@ class Storage(object):
 		return e
 
 class StorageContext(object):
-	SERVER = 1
+	"An enumeration for the different storage context availables"
+
+	CONTROLLER = 1
 	EXECUTION = 2

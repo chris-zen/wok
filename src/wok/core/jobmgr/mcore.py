@@ -29,6 +29,7 @@ class McoreJobManager(JobManager):
 		self._num_cores = self.conf.get("max_cores", mp.cpu_count(), dtype=int)
 
 		self._running = False
+		self._kill_threads = False
 		self._threads = []
 
 		self._run_lock = Lock()
@@ -109,7 +110,14 @@ class McoreJobManager(JobManager):
 									cwd=cwd,
 									env=env)
 
-				p.wait()
+				while not self._kill_threads and p.poll() is None:
+					time.sleep(1)
+
+				if self._kill_threads:
+					p.terminate()
+					print p.poll()
+					o.close()
+					return
 
 				result.end_time = time.time()
 
@@ -142,9 +150,10 @@ class McoreJobManager(JobManager):
 					if result.exception_trace is not None:
 						sb += ["\n", result.exception_trace]
 					self._log.debug("".join(sb))
-				
-				self.engine.notify()
+
 				self._run_cvar.notify()
+
+			self.engine.notify()
 
 	def start(self):
 		with self._run_lock:
@@ -189,7 +198,9 @@ class McoreJobManager(JobManager):
 			while self._running and job.state not in [runstates.FINISHED, runstates.FAILED]:
 				self._run_cvar.wait(2)
 
-			return job.result
+			del self._jobs[job_id]
+
+		return job.result
 
 	def join_all(self, job_ids = None):
 		with self._run_lock:
@@ -205,19 +216,29 @@ class McoreJobManager(JobManager):
 				while self._running and job.state not in [runstates.FINISHED, runstates.FAILED]:
 					self._run_cvar.wait(2)
 
-				results += job.result
+				del self._jobs[job_id]
+				results += [(job_id, job.result)]
+		
+		return results
+
 
 	def stop(self):
 		with self._run_lock:
 			self._log.info("Stopping {} scheduler ...".format(self.name))
 
 			self._running = False
+			self._kill_threads = False
 
 			self._run_cvar.notify()
 
-		for i in xrange(self._num_cores):
+		for _ in xrange(self._num_cores):
 			self._waiting_queue.put((0, None))
 
 		for thread in self._threads:
-			thread.join()
+			timeout = 30
+			while thread.isAlive():
+				thread.join(1)
+				timeout -= 1
+				if timeout == 0:
+					self._kill_threads = True
 

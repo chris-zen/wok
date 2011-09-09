@@ -12,6 +12,10 @@ from wok.element import DataElement, DataFactory, DataElementJsonEncoder
 from wok.core.storage.base import Storage, StorageContext
 
 class SfsStorage(Storage):
+	"""
+	Implements Storage interface for a Shared File System (i.e. NFS).
+	The file system is shared and visible for all the execution nodes and the wok controller.
+	"""
 
 	def __init__(self, context, conf):
 		Storage.__init__(self, context, conf, "sfs")
@@ -23,21 +27,27 @@ class SfsStorage(Storage):
 		self.update_context(context)
 
 	def update_context(self, context):
-		if context == StorageContext.SERVER:
+		"Updates the internal configuration according to the new context"
+
+		if context == StorageContext.CONTROLLER:
 			self.work_path = self.server_path
 		else:
 			self.work_path = self.execution_path
 
 	@property
 	def basic_conf(self):
+		"Return the basic configuration needed to start a task execution"
+
 		c = DataElement()
 		c["type"] = self.name
 		c["work_path"] = self.work_path
 		return c
 
 	def save_task_config(self, task):
-		#task_path = os.path.join(self.work_path, "tasks", task.id)
-		task_path = os.path.join(self.work_path, task.instance.name, task.parent.name)
+		"Save a task configuration"
+
+		mpath = os.path.join(*(task.parent.namespace.split(".") + [task.parent.name]))
+		task_path = os.path.join(self.work_path, task.instance.name, mpath)
 
 		if not os.path.isdir(task_path):
 			try:
@@ -58,9 +68,11 @@ class SfsStorage(Storage):
 			self._log.error("Failed creating task config file: " + task_config_path)
 			raise
 
-	def load_task_config(self, instance_name, module_name, task_index):
-		#task_path = os.path.join(self.work_path, "tasks", task_id)
-		task_path = os.path.join(self.work_path, instance_name, module_name)
+	def load_task_config(self, instance_name, module_path, task_index):
+		"Load a task configuration"
+
+		mpath = os.path.join(*module_path.split("."))
+		task_path = os.path.join(self.work_path, instance_name, mpath)
 		task_config_path = os.path.join(task_path, "%06d.json" % task_index)
 
 		try:

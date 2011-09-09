@@ -69,7 +69,7 @@ class NativeCmdBuilder(CmdBuilder):
 			raise UnknownNativeCmdBuilderLanguage(lang)
 
 		args += ["-D", "instance_name=" + task.instance.name,
-				"-D", "module_name=" + task.parent.name,
+				"-D", "module_path=" + ".".join([task.parent.namespace, task.parent.name]),
 				"-D", "task_index=" + str(task.index)]
 
 		for key, value in self._storage_conf(task.instance.storage.basic_conf):
