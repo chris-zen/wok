@@ -30,31 +30,39 @@ class Storage(object):
 		e["instance"] = task.instance.name
 		e["conf"] = task.conf
 
-		ports = e.create_element("ports")
-		
 		#TODO depends on module definition
-		iter = ports.create_element("iteration")
+		iter = e.create_element("iteration")
 		iter["strategy"] = "dot"
 		iter["size"] = 0
+		
+		ports = e.create_element("ports")
 
 		in_ports = ports.create_list("in")
 		for i, port_node in enumerate(task.parent.in_ports):
 			pe = DataElement(key_sep = "/")
-			pe["name"] = port_node.name
-			task.in_port_data[i].fill_element(pe.create_element("data"))
+#			pe["name"] = port_node.name
+#			pe["serializer"] = port_node.serializer
+#			pe["partition"] = pdata.partition
+#			pe["start"] = pdata.start
+#			pe["size"] = pdata.size
+			#task.in_port_data[i].fill_element(pe.create_element("data"))
+			task.in_port_data[i].fill_element(pe)
 			in_ports.append(pe)
 			
 		out_ports = ports.create_list("out")
 		for i, port_node in enumerate(task.parent.out_ports):
 			pe = DataElement(key_sep = "/")
-			pe["name"] = port_node.name
-			task.out_port_data[i].fill_element(pe.create_element("data"))
+#			pe["name"] = port_node.name
+#			pe["serializer"] = port_node.serializer
+#			pe["partition"] = pdata.partition
+			#task.out_port_data[i].fill_element(pe.create_element("data"))
+			task.out_port_data[i].fill_element(pe)
 			out_ports.append(pe)
 		
 		return e
 
 class StorageContext(object):
-	"An enumeration for the different storage context availables"
+	"An enumeration for the different storage contexts available"
 
 	CONTROLLER = 1
 	EXECUTION = 2

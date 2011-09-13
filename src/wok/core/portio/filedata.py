@@ -11,8 +11,8 @@ from wok.core.portio.base import PortData, DataReader
 TYPE_FILE_DATA = "file_data"
 
 class FileData(PortData):
-	def __init__(self, serializer = None, path = None, start = 0, size = -1, conf = None):
-		PortData.__init__(self, serializer, conf)
+	def __init__(self, serializer = None, path = None, start = 0, size = -1, conf = None, port_desc = None):
+		PortData.__init__(self, serializer, conf, port_desc)
 
 		if conf is not None:
 			self._path = conf.get("path", path)

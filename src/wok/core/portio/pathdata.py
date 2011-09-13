@@ -12,8 +12,8 @@ from wok.core.portio.base import PortData, DataReader, DataWriter
 TYPE_PATH_DATA = "path_data"
 
 class PathData(PortData):
-	def __init__(self, serializer = None, path = None, partition = -1, start = 0, size = -1, conf = None):
-		PortData.__init__(self, serializer, conf)
+	def __init__(self, serializer = None, path = None, partition = -1, start = 0, size = -1, conf = None, port_desc = None):
+		PortData.__init__(self, serializer, conf, port_desc)
 
 		if conf is not None:
 			self._path = conf.get("path", path)
@@ -41,7 +41,7 @@ class PathData(PortData):
 		self._last_partition = 0
 
 	def _partition_size(self, partition):
-		path = os.path.join(self._path, "%06i.index" % partition)
+		path = os.path.join(self._path, "%06d.index" % partition)
 		if os.path.exists(path):
 			return os.path.getsize(path) / 8
 		else:
@@ -113,7 +113,7 @@ class PathData(PortData):
 						path = os.path.join(self._path, f)
 						self._size += os.path.getsize(path) / 8
 		else:
-			path = os.path.join(self._path, "%06i.index" % self._partition)
+			path = os.path.join(self._path, "%06d.index" % self._partition)
 			if os.path.exists(path):
 				self._size = (os.path.getsize(path) / 8) - self._start
 			else:
@@ -162,8 +162,8 @@ class PartitionDataReader(DataReader):
 		if self._data_f is not None:
 			self.close()
 
-		self._index_path = os.path.join(self._path, "%06i.index" % self._partition)
-		self._data_path = os.path.join(self._path, "%06i.data" % self._partition)
+		self._index_path = os.path.join(self._path, "%06d.index" % self._partition)
+		self._data_path = os.path.join(self._path, "%06d.data" % self._partition)
 		
 		self._index_f = open(self._index_path, "rb")
 		self._data_f = open(self._data_path, "r")
@@ -219,8 +219,8 @@ class PartitionDataWriter(DataWriter):
 		if not os.path.exists(path):
 			os.makedirs(path)
 		
-		self._index_path = os.path.join(path, "%06i.index" % partition)
-		self._data_path = os.path.join(path, "%06i.data" % partition)
+		self._index_path = os.path.join(path, "%06d.index" % partition)
+		self._data_path = os.path.join(path, "%06d.data" % partition)
 
 		self._index_f = None
 		self._data_f = None
@@ -257,4 +257,4 @@ class PartitionDataWriter(DataWriter):
 			self._data_f.write("\n")
 
 	def __repr__(self):
-		return "%s/%06i" % (self._path, self._partition)
+		return "%s/%06d" % (self._path, self._partition)

@@ -15,10 +15,6 @@ from wok.core.nodes import *
 from wok.core.storage.base import StorageContext
 from wok.core.storage.factory import create_storage
 
-from wok.core.portio.filedata import FileData
-from wok.core.portio.pathdata import PathData
-from wok.core.portio.multidata import MultiData
-
 class Instance(object):
 
 	_INDENT = "  "
@@ -166,6 +162,32 @@ class Instance(object):
 
 		return ports
 
+#	def _port_network(self, module, namespace, port_map, port_links):
+#		if len(namespace) > 0:
+#			gid_func = lambda name: ".".join([namespace, name])
+#		else:
+#			gid_func = lambda name: name
+#
+#		# module ports
+#		for port in module.in_ports:
+#			pid = gid_func(port.name)
+#			port_map[pid] = port
+#			port_links[pid] = list(port.model.link)
+#
+#		for port in module.out_ports:
+#			pid = gid_func(port.name)
+#			port_map[pid] = port
+#			port_links[pid] = list(port.model.link)
+#
+#		for mod in module.modules:
+#			self._port_network(mod, ".".join([namespace, mname]), ports, port_map)
+#
+#	def _connect_ports(self, flow):
+#		ports = []
+#		port_map = {}
+#
+#		self._port_network(flow, "", ports, port_map)
+
 	def _connect_ports(self, module, namespace):
 
 		#self._log.debug("_connect_ports({}, {})".format(module.name, namespace))
@@ -211,29 +233,33 @@ class Instance(object):
 				continue
 
 			port_def = port.model
-			if port_id in self._port_data_conf: # attached through user configuration
-				port_def.link = [] # override flow specified connections
-				port_data_conf = self._port_data_conf[port_id]
-				if isinstance(port_data_conf, DataElement):
-					raise Exception("Configurable attached port unimplemented")
-				else: # By default we expect a file/dir path
-					path = str(port_data_conf)
-					if not os.path.exists(path):
-						raise Exception("Port {}: File not found: {}".format(port_id, path))
 
-					if os.path.isdir(path):
-						port.data = PathData(port.serializer, path)
-					elif os.path.isfile(path):
-						port.data = FileData(port.serializer, path)
-					else:
-						raise Exception("Port {}: Unexpected path type: {}".format(port_id, path))
+# TODO copy data to storage ?
+#			if port_id in self._port_data_conf: # attached through user configuration
+#				port_def.link = [] # override flow specified connections
+#				port_data_conf = self._port_data_conf[port_id]
+#				if isinstance(port_data_conf, DataElement):
+#					raise Exception("Configurable attached port unimplemented")
+#				else: # By default we expect a file/dir path
+#					path = str(port_data_conf)
+#					if not os.path.exists(path):
+#						raise Exception("Port {}: File not found: {}".format(port_id, path))
+#
+#					if os.path.isdir(path):
+#						port.data = PathData(port.serializer, path)
+#					elif os.path.isfile(path):
+#						port.data = FileData(port.serializer, path)
+#					else:
+#						raise Exception("Port {}: Unexpected path type: {}".format(port_id, path))
+#			elif ...
 
-			elif len(port_def.link) == 0: # link not defined (they are source ports)
-				rel_path = port_id.replace(".", "/")
-				path = os.path.join(self._work_path, "ports", rel_path)
-				if not os.path.exists(path):
-					os.makedirs(path)
-				port.data = PathData(port.serializer, path)
+			if len(port_def.link) == 0: # link not defined (they are source ports)
+#				rel_path = port_id.replace(".", "/")
+#				path = os.path.join(self._work_path, "ports", rel_path)
+#				if not os.path.exists(path):
+#					os.makedirs(path)
+#				port.data = PathData(port.serializer, path)
+				port.data = self.storage.create_port_data(port)
 				#self._log.debug(">>> {} -> [{}] {}".format(port.parent.id, id(port.data), port.data))
 
 		# then the ports that link to source ports
@@ -244,24 +270,29 @@ class Instance(object):
 	
 			port_def = port.model
 			if len(port_def.link) > 0:
-				data = []
+				linked_data = []
 				for link in port_def.link:
 					link = gid_func(link)
 					if link not in port_map:
 						#self._log.debug("port_map:\n" + "\n".join(["{}: {}".format(p[0], repr(port_map[p[0]])) for p in ports]))
 						raise Exception("Port {} references a non-existent port: {}".format(port_id, link))
 
-					link_port = port_map[link]
+					linked_port = port_map[link]
+					if linked_port.data is None:
+						raise Exception("Port {} links with a non source port: {}".format(port_id, linked_port.id))
+					#elif port.parent == linked_port.parent:
+					#	raise Exception("Port {} cannot be connected to another port from the same module: {}".format(port_id, linked_port.id))
 
-					if port.serializer is not None and port.serializer != link_port.serializer:
-						raise Exception("Unmatching serializer found while linking port '{}' [{}] with '{}' [{}]".format(port.id, port.serializer, link_port.id, link_port.serializer))
+					if port.serializer is not None and port.serializer != linked_port.serializer:
+						raise Exception("Unmatching serializer found while linking port '{}' [{}] with '{}' [{}]".format(port.id, port.serializer, linked_port.id, linked_port.serializer))
 
-					data += [link_port.data]
+					linked_data += [linked_port.data]
 
-				if len(data) == 1:
-					port.data = data[0]
+				if len(linked_data) == 1:
+					port.data = self.storage.create_port_linked_data(port, linked_data[0])
 				else:
-					port.data = MultiData(data)
+#					port.data = MultiData(data)
+					port.data = self.storage.create_port_multi_data(port, linked_data)
 
 		# check that there are no ports without data
 		for port_id, port in ports:
@@ -326,7 +357,7 @@ class Instance(object):
 	def _prepare_dependency_map(self, module, mod_source_map, mod_name_map, source_map):
 		mod_name_map[module.id] = module
 		for port in module.in_ports:
-			if isinstance(port.data, MultiData):
+			if len(port.data.sources) > 0:
 				data = set(port.data.sources)
 			else:
 				data = set([port.data])

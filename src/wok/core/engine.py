@@ -144,11 +144,13 @@ class WokEngine(object):
 		try:
 			job_mgr.start()
 
+			self._log.info("Engine ready")
+
 			job_task_map = {}
 
 			while self._running:
 
-				self._log.debug("Scheduling new tasks ...")
+				#self._log.debug("Scheduling new tasks ...")
 
 				# submit tasks ready to be executed
 				for inst in self._instances:
@@ -160,7 +162,7 @@ class WokEngine(object):
 							job_task_map[job_ids[i]] = task
 							task.job_id = job_ids[i]
 				
-				self._log.debug("Waiting for events ...")
+				#self._log.debug("Waiting for events ...")
 
 				while not self._notified and self._running:
 					self._cvar.wait(1)
@@ -187,7 +189,7 @@ class WokEngine(object):
 							del job_task_map[job_id]
 
 				#self._log.debug("Updating modules state ...\n" + "\n".join("\t{}".format(m.id) for m in sorted(updated_modules)))
-				self._log.debug("Updating modules state ...")
+				#self._log.debug("Updating modules state ...")
 
 				# update affected modules state
 				updated_instances = set()

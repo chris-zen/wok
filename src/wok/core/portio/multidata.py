@@ -9,8 +9,8 @@ from wok.core.portio.base import PortData, DataReader
 TYPE_MULTI_DATA = "multi_data"
 
 class MultiData(PortData):
-	def __init__(self, sources = None, start = 0, size = -1, conf = None):
-		PortData.__init__(self, None, conf)
+	def __init__(self, sources = None, start = 0, size = -1, conf = None, port_desc = None):
+		PortData.__init__(self, None, conf, port_desc)
 
 		if conf is not None:
 			self._sources = []

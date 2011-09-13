@@ -119,10 +119,30 @@ class Task(object):
 		logger.initialize(self.conf.get("log"))
 		self._log = self.logger()
 
-		# initialized by __initialize_ports
-		self._iter_strategy = None
-		
-		self.__initialize_ports()
+		# Initialize data iteration
+		iter_conf = self.data["iteration"]
+		self._iter_strategy = iter_conf.get("strategy")
+		self._iter_size = iter_conf.get("size", 0, dtype=int)
+
+		# Initialize ports
+		self._port_map = {}
+		self._in_ports = []
+		self._out_ports = []
+
+		if "ports" in self.data:
+			ports_conf = self.data["ports"]
+
+			for port_conf in ports_conf.get("in", []):
+				#port = PortFactory.create_port(PORT_MODE_IN, port_conf)
+				port = storage.create_port_data(port_conf)
+				self._port_map[port.name] = port
+				self._in_ports += [port]
+
+			for port_conf in ports_conf.get("out", []):
+				#port = PortFactory.create_port(PORT_MODE_OUT, port_conf)
+				port = storage.create_port_data(port_conf)
+				self._port_map[port.name] = port
+				self._out_ports += [port]
 
 		self.__ports_accessor = PortsAccessor(self._port_map)
 
@@ -133,27 +153,6 @@ class Task(object):
 		self.context = {}
 		
 		#self._log.debug("Task:\nData: %s\nConfiguration: %s" % (self.data, self.conf))
-	
-	def __initialize_ports(self):
-		self._port_map = {}
-		self._in_ports = []
-		self._out_ports = []
-
-		if "ports" in self.data:
-			ports_conf = self.data["ports"]
-			iter_conf = ports_conf["iteration"]
-			self._iter_strategy = iter_conf["strategy"]
-			self._iter_size = iter_conf["size"]
-			
-			for port_conf in ports_conf.get("in", []):
-				port = PortFactory.create_port(PORT_MODE_IN, port_conf)
-				self._port_map[port.name] = port
-				self._in_ports += [port]
-
-			for port_conf in ports_conf.get("out", []):
-				port = PortFactory.create_port(PORT_MODE_OUT, port_conf)
-				self._port_map[port.name] = port
-				self._out_ports += [port]
 		
 	def __close_ports(self):
 		for port in self._port_map.values():
