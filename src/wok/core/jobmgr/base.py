@@ -79,7 +79,7 @@ class JobManager(object):
 	def join_all(self, job_ids = None):
 		raise Exception("Unimplemented")
 
-	def stop(self):
+	def close(self):
 		raise Exception("Unimplemented")
 
 class JobResult(object):

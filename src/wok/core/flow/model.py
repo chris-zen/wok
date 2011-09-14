@@ -55,7 +55,8 @@ class _BasePort(_BaseDesc):
 class _BaseModule(_BasePort):
 	def __init__(self, name, title = "", desc = "", enabled = True,
 					serializer = None, wsize = None,
-					maxpar = None, conf = None, in_ports = None, out_ports = None):
+					maxpar = None, conf = None, in_ports = None, out_ports = None,
+					resources = None):
 		_BasePort.__init__(self, name, title, desc, enabled, serializer, wsize)
 
 		self.maxpar = maxpar
@@ -76,6 +77,9 @@ class _BaseModule(_BasePort):
 			self.out_ports = out_ports
 			for p in out_ports:
 				self.out_port_map[p.name] = p
+
+		self.resources = resources
+		self.params = []
 
 	def add_in_port(self, port):
 		self.in_ports += [port]
@@ -204,6 +208,10 @@ class Port(_BasePort):
 		if self.link is not None and len(self.link) > 0:
 			sb.extend([self._INDENT * level, "Links: ", ", ".join(self.link), "\n"])
 		return level
+
+# TODO
+class Param(_Base):
+	pass
 
 class Exec(_Base):
 	def __init__(self, launcher = None, conf = None):

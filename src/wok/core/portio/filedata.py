@@ -8,11 +8,14 @@ import os
 
 from wok.core.portio.base import PortData, DataReader
 
-TYPE_FILE_DATA = "file_data"
-
 class FileData(PortData):
-	def __init__(self, serializer = None, path = None, start = 0, size = -1, conf = None, port_desc = None):
-		PortData.__init__(self, serializer, conf, port_desc)
+
+	TYPE_NAME = "file_data"
+
+	def __init__(self, serializer = None, path = None, start = 0, size = -1,
+					conf = None, port_desc = None, factory = None):
+
+		PortData.__init__(self, serializer, conf, port_desc, factory)
 
 		if conf is not None:
 			self._path = conf.get("path", path)
@@ -28,7 +31,7 @@ class FileData(PortData):
 	def fill_element(self, e):
 		PortData.fill_element(self, e)
 
-		e["type"] = TYPE_FILE_DATA
+		e["type"] = self.TYPE_NAME
 		e["path"] = self._path
 		e["start"] = self._start
 		e["size"] = self._size

@@ -9,7 +9,7 @@ from wok.serializer import DEFAULT_SERIALIZER_NAME
 from wok.serializer import SerializerFactory
 
 class PortData(object):
-	def __init__(self, serializer = None, conf = None, port_desc = None):
+	def __init__(self, serializer = None, conf = None, port_desc = None, factory = None):
 		"""Initialize the port data"""
 
 		if conf is not None:
@@ -22,6 +22,7 @@ class PortData(object):
 				self._serializer = serializer
 
 		self.port_desc = port_desc
+		self.factory = factory
 
 	@property
 	def sources(self):
@@ -36,7 +37,7 @@ class PortData(object):
 
 		e["serializer"] = self._serializer
 		if self.port_desc is not None:
-			e["port_desc"] = self.port_desc
+			e["port"] = self.port_desc
 		return e
 
 	def to_element(self, key_sep = None):

@@ -15,6 +15,12 @@ from wok.core.portio.filedata import FileData
 from wok.core.portio.pathdata import PathData
 from wok.core.portio.multidata import MultiData
 
+_PORT_DATA_TYPES = {
+	FileData.TYPE_NAME : FileData,
+	PathData.TYPE_NAME : PathData,
+	MultiData.TYPE_NAME : MultiData
+}
+
 class SfsStorage(Storage):
 	"""
 	Implements Storage interface for a Shared File System (i.e. NFS).
@@ -173,11 +179,25 @@ class SfsStorage(Storage):
 	def create_port_data_from_file(self, path):
 		raise Exception("Unimplemented")
 
-	def load_port_data(self, instance_name, module_path, port_name):
-		mod_path = os.path.join(
-						self.work_path,
-						instance_name,
-						os.path.join(*module_path.split(".")))
-		port_path = os.path.join(mod_path, port_name)
+	def create_port_data_from_conf(self, port_conf):
+		if "type" not in port_conf:
+			raise Exception("Missing port type: " + repr(port_conf))
 
-		raise Exception("Unimplemented")
+		type = port_conf["type"]
+		if type not in [FileData.TYPE_NAME, PathData.TYPE_NAME, MultiData.TYPE_NAME]:
+			raise Exception("Unknown port type: " + type)
+
+		#self._log.debug("Creating port data: type=%s, conf=%s" % (type, repr(port_conf)))
+		pdata = _PORT_DATA_TYPES[type](conf = port_conf,
+					factory = self.create_port_data_from_conf)
+
+		return pdata
+	
+#	def load_port_data(self, instance_name, module_path, port_name):
+#		mod_path = os.path.join(
+#						self.work_path,
+#						instance_name,
+#						os.path.join(*module_path.split(".")))
+#		port_path = os.path.join(mod_path, port_name)
+#
+#		raise Exception("Unimplemented")

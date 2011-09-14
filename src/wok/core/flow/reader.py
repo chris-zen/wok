@@ -110,6 +110,13 @@ class FlowReader(object):
 		if conf_xml is not None:
 			obj.conf = self._parse_conf(conf_xml)
 
+		res_xml = xmle.find("resources")
+		if res_xml is not None:
+			obj.resources = self._parse_conf(res_xml)
+
+		for x in xmle.findall("param"):
+			obj.params += [self._parse_param(x)]
+
 		for x in xmle.findall("in"):
 			obj.add_in_port(self._parse_port(x))
 		
@@ -161,6 +168,9 @@ class FlowReader(object):
 		
 		return mod
 
+	def _parse_param(self, xmle):
+		raise Exception("Unimplemented")
+	
 	def _parse_port(self, xmle):
 		if xmle.tag == "in":
 			mode = PORT_MODE_IN

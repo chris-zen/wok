@@ -94,7 +94,7 @@ class Instance(object):
 
 		if "work_path" not in storage_conf:
 			wok_work_path = wok_conf.get("work_path", os.path.join(os.getcwd(), "wok"))
-			storage_conf["work_path"] = os.path.join(wok_work_path, storage_type)
+			storage_conf["work_path"] = os.path.join(wok_work_path, "storage")
 
 		return create_storage(storage_type, StorageContext.CONTROLLER, storage_conf)
 
@@ -292,7 +292,7 @@ class Instance(object):
 					port.data = self.storage.create_port_linked_data(port, linked_data[0])
 				else:
 #					port.data = MultiData(data)
-					port.data = self.storage.create_port_multi_data(port, linked_data)
+					port.data = self.storage.create_port_joined_data(port, linked_data)
 
 		# check that there are no ports without data
 		for port_id, port in ports:

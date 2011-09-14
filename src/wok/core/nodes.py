@@ -142,6 +142,18 @@ class BaseModuleNode(ModelNode):
 		return conf
 
 	@property
+	def resources(self):
+		if self.parent is None:
+			conf = DataElement()
+		else:
+			conf = self.parent.resources
+
+		if self.model.resources is not None:
+			conf.merge(self.model.resources)
+
+		return conf
+
+	@property
 	def execution(self):
 		return None
 

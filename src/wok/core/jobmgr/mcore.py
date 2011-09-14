@@ -57,6 +57,9 @@ class McoreJobManager(JobManager):
 			if job is None:
 				break
 
+			task = job.task
+			task_id = task.id
+			
 			result = job.result
 
 			with self._run_lock:
@@ -65,9 +68,6 @@ class McoreJobManager(JobManager):
 			job.state = runstates.RUNNING
 
 			self.engine.notify()
-
-			task = job.task
-			task_id = task.id
 
 			# Prepare command
 			cmd, args, env = self._prepare_cmd(task)
@@ -115,7 +115,7 @@ class McoreJobManager(JobManager):
 
 				if self._kill_threads:
 					p.terminate()
-					print p.poll()
+					self._log.warn("Not waiting for Popen.terminate(). Should I do?")
 					o.close()
 					return
 
@@ -149,7 +149,7 @@ class McoreJobManager(JobManager):
 					sb = ["Task failed [{}] {}: {}".format(job.id, job.task.id, result.exit_message)]
 					if result.exception_trace is not None:
 						sb += ["\n", result.exception_trace]
-					self._log.debug("".join(sb))
+					self._log.error("".join(sb))
 
 				self._run_cvar.notify()
 
@@ -157,7 +157,7 @@ class McoreJobManager(JobManager):
 
 	def start(self):
 		with self._run_lock:
-			self._log.info("Starting {} scheduler ...".format(self.name))
+			self._log.info("Starting job manager [{}] ...".format(self.name))
 
 		self._running = True
 
@@ -222,9 +222,9 @@ class McoreJobManager(JobManager):
 		return results
 
 
-	def stop(self):
+	def close(self):
 		with self._run_lock:
-			self._log.info("Stopping {} scheduler ...".format(self.name))
+			self._log.info("Stopping job manager [{}] ...".format(self.name))
 
 			self._running = False
 			self._kill_threads = False
@@ -242,3 +242,5 @@ class McoreJobManager(JobManager):
 				if timeout == 0:
 					self._kill_threads = True
 
+		with self._run_lock:
+			self._log.info("[{}] stopped".format(self.name))

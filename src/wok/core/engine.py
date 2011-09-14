@@ -32,8 +32,11 @@ def synchronized(f):
 			try:
 				return f(engine, *args, ** kw)
 			finally:
-				engine._lock.release()
 				#engine._log.debug("<RELEASE %s>" % f.__name__)
+				try:
+					engine._lock.release()
+				except:
+					engine._log.error("<RELEASE ERROR %s>" % f.__name__)
 		return sync_function
 	return wrap(f)
 
@@ -201,25 +204,30 @@ class WokEngine(object):
 				#for inst in updated_instances:
 				#	self._log.debug(repr(inst))
 
-			# print instances state before leaving the thread
-			for inst in self._instances:
-				self._log.debug(repr(inst))
-
 		except Exception:
 			self._log.exception("Exception in wok-engine run thread")
 		finally:
 			self._lock.release()
-			job_mgr.stop()
+			job_mgr.close()
 			self._lock.acquire()
 
+		try:
+			# print instances state before leaving the thread
+			for inst in self._instances:
+				self._log.debug(repr(inst))
+
+			self._log.info("Engine thread finished")
+		except:
+			pass
+
 	@synchronized
-	def start(self, async = True):
+	def start(self, wait = True):
 		self._log.info("Starting engine ...")
 		
 		self._run_thread = Thread(target = self._run, name = "wok-engine-run")
 		self._run_thread.start()
 
-		if not async:
+		if wait:
 			self._lock.release()
 			self.wait()
 			self._lock.acquire()

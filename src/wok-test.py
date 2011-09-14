@@ -16,18 +16,15 @@ from wok.core.engine import WokEngine
 
 # Wok initialization
 
-def add_options(parser):
-	pass
-
 instance_name = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 install_path = os.path.dirname(os.path.realpath(__file__))
 
+def add_options(parser):
+	parser.add_option("-n", "--instance-name", dest="instance_name", default=instance_name, metavar="NAME",
+			help="Set the instance name. Default name is built from the current date.")
+
 initial_conf = {
 	"wok" : {
-		"__instance" : {
-			"name" : instance_name
-		},
-
 		"execution" : {
 			"mode" : {
 				"native" : {
@@ -59,25 +56,20 @@ log = logger.get_logger(wok_conf.get("log"), name = "wok-run")
 # check arguments
 
 if len(conf.args) != 1:
-	log.error("Incorrect number of arguments")
+	log.error("Missing the workflow definition file (.flow)")
 	exit(-1)
 
 wok_conf["__cwd"] = os.getcwd()
 
 # expand variables
 
-conf.expand_vars()
+#conf.expand_vars()
 #log.debug("Configuration: %s" % conf)
 
 def main():
 		wok = WokEngine(conf)
-		c = conf.builder()
-		wok.create_instance(c["wok.__instance.name"], conf.builder, conf.args[0])
-		wok.start(async = True)
-		wok.wait()
-#		import time
-#		time.sleep(1)
-#		wok.stop()
+		wok.create_instance(conf.options.instance_name, conf.builder, conf.args[0])
+		wok.start()
 
 if __name__ == "__main__":
 	main()

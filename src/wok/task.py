@@ -10,7 +10,7 @@ from datetime import timedelta
 from wok import logger
 from wok import exit_codes
 from wok.config import OptionsConfig
-from wok.port import PortFactory, PORT_MODE_IN, PORT_MODE_OUT
+from wok.port import create_port, PORT_MODE_IN, PORT_MODE_OUT
 from wok.core.storage.base import StorageContext
 from wok.core.storage.factory import create_storage
 
@@ -133,14 +133,12 @@ class Task(object):
 			ports_conf = self.data["ports"]
 
 			for port_conf in ports_conf.get("in", []):
-				#port = PortFactory.create_port(PORT_MODE_IN, port_conf)
-				port = storage.create_port_data(port_conf)
+				port = create_port(PORT_MODE_IN, port_conf, storage)
 				self._port_map[port.name] = port
 				self._in_ports += [port]
 
 			for port_conf in ports_conf.get("out", []):
-				#port = PortFactory.create_port(PORT_MODE_OUT, port_conf)
-				port = storage.create_port_data(port_conf)
+				port = create_port(PORT_MODE_OUT, port_conf, storage)
 				self._port_map[port.name] = port
 				self._out_ports += [port]
 
@@ -208,9 +206,11 @@ class Task(object):
 			# initialize processor
 			func, in_ports, out_ports = self._processor
 
-			writers = [port.data.writer() for port in out_ports]
-
-			processor = (func, in_ports, out_ports, writers)
+			writers = []
+			writers_index = {}
+			for i, port in enumerate(out_ports):
+				writers.append(port.data.writer())
+				writers_index[port.name] = i
 
 			self._log.debug("".join([func.__name__,
 				"(in_ports=[", ", ".join([p.name for p in in_ports]),
@@ -225,28 +225,28 @@ class Task(object):
 				raise Exception("Unknown port data iteration strategy: %s" % self._iter_strategy)
 
 			# process each port data iteration element
-			ports = [port for port in self._in_ports]
-			for data in iteration_strategy(ports):
-				func, in_ports, out_ports, writers = processor
+			for data in iteration_strategy(self._in_ports):
+			
+				params = [data[port.name] for port in in_ports]
 
-				params = {}
-				for port in in_ports:
-					params[port.name] = data[port.name]
+				ret = func(*params)
 
-				ret = func(**params)
-
-				# it is not mandatory to send data through output ports
-				# for each data element
 				if ret is not None:
-					if not isinstance(ret, list):
-						ret = [ret]
+					if isinstance(ret, dict):
+						for port_name, value in ret.items():
+							index = writers_index[port_name]
+							writers[index].write(value)
+					else:
+						if not isinstance(ret, (list, tuple)):
+							ret = (ret,)
 
-					if len(ret) != len(out_ports):
-						port_list = ", ".join([p.name for p in out_ports])
-						raise Exception("The number of values returned by '%s' doesn't match the expected number of output ports: [%s]" % (func.__name__, port_list))
+						if len(ret) != len(out_ports):
+							port_list = ", ".join([p.name for p in out_ports])
+							raise Exception("The number of values returned by '%s' doesn't match the expected output ports: [%s]" % (func.__name__, port_list))
 
-					for i, writer in enumerate(writers):
-						writer.write(ret[i])
+						for i, writer in enumerate(writers):
+							writer.write(ret[i])
+
 				#elif len(out_ports) > 0:
 				#	raise Exception("The processor should return the data to write through the output ports: [%s]" % ", ".join([p.name for p in out_ports]))
 
@@ -268,10 +268,41 @@ class Task(object):
 		log = logger.get_logger(self.conf.get("log"), name)
 		return log
 
-	@property
-	def ports(self):
-		"Return a port by its name"
-		return self.__ports_accessor
+	def ports(self, *args, **kargs):
+		"""
+		Return ports by their name. Example:
+		
+			a, b, c = task.ports("a", "b", "c")
+		"""
+
+		if "mode" in kargs:
+			mode = [kargs["mode"]]
+		else:
+			mode = [PORT_MODE_IN, PORT_MODE_OUT]
+
+		if args is None or len(args) == 0:
+			ports = []
+			if PORT_MODE_IN in mode:
+				ports += self._in_ports
+			if PORT_MODE_OUT in mode:
+				ports += self._out_ports
+		else:
+			names = []
+			for arg in args:
+				if isinstance(arg, list):
+					names += arg
+				else:
+					names += [arg]
+
+			try:
+				ports = [self.__port_map[name] for name in names]
+			except Exception as e:
+				raise Exception("Unknown port: {0}".format(e.args[0]))
+
+		if len(ports) == 1:
+			return ports[0]
+		else:
+			return tuple(ports)
 
 	def check_conf(self, keys, exit_on_error = True):
 		"""

@@ -9,11 +9,15 @@ import struct
 
 from wok.core.portio.base import PortData, DataReader, DataWriter
 
-TYPE_PATH_DATA = "path_data"
-
 class PathData(PortData):
-	def __init__(self, serializer = None, path = None, partition = -1, start = 0, size = -1, conf = None, port_desc = None):
-		PortData.__init__(self, serializer, conf, port_desc)
+
+	TYPE_NAME = "path_data"
+
+	def __init__(self, serializer = None, path = None, partition = -1,
+					start = 0, size = -1, conf = None, port_desc = None,
+					factory = None):
+
+		PortData.__init__(self, serializer, conf, port_desc, factory)
 
 		if conf is not None:
 			self._path = conf.get("path", path)
@@ -30,7 +34,7 @@ class PathData(PortData):
 
 	def fill_element(self, e):
 		PortData.fill_element(self, e)
-		e["type"] = TYPE_PATH_DATA
+		e["type"] = self.TYPE_NAME
 		e["path"] = self._path
 		e["partition"] = self._partition
 		e["start"] = self._start
@@ -76,7 +80,8 @@ class PathData(PortData):
 
 	def get_slice(self, start = None, size = None):
 		if start is None and size is None:
-			return PathData(self._serializer, self._path, self._partition, self._start, self._size)
+			return PathData(self._serializer, self._path, self._partition,
+							self._start, self._size, port_desc = self.port_desc)
 
 		partition = 0
 
@@ -93,14 +98,16 @@ class PathData(PortData):
 		if size is None:
 			size = 0
 
-		return PathData(self._serializer, self._path, partition, start, size)
+		return PathData(self._serializer, self._path, partition,
+						start, size, port_desc = self.port_desc)
 
 	def get_partition(self, partition = None):
 		if partition is None:
 			partition = self._last_partition
 			self._last_partition += 1
 
-		return PathData(self._serializer, self._path, partition = partition)
+		return PathData(self._serializer, self._path, partition = partition,
+						port_desc = self.port_desc)
 	
 	def size(self):
 		if not os.path.exists(self._path):
