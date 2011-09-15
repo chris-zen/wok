@@ -27,7 +27,8 @@ body {
 	margin: 0 auto;
 	background-color: black;
 	width: 100%;
-	height: 2.8em;
+	/*height: 2.8em;*/
+	height: 38px;
 	text-align: center;
 }
 
@@ -60,6 +61,11 @@ body {
 
 #logo {
 	float: left;
+	/*background-image: url(wok_logo.png);
+	background-repeat: no-repeat;
+	background-position: left center;*/
+	width: 96px;
+	height: 38px;
 }
 
 #logo a {
@@ -67,6 +73,13 @@ body {
 	font-weight: bold;
 	font-size: 1.8em;
 	text-decoration: none;
+	margin: 0;
+	padding: 0;
+}
+
+#logo-img {
+	margin-top: 3px;
+	border: 0;
 }
 
 #nav-links {

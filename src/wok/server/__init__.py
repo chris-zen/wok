@@ -1,5 +1,5 @@
 # ******************************************************************
-# Copyright 2009-2011, Universitat Pompeu Fabra
+# Copyright 2009, Universitat Pompeu Fabra
 #
 # Licensed under the Non-Profit Open Software License version 3.0
 # ******************************************************************
@@ -12,7 +12,7 @@ from werkzeug import ImmutableDict
 from jinja2 import evalcontextfilter, Markup
 
 from wok.server.views.web import web
-from wok.server.views.restful import restful
+from wok.server.views.api import api
 
 class FlaskWithPygments(Flask):
 
@@ -28,7 +28,7 @@ app = FlaskWithPygments(__name__)
 app.secret_key = '|]\xb6v,\xe3{\xcd\xd4\xf1i\xd6\x80\xf7Z\x037\xab\xf1\xb4\xfaP\xf0\x8d'
 
 app.register_module(web, url_prefix="")
-app.register_module(restful, url_prefix="/restful")
+app.register_module(api, url_prefix="/api")
 
 @app.template_filter()
 @evalcontextfilter

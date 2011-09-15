@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # ******************************************************************
-# Copyright 2009-2011, Universitat Pompeu Fabra
+# Copyright 2009, Universitat Pompeu Fabra
 #
 # Licensed under the Non-Profit Open Software License version 3.0
 # ******************************************************************
@@ -13,26 +13,27 @@ from datetime import datetime
 from wok import logger
 from wok.config import OptionsConfig
 from wok.element import DataElement
-from wok.flow.reader import FlowReader
-from wok.engine import WokEngine
+from wok.core.engine import WokEngine
 
 # Wok initialization
 
-def add_options(parser):
-	pass
-
-instance_name = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+default_instance_name = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 install_path = os.path.dirname(os.path.realpath(__file__))
+
+def add_options(parser):
+	parser.add_option("-n", "--instance-name", dest="instance_names",
+				action="append", metavar="NAME",
+				help="Set the instance name. Default name is built from the current date.")
 
 initial_conf = {
 	"wok" : {
-		"__instance" : {
-			"name" : instance_name
-		},
-
-		"launchers" : {
-			"python" : {
-				"pythonpath" : [install_path]
+		"execution" : {
+			"mode" : {
+				"native" : {
+					"python" : {
+						"lib_path" : [install_path]
+					}
+				}
 			}
 		}
 	}
@@ -40,7 +41,7 @@ initial_conf = {
 
 conf = OptionsConfig(
 	initial_conf = initial_conf,
-	args_usage = "<flow-file>",
+	args_usage = "[<flow-file>]",
 	add_options = add_options)
 
 if "wok" not in conf:
@@ -56,55 +57,71 @@ log = logger.get_logger(wok_conf.get("log"), name = "wok-run")
 
 # check arguments
 
-if len(conf.args) != 1:
-	log.error("Incorrect number of arguments")
-	exit(-1)
+flow_paths = None
+if len(conf.args) > 0:
+	flow_paths = conf.args
+#elif len(conf.args) > 1:
+#	log.error("More than one workflow definition file specified")
+#	exit(-1)
 
-# read the workflow definition
-
-flow_arg = conf.args[0]
-reader = FlowReader(flow_arg)
-flow = reader.read()
-reader.close()
-wok_conf["__flow.name"] = flow.name
-wok_conf["__flow.path"] = os.path.dirname(os.path.abspath(flow_arg))
-wok_conf["__flow.file"] = os.path.basename(flow_arg)
-
-wok_conf["__cwd"] = os.getcwd()
+conf.builder.add_value("__cwd", os.getcwd())
 
 # expand variables
 
-conf.expand_vars()
+#conf.expand_vars()
 #log.debug("Configuration: %s" % conf)
 
 def main():
 	server_mode = wok_conf.get("server.enabled", False, dtype=bool)
-	if server_mode:
-		from wok.server import app
-		wok = WokEngine(conf, flow)
-		app.config["WOK"] = wok
-		server_host = wok_conf.get("server.host", "localhost", dtype=str)
-		server_port = wok_conf.get("server.port", 5000, dtype=int)
-		server_debug = wok_conf.get("server.debug", False, dtype=bool)
-		engine_start = wok_conf.get("server.engine_start", False, dtype=bool)
+	server_host = wok_conf.get("server.host", "localhost", dtype=str)
+	server_port = wok_conf.get("server.port", 5000, dtype=int)
+	server_debug = wok_conf.get("server.debug", False, dtype=bool)
+	start_instances = wok_conf.get("server.start_instances", False, dtype=bool)
 
-		log.info("Running server at http://{0}:{1}".format(server_host, server_port))
-		
-		log_conf = wok_conf.get("server.log")
-		if log_conf is None:
-			log_conf = DataElement()
-			log_conf["level"] = "warn"
-		app_log = logger.get_logger(conf = log_conf, name = "werkzeug")
-		app_log.info("Log configured")
+	# create engine
+	wok = WokEngine(conf)
+	wok.start(wait = False)
 
-		if engine_start:
-			log.info("Starting engine ...")
-			wok.start()
+	try:
+		# create instances
+		if flow_paths is not None:
+			instance_names = conf.options.instance_names
+			for i, flow_path in enumerate(flow_paths):
+				if i < len(instance_names):
+					instance_name = instance_names[i]
+				else:
+					if len(flow_paths) == 1:
+						instance_name = default_instance_name
+					else:
+						instance_name = "%s-%02d" % (default_instance_name, i)
 
-		app.run(host=server_host, port=server_port, debug = server_debug)
-	else:
-		wok = WokEngine(conf, flow)
-		wok.start(async = False)
+				wok.create_instance(instance_name, conf.builder, flow_path)
+				if not server_mode or start_instances:
+					# TODO start instance
+					pass
+
+		# run server
+		if server_mode:
+			log.info("Running server at http://{0}:{1}".format(server_host, server_port))
+
+			log_conf = wok_conf.get("server.log")
+			if log_conf is None:
+				log_conf = DataElement()
+				log_conf["level"] = "warn"
+			app_log = logger.get_logger(conf = log_conf, name = "werkzeug")
+			app_log.info("Log configured")
+
+			from wok.server import app
+			app.config["WOK"] = wok
+			app.run(host = server_host, port = server_port, debug = server_debug)
+			wok.stop()
+		else:
+			# wait for wok engine to finish
+			wok.wait()
+	except Exception as e:
+		log.exception(e)
+		wok.stop()
+		raise
 
 if __name__ == "__main__":
 	main()

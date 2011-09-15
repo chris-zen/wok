@@ -120,57 +120,15 @@ class SfsStorage(Storage):
 		mod_path = self._module_path(port.parent)
 		port_path = os.path.join(mod_path, port.name)
 		self._ensure_path(port_path)
-#		port_config_file = os.path.join(mod_path, port.name + ".port")
-#		e = DataElement(key_sep = "/")
-#		e["type"] = "data"
-#		try:
-#			f = open(port_config_file, "w")
-#			json.dump(e, f, sort_keys=True, indent=4, cls=DataElementJsonEncoder)
-#			f.close()
-#		except:
-#			self._log.error("Failed creating port config file: " + port_config_path)
-#			raise
 		e = DataElement(key_sep = "/")
 		e["name"] = port.name
 		e["module"] = port.parent.id
 		return PathData(port.serializer, port_path, port_desc = e)
 
 	def create_port_linked_data(self, port, linked_data):
-#		mod_path = self._module_path(port.parent)
-#		port_config_file = os.path.join(mod_path, port.name + ".port")
-#		e = DataElement(key_sep = "/")
-#		e["type"] = "linked"
-#		e["module"] = linked_port.parent.id
-#		e["port"] = linked_port.name
-#		try:
-#			f = open(port_config_file, "w")
-#			json.dump(e, f, sort_keys=True, indent=4, cls=DataElementJsonEncoder)
-#			f.close()
-#		except:
-#			self._log.error("Failed creating port config file: " + port_config_path)
-#			raise
 		return linked_data
 
 	def create_port_joined_data(self, port, joined_data):
-#		mod_path = self._module_path(port.parent)
-#		port_config_file = os.path.join(mod_path, port.name + ".port")
-#		e = DataElement(key_sep = "/")
-#		e["type"] = "joined"
-#		l = e.create_list("ports")
-#		data = []
-#		for joined_port in joined_ports:
-#			data.append(joined_port.data)
-#			p = e.create_element()
-#			p["module"] = joined_port.parent.id
-#			p["port"] = joined_port.name
-#			l.append(p)
-#		try:
-#			f = open(port_config_file, "w")
-#			json.dump(e, f, sort_keys=True, indent=4, cls=DataElementJsonEncoder)
-#			f.close()
-#		except:
-#			self._log.error("Failed creating port config file: " + port_config_path)
-#			raise
 		e = DataElement(key_sep = "/")
 		e["name"] = port.name
 		e["module"] = port.parent.id
@@ -192,12 +150,3 @@ class SfsStorage(Storage):
 					factory = self.create_port_data_from_conf)
 
 		return pdata
-	
-#	def load_port_data(self, instance_name, module_path, port_name):
-#		mod_path = os.path.join(
-#						self.work_path,
-#						instance_name,
-#						os.path.join(*module_path.split(".")))
-#		port_path = os.path.join(mod_path, port_name)
-#
-#		raise Exception("Unimplemented")

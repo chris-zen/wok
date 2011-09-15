@@ -8,20 +8,20 @@ from wok.server.common import make_xml_response, make_json_response, make_text_r
 
 from flask import Module, current_app
 
-restful = Module(__name__)
+api = Module(__name__)
 
 def wok():
 	return current_app.config["WOK"]
 
-@restful.route("/")
+@api.route("/")
 def test():
 	return "RESTFUL OK"
 
-@restful.route('/conf')
+@api.route('/conf')
 def conf():
 	return make_json_response(wok().conf.to_native())
 
-@restful.route('/workflow')
+@api.route('/workflow')
 def workflow():
 	conf = wok().conf
 	path = os.path.join(conf["wok.__flow.path"], conf["wok.__flow.file"])
@@ -36,7 +36,7 @@ def workflow():
 
 	return make_xml_response(wf)
 
-@restful.route('/module-conf/<name>')
+@api.route('/module-conf/<name>')
 def module_conf(name):
 	module_conf = wok().module_conf(name)
 	if module_conf is None:
@@ -44,7 +44,7 @@ def module_conf(name):
 
 	return make_json_response(module_conf.to_native())
 
-@restful.route('/module-output/<name>')
+@api.route('/module-output/<name>')
 def module_output(name):
 	output = wok().module_output(name)
 	if output is None:
@@ -52,7 +52,7 @@ def module_output(name):
 
 	return make_text_response(output)
 
-@restful.route('/task/<name>')
+@api.route('/task/<name>')
 def task(name):
 	task = wok().task_state(name)
 	if task is None:
@@ -60,7 +60,7 @@ def task(name):
 
 	return make_json_response(task.to_native())
 
-@restful.route('/task-conf/<name>')
+@api.route('/task-conf/<name>')
 def task_conf(name):
 	task_conf = wok().task_conf(name)
 	if task_conf is None:
@@ -68,7 +68,7 @@ def task_conf(name):
 
 	return make_json_response(task_conf.to_native())
 
-@restful.route('/task-output/<name>')
+@api.route('/task-output/<name>')
 def task_output(name):
 	output = wok().task_output(name)
 	if output is None:

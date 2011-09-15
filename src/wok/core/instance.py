@@ -45,6 +45,7 @@ class Instance(object):
 
 		self.storage = self._create_storage(wok_conf)
 
+		#TODO deprecated ?
 		if "port_map" in wok_conf:
 			self._port_data_conf = wok_conf["port_map"]
 		else:
@@ -55,6 +56,10 @@ class Instance(object):
 
 		self.root_flow = self.engine.flow_loader.load_from_file(self.flow_file)
 
+		wok_conf["__flow.name"] = self.root_flow.name
+		wok_conf["__flow.path"] = os.path.dirname(os.path.abspath(self.flow_file))
+		wok_conf["__flow.file"] = os.path.basename(self.flow_file)
+		
 		# self._log.debug("\n" + repr(self.root_flow))
 
 		# create nodes tree
@@ -254,12 +259,8 @@ class Instance(object):
 #			elif ...
 
 			if len(port_def.link) == 0: # link not defined (they are source ports)
-#				rel_path = port_id.replace(".", "/")
-#				path = os.path.join(self._work_path, "ports", rel_path)
-#				if not os.path.exists(path):
-#					os.makedirs(path)
-#				port.data = PathData(port.serializer, path)
 				port.data = self.storage.create_port_data(port)
+				#TODO clean port data
 				#self._log.debug(">>> {} -> [{}] {}".format(port.parent.id, id(port.data), port.data))
 
 		# then the ports that link to source ports
@@ -291,7 +292,6 @@ class Instance(object):
 				if len(linked_data) == 1:
 					port.data = self.storage.create_port_linked_data(port, linked_data[0])
 				else:
-#					port.data = MultiData(data)
 					port.data = self.storage.create_port_joined_data(port, linked_data)
 
 		# check that there are no ports without data
