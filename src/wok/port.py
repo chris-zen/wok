@@ -57,13 +57,17 @@ class InPort(Port):
 
 		return iter(self._reader)
 
-	def read(self, size = 1):
+	def receive(self, size = 1):
 		if self._reader is None:
 			self._open()
 			
 		return self._reader.read(size)
 
-	def read_all(self):
+	# DEPRECATED, for backward compatibility
+	def read(self, size = 1):
+		return self.read(size)
+
+	def receive_all(self):
 		size = self.size()
 		data = self.read(size)
 		if data is None:
@@ -72,6 +76,10 @@ class InPort(Port):
 			return data
 		else:
 			return [data]
+
+	# DEPRECATED, for backward compatibility
+	def read_all(self):
+		return self.receive_all()
 
 	def close(self):
 		if self._reader is not None:
@@ -91,11 +99,15 @@ class OutPort(Port):
 	def _open(self):
 		self._writer = self.data.writer()
 		
-	def write(self, data):
+	def send(self, data):
 		if self._writer is None:
 			self._open()
 
 		self._writer.write(data)
+
+	# DEPRECATED, for backward compatibility
+	def write(self, data):
+		self.send(data)
 
 	def close(self):
 		if self._writer is not None:

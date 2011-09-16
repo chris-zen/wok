@@ -4,7 +4,7 @@ task = Task()
 
 log = task.logger()
 
-@task.mapper()
+@task.foreach()
 def square(x):
 
 	square = x * x

@@ -8,8 +8,8 @@ sum = 0
 def main():
 	log = task.logger()
 
-	values = task.port("x")
-	result = task.port("sum")
+	values = task.ports("x")
+	result = task.ports("sum")
 
 	count = 0
 	sum = 0
