@@ -178,7 +178,7 @@ class FlowReader(object):
 	def parse_conf(self, e):
 		return dataelement_from_xml(e)
 
-	def parse_exec(self, e):
+	def _parse_exec(self, e):
 		attr = e.attrib
 		
 		execution = Exec()
