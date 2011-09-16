@@ -1,5 +1,5 @@
 a, h1, h2, h3, h4, h5 { color: #377BA8; }
-h1, h2, h3, h4, h5        { margin: 0.4em 0 0.4em 0; }
+h1, h2, h3, h4, h5    { margin: 0.4em 0 0.4em 0; }
 
 h1              { font-size: 1.4em; }
 h2              { font-size: 1.2em; }
@@ -26,10 +26,9 @@ body {
 #top-bar-outer {
 	margin: 0 auto;
 	background-color: black;
-	width: 100%;
-	/*height: 2.8em;*/
-	height: 38px;
 	text-align: center;
+	width: 100%;
+	height: 38px;
 }
 
 #top-bar {
@@ -90,6 +89,21 @@ body {
 #session-links {
 	float: right;
 	padding: 0.7em 0;
+}
+
+#mon-bar-outer {
+	margin: 0 auto;
+	background-color: white;
+	text-align: center;
+	width: 100%;
+	height: 38px;
+	border-bottom: #ccc solid 1px;
+}
+
+#mon-bar {
+	margin: 0 auto;
+	width: 96%;
+	text-align: left;
 }
 
 #page {
@@ -154,17 +168,6 @@ body {
 	float: left;
 	margin-right: 0.8em;
 }
-
-/* .state_mnode {
-	margin: 0.4em 0;
-	padding: 0.2em;
-	border: 2px solid #eee;
-}
-
-.state_mnode #name {
-	font-weight: bold;
-	color: #377BA8;
-} */
 
 #module-table {
 	border-collapse: collapse;

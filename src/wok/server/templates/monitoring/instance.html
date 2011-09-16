@@ -1,0 +1,63 @@
+{% extends "layout.html" %}
+
+	{% block stylesheets %}
+		<style type="text/css" >
+#module_template {
+	/*display: none;*/
+}
+
+.mon-mod-info {
+	width: 95%;
+	height: 2em;
+}
+
+.mon-mod-title {
+	
+}
+		</style>
+	{% endblock %}
+
+{% block scripts %}
+	<script type="text/javascript">
+		$(document).ready(function(){
+			tmpl = $("#module_template").clone()
+			$("#modules").html(tmpl.html)
+		});
+	</script>
+{% endblock %}
+
+{% block sub_bar %}
+	<div id="mon-bar-outer">
+		<div id="mon-bar">
+		</div>
+	</div>
+{% endblock %}
+
+{% block body %}
+	<h2>Modules</h2>
+
+	<div id="module_template">
+		<div class="mon-mod-info">
+			<div class="mon-mod-title">
+				<div class="mon-mod-margin"></div>
+				<div class="mon-mod-expander"></div>
+				<div class="mon-mod-name">Name</div>
+			</div>
+			<div class="mon-mod-status">
+				<div class="mon-mod-status-name">Ready</div>
+				<div class="mon-mod-status-msg">Waiting for start</div>
+			</div>
+			<div class="mon-mod-tasks">
+				<div class="mon-mod-tasks-finished"></div>
+				<div class="mon-mod-tasks-failed"></div>
+				<div class="mon-mod-tasks-running"></div>
+				<div class="mon-mod-tasks-submitted"></div>
+				<div class="mon-mod-tasks-other"></div>
+			</div>
+		</div>
+		<div id="mon-mod-children">
+		</div>
+	</div>
+
+	<div id="modules"></div>
+{% endblock %}

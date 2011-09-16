@@ -6,7 +6,10 @@
 
 import json
 
-from flask import make_response
+from flask import make_response, current_app
+
+def wok():
+	return current_app.config["WOK"]
 
 def make_xml_response(obj):
 	response = make_response(obj)

@@ -2,19 +2,13 @@
 <html>
 <head>
 	<title>Wok</title>
-	<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
-	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+	<link rel="shortcut icon" href="{{ url_for('.static', filename='favicon.ico') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('.static', filename='style.css') }}">
 
 	{% block stylesheets %}
-		{% if nav is defined %}
-		<style type="text/css" >
-			{% if nav.current == "state" %}
-			{% endif %}
-		</style>
-		{% endif %}
 	{% endblock %}
 
-	<script type="text/javascript"  src="{{ url_for('static', filename='jquery-1.6.min.js') }}"></script>
+	<script type="text/javascript"  src="{{ url_for('.static', filename='jquery-1.6.min.js') }}"></script>
 	
 	{% block scripts %}
 	{% endblock %}
@@ -24,16 +18,16 @@
 		<div id="top-bar-outer">
 			<div id="top-bar">
 				<div id="logo">
-					<a href="{{ url_for('index') }}" title="Home">
-						<img id="logo-img" src="{{url_for('static', filename='wok_logo.png')}}" alt="Wok"/>
+					<a href="{{ url_for('home.index') }}" title="Home">
+						<img id="logo-img" src="{{url_for('.static', filename='wok_logo.png')}}" alt="Wok"/>
 					</a>
 				</div>
 				<div id="nav-links">
 					<ul>
-						<li><a href="{{ url_for('templates') }}">Templates</a></li>
-						<li><a href="{{ url_for('instances') }}">Instances</a></li>
-						<li><a href="{{ url_for('files') }}">Files</a></li>
-						<li><a href="{{ url_for('settings') }}">Settings</a></li>
+						<li><a href="{{ url_for('workflows.index') }}">Workflows</a></li>
+						<li><a href="{{ url_for('monitoring.index') }}">Monitoring</a></li>
+						<li><a href="{{ url_for('files.index') }}">Files</a></li>
+						<li><a href="{{ url_for('settings.index') }}">Settings</a></li>
 					</ul>
 				</div>
 				<div id="session-links">
@@ -50,6 +44,9 @@
 				</div>
 			</div>
 		</div>
+
+		{% block sub_bar %}
+		{% endblock %}
 
 		<div id="page">
 			<div id="content">
