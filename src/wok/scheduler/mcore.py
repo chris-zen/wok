@@ -159,7 +159,7 @@ class McoreJobScheduler(JobScheduler):
 
 		self._waiting += [(job, result)]
 		
-		self._log.info("Task %s submited" % task["id"])
+		self._log.info("Task %s submitted" % task["id"])
 
 	def wait(self, timeout = None):
 		tasks = []

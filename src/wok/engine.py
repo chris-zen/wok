@@ -669,7 +669,7 @@ class WokEngine(object):
 					tasks += mtasks
 
 				# Wait for modules to finish
-				self._log.info("Waitting for the %i tasks to finish ..." % len(tasks))
+				self._log.info("Waiting for the %i tasks to finish ..." % len(tasks))
 				self._run_lock.release()
 				self._job_sched.wait()
 				self._run_lock.acquire()

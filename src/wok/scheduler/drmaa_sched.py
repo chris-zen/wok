@@ -147,7 +147,7 @@ class DrmaaJobScheduler(JobScheduler):
 		if native_specification is not None:
 			job_conf["native_specification"] = native_specification
 		
-		self._log.info("Task %s submited as job %s." % (task["id"], jobid))
+		self._log.info("Task %s submitted as job %s." % (task["id"], jobid))
 		
 		self._session.deleteJobTemplate(jt)
 	
