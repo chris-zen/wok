@@ -197,15 +197,16 @@ class Task(object):
 
 				ret = func(**params)
 
-				if not isinstance(ret, list):
-					ret = [ret]
+				if ret is not None:
+					if not isinstance(ret, list):
+						ret = [ret]
 
-				if len(ret) != len(out_ports):
-					port_list = ", ".join([p.name for p in out_ports])
-					raise Exception("The number of values returned by '{0}' doesn't match the expected output ports: {1}".format(func.__name__, port_list))
+					if len(ret) != len(out_ports):
+						port_list = ", ".join([p.name for p in out_ports])
+						raise Exception("The number of values returned by '{0}' doesn't match the expected output ports: {1}".format(func.__name__, port_list))
 
-				for i, writer in enumerate(writers):
-					writer.write(ret[i])
+					for i, writer in enumerate(writers):
+						writer.write(ret[i])
 
 		## Execute after main
 		if self._end:
