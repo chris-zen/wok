@@ -155,13 +155,23 @@ class FlowReader(object):
 		for el in e.xpath("conf"):
 			mod.conf.merge(self.parse_conf(el))
 
-		el = e.xpath("exec")
-		if len(el) == 0:
-			raise Exception("Missing <exec> in module %s" % mod.name)
-		elif len(el) == 1:
-			mod.execution = self.parse_exec(el[0])
-		elif len(el) > 1:
-			raise Exception("More than one <exec> found in module %s" % mod.name)
+		exec_xml = e.find("exec")
+		if exec_xml is None:
+			run_xml = e.find("run")
+			if run_xml is None:
+				raise Exception("Missing either <exec> or <run> in module {}".format(mod.name))
+			else:
+				mod.execution = self._parse_run(mod, run_xml)
+		else:
+			mod.execution = self._parse_exec(exec_xml)
+
+#		el = e.xpath("exec")
+#		if len(el) == 0:
+#			raise Exception("Missing <exec> in module %s" % mod.name)
+#		elif len(el) == 1:
+#			mod.execution = self.parse_exec(el[0])
+#		elif len(el) > 1:
+#			raise Exception("More than one <exec> found in module %s" % mod.name)
 
 		return mod
 
@@ -177,6 +187,17 @@ class FlowReader(object):
 			execution.launcher = attr["launcher"]
 
 		execution.conf = dataelement_from_xml(e)
+
+		return execution
+
+	def _parse_run(self, mod, xmle):
+		if xmle.text is None or len(xmle.text) == 0:
+			raise Exception("Missing script name for <run> in module {}".format(mod.name))
+
+		execution = Exec()
+		execution.launcher = "python"
+		execution.conf = DataElement()
+		execution.conf["script"] = xmle.text
 
 		return execution
 

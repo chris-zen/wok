@@ -375,6 +375,20 @@ class Task(object):
 			return f
 		return decorator
 
+	def foreach(self, in_ports = None, out_ports = None):
+		"""
+		A decorator that is used to specify which is the function that will
+		process each port input data. Example::
+
+			@task.mapper(in_ports = ["in1", "in2"])
+			def process(name, value):
+				return name + " = " + str(value)
+		"""
+		def decorator(f):
+			self.add_mapper(f, in_ports, out_ports)
+			return f
+		return decorator
+
 	def set_begin(self, f):
 		"""Set the function that will be executed before starting the main function"""
 		self._begin = f
