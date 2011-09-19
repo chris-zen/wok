@@ -365,7 +365,7 @@ class Task(object):
 			oports = self.ports(out_ports, mode = PORT_MODE_OUT)
 		if not isinstance(oports, (tuple, list)):
 			oports = (oports,)
-		self._foreach += (foreach_func, iports, oports)
+		self._foreach = (foreach_func, iports, oports)
 
 	def mapper(self, in_ports = None, out_ports = None):
 		"""
