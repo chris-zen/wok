@@ -93,7 +93,7 @@ class Task(object):
 
 		self._main = None
 		self._generators = []
-		self._mappers = []
+		self._mapper = None
 		self._begin = None
 		self._end = None
 
@@ -130,7 +130,7 @@ class Task(object):
 		while sum(sizes) > 0:
 			data = {}
 			for i, reader in enumerate(readers):
-				data[names[i]] = reader.read()
+				data[names[i]] = reader.receive()
 				sizes[i] = reader.size()
 			yield data
 
@@ -143,13 +143,13 @@ class Task(object):
 		## Execute before main
 
 		if self._begin:
-			self._log.debug("Processing task begin ...")
+			self._log.debug("Running task begin ...")
 			self._begin()
 
 		## Execute generators
 
 		if self._generators:
-			self._log.debug("Processing task generators ...")
+			self._log.debug("Running task generators ...")
 
 		for generator in self._generators:
 			func, out_ports = generator
@@ -163,54 +163,59 @@ class Task(object):
 
 			func(**params)
 
-		## Execute mappers
+		## Execute foreach's
 
-		if self._mappers:
-			self._log.debug("Processing task mappers ...")
+		if self._foreach is not None:
+			self._log.debug("Running [foreach] ...")
 
-		# initialize mappers
-		mappers = []
-		for mapper in self._mappers:
-			func, in_ports, out_ports = mapper
-			
-			writers = [port.data.writer() for port in out_ports]
+			# initialize foreach
+			func, in_ports, out_ports = self._foreach
 
-			mappers += [(func, in_ports, out_ports, writers)]
+			writers = []
+			writers_index = {}
+			for i, port in enumerate(out_ports):
+				writer = port.data.writer()
+				writer.open()
+				writers.append(writer)
+				writers_index[port.name] = i
 
 			self._log.debug("".join([func.__name__,
 				"(in_ports=[", ", ".join([p.name for p in in_ports]),
 				"], out_ports=[", ", ".join([p.name for p in out_ports]), "])"]))
 
-		# determine input port data iteration strategy
-		# currently only dot strategy supported
-		port_data_strategy = self.__dot_product
+			# determine input port data iteration strategy
+			# currently only dot strategy supported
+			iteration_strategy = self.__dot_product
 
-		# process each port data iteration element
-		ports = [port for port in self._port_map.values() if port.mode == PORT_MODE_IN]
-		for data in port_data_strategy(ports):
-			for mapper in mappers:
-				func, in_ports, out_ports, writers = mapper
+			# process each port data iteration element
+			for data in iteration_strategy(self._in_ports):
 
-				params = {}
-				for port in in_ports:
-					params[str(port.name)] = data[port.name]
+				params = [data[port.name] for port in in_ports]
 
-				ret = func(**params)
+				ret = func(*params)
 
 				if ret is not None:
-					if not isinstance(ret, list):
-						ret = [ret]
+					if isinstance(ret, dict):
+						for port_name, value in ret.items():
+							index = writers_index[port_name]
+							writers[index].send(value)
+					else:
+						if not isinstance(ret, (list, tuple)):
+							ret = (ret,)
 
-					if len(ret) != len(out_ports):
-						port_list = ", ".join([p.name for p in out_ports])
-						raise Exception("The number of values returned by '{0}' doesn't match the expected output ports: {1}".format(func.__name__, port_list))
+						if len(ret) != len(out_ports):
+							port_list = ", ".join([p.name for p in out_ports])
+							raise Exception("The number of values returned by '%s' doesn't match the expected output ports: [%s]" % (func.__name__, port_list))
 
-					for i, writer in enumerate(writers):
-						writer.write(ret[i])
+						for i, writer in enumerate(writers):
+							writer.send(ret[i])
+
+			for writer in writers:
+				writer.close()
 
 		## Execute after main
 		if self._end:
-			self._log.debug("Processing task end ...")
+			self._log.debug("Running task end ...")
 			self._end()
 
 		return 0
@@ -279,7 +284,7 @@ class Task(object):
 
 		try:
 			if self._main is not None:
-				self._log.debug("Processing main ...")
+				self._log.debug("Running main ...")
 				retcode = self._main()
 				if retcode is None:
 					retcode = 0
@@ -346,8 +351,8 @@ class Task(object):
 			return f
 		return decorator
 
-	def add_mapper(self, mapper_func, in_ports = None, out_ports = None):
-		"""Add a port data processing function"""
+	def set_foreach(self, foreach_func, in_ports = None, out_ports = None):
+		"""Set the port data foreach function"""
 		if in_ports is None:
 			iports = self.ports(mode = PORT_MODE_IN)
 		else:
@@ -360,7 +365,7 @@ class Task(object):
 			oports = self.ports(out_ports, mode = PORT_MODE_OUT)
 		if not isinstance(oports, (tuple, list)):
 			oports = (oports,)
-		self._mappers += [(mapper_func, iports, oports)]
+		self._foreach += (foreach_func, iports, oports)
 
 	def mapper(self, in_ports = None, out_ports = None):
 		"""
@@ -372,7 +377,7 @@ class Task(object):
 				return name + " = " + str(value)
 		"""
 		def decorator(f):
-			self.add_mapper(f, in_ports, out_ports)
+			self.set_foreach(f, in_ports, out_ports)
 			return f
 		return decorator
 
@@ -386,7 +391,7 @@ class Task(object):
 				return name + " = " + str(value)
 		"""
 		def decorator(f):
-			self.add_mapper(f, in_ports, out_ports)
+			self.set_foreach(f, in_ports, out_ports)
 			return f
 		return decorator
 

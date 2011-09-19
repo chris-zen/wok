@@ -19,6 +19,6 @@ def main():
 
 	log.info("Sum of {0} numbers = {1}".format(count, sum))
 	
-	result.write(sum)
+	result.send(sum)
 
 task.start()

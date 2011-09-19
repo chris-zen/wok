@@ -158,7 +158,7 @@ class PartitionDataReader(DataReader):
 		self._index_f = None
 		self._data_f = None
 
-	def _open(self):
+	def open(self):
 		if self._data_f is not None:
 			self.close()
 
@@ -186,14 +186,14 @@ class PartitionDataReader(DataReader):
 			raise StopIteration()
 
 		if self._data_f is None:
-			self._open()
+			self.open()
 
 		d = self._index_f.read(8)
 		if len(d) < 8:
 			self._partition += 1
 			self._start = 0
 
-			self._open()
+			self.open()
 			
 			d = self._index_f.read(8)
 			
@@ -225,7 +225,7 @@ class PartitionDataWriter(DataWriter):
 		self._index_f = None
 		self._data_f = None
 
-	def _open(self):
+	def open(self):
 		if self._data_f is not None:
 			self.close()
 		self._index_f = open(self._index_path, "wb+")
@@ -241,7 +241,7 @@ class PartitionDataWriter(DataWriter):
 		
 	def write(self, data):
 		if self._data_f is None:
-			self._open()
+			self.open()
 
 		if not isinstance(data, list):
 			data = [data]
