@@ -41,7 +41,7 @@ class InPort(Port):
 	def mode(self):
 		return PORT_MODE_IN
 
-	def _open(self):
+	def open(self):
 		self._reader = self.data.reader()
 
 	def size(self):
@@ -49,17 +49,17 @@ class InPort(Port):
 		
 	def __iter__(self):
 		if self._reader is None:
-			self._open()
+			self.open()
 
 		return iter(self._reader)
 
-	def read(self, size = 1):
+	def receive(self, size = 1):
 		if self._reader is None:
-			self._open()
+			self.open()
 			
 		return self._reader.read(size)
 
-	def read_all(self):
+	def receive_all(self):
 		size = self.size()
 		data = self.read(size)
 		if data is None:
@@ -84,12 +84,12 @@ class OutPort(Port):
 	def mode(self):
 		return PORT_MODE_OUT
 
-	def _open(self):
+	def open(self):
 		self._writer = self.data.writer()
 		
-	def write(self, data):
+	def send(self, data):
 		if self._writer is None:
-			self._open()
+			self.open()
 
 		self._writer.write(data)
 

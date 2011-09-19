@@ -109,7 +109,7 @@ class Task(object):
 
 		self._main = None
 		self._generators = []
-		self._processor = None
+		self._foreach = None
 		self._begin = None
 		self._end = None
 
@@ -198,18 +198,20 @@ class Task(object):
 
 			func(**params)
 
-		## Execute processors
+		## Execute foreach's
 
-		if self._processor is not None:
-			self._log.debug("Running [processor] ...")
+		if self._foreach is not None:
+			self._log.debug("Running [foreach] ...")
 
-			# initialize processor
-			func, in_ports, out_ports = self._processor
+			# initialize foreach
+			func, in_ports, out_ports = self._foreach
 
 			writers = []
 			writers_index = {}
 			for i, port in enumerate(out_ports):
-				writers.append(port.data.writer())
+				writer = port.data.writer()
+				writer.open()
+				writers.append(writer)
 				writers_index[port.name] = i
 
 			self._log.debug("".join([func.__name__,
@@ -249,6 +251,9 @@ class Task(object):
 
 				#elif len(out_ports) > 0:
 				#	raise Exception("The processor should return the data to write through the output ports: [%s]" % ", ".join([p.name for p in out_ports]))
+
+			for writer in writers:
+				writer.close()
 
 		## Execute after main
 		if self._end:
@@ -413,7 +418,7 @@ class Task(object):
 			oports = self.ports(out_ports, mode = PORT_MODE_OUT)
 		if not isinstance(oports, (tuple, list)):
 			oports = (oports,)
-		self._processor = (processor_func, iports, oports)
+		self._foreach = (processor_func, iports, oports)
 
 	def processor(self, in_ports = None, out_ports = None):
 		"""

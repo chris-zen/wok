@@ -51,33 +51,6 @@ class PathData(PortData):
 		else:
 			return 0
 
-	"""
-	def get_slice(self, partition = None, start = None, size = None):
-		if start is None and size is None:
-			if partition is not None:
-				return PathData(self._path, partition = partition)
-			else:
-				return PathData(self._path, partition = self._partition)
-		
-		if partition is None:
-			partition = 0
-
-		ps = self._partition_size(partition)
-		
-		if start is None:
-			start = 0
-		else:
-			while start > ps:
-				partition += 1
-				start -= ps
-				ps = self._partition_size(partition)
-
-		if size is None:
-			size = 0
-
-		return PathData(self._path, partition, start, size)
-	"""
-
 	def get_slice(self, start = None, size = None):
 		if start is None and size is None:
 			return PathData(self._serializer, self._path, self._partition,
@@ -165,7 +138,7 @@ class PartitionDataReader(DataReader):
 		self._index_f = None
 		self._data_f = None
 
-	def _open(self):
+	def open(self):
 		if self._data_f is not None:
 			self.close()
 
@@ -185,7 +158,7 @@ class PartitionDataReader(DataReader):
 			self._data_f.close()
 			self._data_f = None
 
-	def is_opened(self):
+	def isopened(self):
 		return self._data_f is not None
 
 	def next(self):
@@ -193,14 +166,14 @@ class PartitionDataReader(DataReader):
 			raise StopIteration()
 
 		if self._data_f is None:
-			self._open()
+			self.open()
 
 		d = self._index_f.read(8)
 		if len(d) < 8:
 			self._partition += 1
 			self._start = 0
 
-			self._open()
+			self.open()
 			
 			d = self._index_f.read(8)
 			
@@ -232,7 +205,7 @@ class PartitionDataWriter(DataWriter):
 		self._index_f = None
 		self._data_f = None
 
-	def _open(self):
+	def open(self):
 		if self._data_f is not None:
 			self.close()
 		self._index_f = open(self._index_path, "wb+")
@@ -248,7 +221,7 @@ class PartitionDataWriter(DataWriter):
 		
 	def write(self, data):
 		if self._data_f is None:
-			self._open()
+			self.open()
 
 		if not isinstance(data, list):
 			data = [data]
