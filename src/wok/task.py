@@ -198,7 +198,7 @@ class Task(object):
 					if isinstance(ret, dict):
 						for port_name, value in ret.items():
 							index = writers_index[port_name]
-							writers[index].send(value)
+							writers[index].write(value)
 					else:
 						if not isinstance(ret, (list, tuple)):
 							ret = (ret,)
@@ -208,7 +208,7 @@ class Task(object):
 							raise Exception("The number of values returned by '%s' doesn't match the expected output ports: [%s]" % (func.__name__, port_list))
 
 						for i, writer in enumerate(writers):
-							writer.send(ret[i])
+							writer.write(ret[i])
 
 			for writer in writers:
 				writer.close()
