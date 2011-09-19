@@ -38,6 +38,6 @@
 
 		<out name="sum" />
 
-		<run>sum.py</exec>
+		<run>sum.py</run>
 	</module>
 </flow>

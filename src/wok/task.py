@@ -188,7 +188,7 @@ class Task(object):
 			iteration_strategy = self.__dot_product
 
 			# process each port data iteration element
-			for data in iteration_strategy(self._in_ports):
+			for data in iteration_strategy(in_ports):
 
 				params = [data[port.name] for port in in_ports]
 
