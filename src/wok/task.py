@@ -130,7 +130,7 @@ class Task(object):
 		while sum(sizes) > 0:
 			data = {}
 			for i, reader in enumerate(readers):
-				data[names[i]] = reader.receive()
+				data[names[i]] = reader.read()
 				sizes[i] = reader.size()
 			yield data
 
