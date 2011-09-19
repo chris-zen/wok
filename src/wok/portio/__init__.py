@@ -76,7 +76,7 @@ class DataReader(object):
 			return None
 
 		if not self.is_opened():
-			self._open()
+			self.open()
 
 		try:
 			while size > 0:
