@@ -47,41 +47,9 @@ class PathData(PortData):
 		else:
 			return 0
 
-	"""
-	def get_slice(self, partition = None, start = None, size = None):
-		if start is None and size is None:
-			if partition is not None:
-				return PathData(self._path, partition = partition)
-			else:
-				return PathData(self._path, partition = self._partition)
-		
-		if partition is None:
-			partition = 0
-
-		ps = self._partition_size(partition)
-		
-		if start is None:
-			start = 0
-		else:
-			while start > ps:
-				partition += 1
-				start -= ps
-				ps = self._partition_size(partition)
-
-		if size is None:
-			size = 0
-
-		return PathData(self._path, partition, start, size)
-	"""
-
 	def get_slice(self, start = None, size = None):
 		if start is None and size is None:
 			return PathData(self._serializer, self._path, self._partition, self._start, self._size)
-
-		debug = False
-		if self._path == "/home/cperez/temp/workflow_paper_2.0/wok/ports/prepare-survival/data_survival":
-			debug = True
-			print ">>> slice(start=%s, size=%s)" % (str(start), str(size))
 
 		partition = 0
 
@@ -90,20 +58,13 @@ class PathData(PortData):
 		if start is None:
 			start = 0
 		else:
-			if debug:
-				print "p=%d, ps=%d, start=%d" % (partition, ps, start)
 			while start >= ps:
 				start -= ps
 				partition += 1
 				ps = self._partition_size(partition)
-				if debug:
-					print "p=%d, ps=%d, start=%d" % (partition, ps, start)
-
+		
 		if size is None:
 			size = 0
-
-		if debug:
-			print "PathData(p=%d, start=%d, size=%d" % (partition, start, size)
 
 		return PathData(self._serializer, self._path, partition, start, size)
 
