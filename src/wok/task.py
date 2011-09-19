@@ -93,7 +93,7 @@ class Task(object):
 
 		self._main = None
 		self._generators = []
-		self._mapper = None
+		self._foreach = None
 		self._begin = None
 		self._end = None
 
