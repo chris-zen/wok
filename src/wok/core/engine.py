@@ -7,14 +7,15 @@
 import os
 import os.path
 
-from threading import Thread, Lock, Condition
+from threading import Thread, Condition
 
 from wok import logger
 from wok.element import DataElement, DataList, DataFactory, DataElementJsonEncoder
 from wok.config import ConfigBuilder
 from wok.core import runstates
+from wok.core.sync import Synchronizable, synchronized
 from wok.core.flow.loader import FlowLoader
-from wok.core.instance import Instance
+from wok.core.instance import Instance, InstanceController
 from wok.core.jobmgr.factory import create_job_manager
 
 def _map_add_list(m, k, v):
@@ -23,24 +24,24 @@ def _map_add_list(m, k, v):
 	else:
 		m[k] += [v]
 
-def synchronized(f):
-	"""WokEngine synchronization decorator."""
-	def wrap(f):
-		def sync_function(engine, *args, **kw):
-			#engine._log.debug("<ACQUIRE %s>" % f.__name__)
-			engine._lock.acquire()
-			try:
-				return f(engine, *args, ** kw)
-			finally:
-				#engine._log.debug("<RELEASE %s>" % f.__name__)
-				try:
-					engine._lock.release()
-				except:
-					engine._log.error("<RELEASE ERROR %s>" % f.__name__)
-		return sync_function
-	return wrap(f)
+#def synchronized(f):
+#	"""WokEngine synchronization decorator."""
+#	def wrap(f):
+#		def sync_function(engine, *args, **kw):
+#			#engine._log.debug("<ACQUIRE %s>" % f.__name__)
+#			engine._lock.acquire()
+#			try:
+#				return f(engine, *args, ** kw)
+#			finally:
+#				#engine._log.debug("<RELEASE %s>" % f.__name__)
+#				try:
+#					engine._lock.release()
+#				except:
+#					engine._log.error("<RELEASE ERROR %s>" % f.__name__)
+#		return sync_function
+#	return wrap(f)
 
-class WokEngine(object):
+class WokEngine(Synchronizable):
 	"""
 	The Wok engine manages the execution of a workflow.
 
@@ -50,6 +51,8 @@ class WokEngine(object):
 	"""
 
 	def __init__(self, conf):
+		Synchronizable.__init__(self)
+
 		self.conf = conf
 
 		wok_conf = conf["wok"]
@@ -73,7 +76,7 @@ class WokEngine(object):
 		self._instances = []
 		self._instances_map = {}
 
-		self._lock = Lock()
+		#self._lock = Lock()
 		self._cvar = Condition(self._lock)
 		
 		self._run_thread = None
@@ -276,3 +279,10 @@ class WokEngine(object):
 	def notify(self):
 		self._notified = True
 		self._cvar.notify()
+
+	@synchronized
+	def instance(self, name):
+		inst = self._instances_map.get(name)
+		if inst is None:
+			return None
+		return InstanceController(self, inst)

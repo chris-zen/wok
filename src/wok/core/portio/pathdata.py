@@ -158,7 +158,7 @@ class PartitionDataReader(DataReader):
 			self._data_f.close()
 			self._data_f = None
 
-	def isopened(self):
+	def is_opened(self):
 		return self._data_f is not None
 
 	def next(self):

@@ -28,6 +28,15 @@ class Node(object):
 		else:
 			return ".".join([self.namespace, self.name])
 
+	def to_element(self, e = None):
+		if e is None:
+			e = DataElement()
+
+		e["id"] = self.id
+		e["name"] = self.name
+		
+		return e
+
 	def __str__(self):
 		return self.id
 
@@ -72,6 +81,9 @@ class BaseModuleNode(ModelNode):
 
 		# set of modules to notify it has finished
 		self.notify = set()
+
+		# number of tasks of each state {<state, count>}
+		self._tasks_count_by_state = {}
 
 		self.in_ports = []
 		self.in_port_map = {}
@@ -158,12 +170,39 @@ class BaseModuleNode(ModelNode):
 		return None
 
 	@property
+	def tasks_count_by_state(self):
+		return self._tasks_count_by_state
+
+	@property
 	def has_children(self):
 		return False
 
 	@property
 	def children(self):
 		return []
+
+	def to_element(self, e = None):
+		e = ModelNode.to_element(self, e)
+		e["state"] = str(self.state)
+		e["state_msg"] = "" #TODO
+		e["priority"] = self.priority
+		e["depends"] = [m.id for m in self.depends]
+		e["enabled"] = self.enabled
+		e["serializer"] = self.serializer
+		e["maxpar"] = self.maxpar
+		e["wsize"] = self.wsize
+		e["conf"] = self.conf
+		e["resources"] = self.resources
+		e.create_element("tasks_count", self._tasks_count_by_state)
+
+		ports = e.create_element("ports")
+		in_ports = ports.create_list("in")
+		for port in self.in_ports:
+			in_ports.append(port.to_element())
+		out_ports = ports.create_list("out")
+		for port in self.out_ports:
+			out_ports.append(port.to_element())		
+		return e
 
 	def repr_level(self, sb, level):
 		level = ModelNode.repr_level(self, sb, level)
@@ -235,6 +274,26 @@ class FlowNode(BaseModuleNode):
 	def flow_path(self):
 		return self.model.path
 
+	def update_tasks_count_by_state(self):
+		count = {}
+		for module in self.modules:
+			mcount = module.update_tasks_count_by_state()
+			for state, cnt in mcount.items():
+				s = str(state)
+				if s not in count:
+					count[s] = cnt
+				else:
+					count[s] += cnt
+		self._tasks_count_by_state = count
+		return count
+
+	def to_element(self, e = None):
+		e = BaseModuleNode.to_element(self, e)
+		mlist = e.create_list("modules")
+		for module in self.modules:
+			mlist.append(module.to_element())
+		return e
+
 class LeafModuleNode(BaseModuleNode):
 	def __init__(self, instance, parent, model, namespace = ""):
 		BaseModuleNode.__init__(self, instance, parent, model, namespace)
@@ -264,6 +323,17 @@ class LeafModuleNode(BaseModuleNode):
 	@property
 	def flow_path(self):
 		return self.parent.flow_path
+
+	def update_tasks_count_by_state(self):
+		count = {}
+		for task in self.tasks:
+			s = str(task.state)
+			if s not in count:
+				count[s] = 1
+			else:
+				count[s] += 1
+		self._tasks_count_by_state = count
+		return count
 
 	def repr_level(self, sb, level):
 		level = BaseModuleNode.repr_level(self, sb, level)

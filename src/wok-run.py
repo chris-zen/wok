@@ -80,7 +80,6 @@ def main():
 
 	# create engine
 	wok = WokEngine(conf)
-	wok.start(wait = False)
 
 	try:
 		# create instances
@@ -100,8 +99,13 @@ def main():
 					# TODO start instance
 					pass
 
+		# start wok on the background
+		wok.start(wait = False)
+
 		# run server
 		if server_mode:
+			from wok.server.init import app
+
 			log.info("Running server at http://{0}:{1}".format(server_host, server_port))
 
 			log_conf = wok_conf.get("server.log")
@@ -111,9 +115,15 @@ def main():
 			app_log = logger.get_logger(conf = log_conf, name = "werkzeug")
 			app_log.info("Log configured")
 
-			from wok.server import app
 			app.config["WOK"] = wok
-			app.run(host = server_host, port = server_port, debug = server_debug)
+			app.run(
+					host = server_host,
+					port = server_port,
+					debug = server_debug,
+					use_reloader = False)
+
+			# user has pressed ctrl-C and flask app stops
+			# then we have to stop the engine too
 			wok.stop()
 		else:
 			# wait for wok engine to finish

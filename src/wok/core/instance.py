@@ -11,6 +11,7 @@ import math
 from wok import logger
 from wok.element import DataElement
 from wok.core import runstates
+from wok.core.sync import Synchronizable, synchronized
 from wok.core.nodes import *
 from wok.core.storage.base import StorageContext
 from wok.core.storage.factory import create_storage
@@ -566,6 +567,18 @@ class Instance(object):
 			if recursive and module.parent is not None:
 				self.update_module_state_from_children(module.parent)
 
+	def to_element(self, e = None):
+		if e is None:
+			e = DataElement()
+
+		e["name"] = self.name
+		e["conf"] = self.conf
+
+		self.root_node.update_tasks_count_by_state()
+		self.root_node.to_element(e.create_element("root_node"))
+
+		return e
+
 	def __repr__(self):
 		sb = []
 		self.repr_level(sb, 0)
@@ -576,3 +589,50 @@ class Instance(object):
 		level += 1
 		self.root_node.repr_level(sb, level)
 		return level
+
+class InstanceController(Synchronizable):
+	def __init__(self, engine, instance):
+		Synchronizable.__init__(self, engine._lock)
+
+		self.__engine = engine
+		self.__instance = instance;
+
+	@property
+	def name(self):
+		return self.__instance.name
+
+	@property
+	def state(self):
+		return self.__instance.root_node.state
+
+	@synchronized
+	def start(self):
+		raise Exception("Unimplemented")
+
+	@synchronized
+	def restart(self):
+		raise Exception("Unimplemented")
+
+	@synchronized
+	def cont(self):
+		raise Exception("Unimplemented")
+
+	@synchronized
+	def pause(self):
+		raise Exception("Unimplemented")
+
+	@synchronized
+	def stop(self):
+		raise Exception("Unimplemented")
+
+	@synchronized
+	def cancel(self):
+		raise Exception("Unimplemented")
+
+	@synchronized
+	def reload(self):
+		raise Exception("Unimplemented")
+
+	@synchronized
+	def to_element(self, e = None):
+		return self.__instance.to_element(e)

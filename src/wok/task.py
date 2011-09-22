@@ -192,11 +192,9 @@ class Task(object):
 			self._log.debug("".join([func.__name__,
 				"(out_ports=[", ", ".join([p.name for p in out_ports]), "])"]))
 
-			params = {}
-			for port in out_ports:
-				params[port.name] = port
+			params = [port for port in out_ports]
 
-			func(**params)
+			func(*params)
 
 		## Execute foreach's
 
@@ -404,7 +402,7 @@ class Task(object):
 			return f
 		return decorator
 
-	def set_processor(self, processor_func, in_ports = None, out_ports = None):
+	def set_foreach(self, processor_func, in_ports = None, out_ports = None):
 		"""Set the port data processing function"""
 		if in_ports is None:
 			iports = self.ports(mode = PORT_MODE_IN)
@@ -420,17 +418,17 @@ class Task(object):
 			oports = (oports,)
 		self._foreach = (processor_func, iports, oports)
 
-	def processor(self, in_ports = None, out_ports = None):
+	def foreach(self, in_ports = None, out_ports = None):
 		"""
 		A decorator that is used to specify which is the function that will
 		process each port input data. Example::
 
-			@task.processor(in_ports = ["in1", "in2"])
+			@task.foreach(in_ports = ["in1", "in2"])
 			def process(name, value):
 				return name + " = " + str(value)
 		"""
 		def decorator(f):
-			self.set_processor(f, in_ports, out_ports)
+			self.set_foreach(f, in_ports, out_ports)
 			return f
 		return decorator
 
