@@ -1,0 +1,134 @@
+#mon-mod-templates {
+	display: none;
+}
+
+.mon-mod-debug {
+	border: red solid 1px;
+	margin: 0;
+}
+
+.mon-mod {
+	width: 100%;
+}
+
+.mon-mod-info {
+	margin-bottom: 0.4em;
+	height: 3em;
+}
+
+.mon-mod-title {
+	float: left;
+	width: 30em;
+	height: 100%;
+}
+
+.mon-mod-margin {
+	float: left;
+
+	width: 1em; /* debug */
+	height: 100%;
+}
+
+.mon-mod-expander {
+	float: left;
+
+	width: 1.5em;
+	height: 100%;
+
+	text-align: center;
+}
+
+.mon-mod-expander-img {
+	padding-top: 0.5em;
+}
+
+.mon-mod-name {
+	float: left;
+
+	/*line-height: 3em;*/
+	height: 100%;
+
+	padding-left:0.4em;
+	font-size: 1.2em;
+}
+
+.mon-mod-state {
+	float: left;
+
+	width: 12em;
+	height: 100%;
+}
+
+.mon-mod-state-name {
+	height: 60%;
+
+	padding-left: 0.4em;
+	font-size: 1em;
+	font-weight: bold;
+}
+
+.mon-mod-state-msg {
+	overflow: hidden;
+	height: 40%;
+
+	padding-left: 0.4em;
+	font-size: 0.8em;
+}
+
+.mon-mod-tasks {
+	float: left;
+	margin-left: 0.4em;
+	height: 100%;
+}
+
+.mon-mod-tasks-bar {
+	float: left;
+
+	width: 20em;
+	height: 100%;
+}
+
+.mon-mod-tasks-total {
+	float: left;
+	margin-left: 0.4em;
+	line-height: 3em;
+}
+
+.mon-mod-tasks-base {
+	float: left;
+	margin: auto 0;
+	height: 100%;
+
+	border: 0; /* debug */
+}
+
+.mon-mod-children {
+}
+
+.mon-mod-bg-failed {
+	background-color: #ea5138;
+}
+
+.mon-mod-bg-finished {
+	background-color: #4dc626;
+}
+
+.mon-mod-bg-running {
+	background-color: #eabf14;
+}
+
+.mon-mod-bg-queued {
+	background-color: #ecdc36;
+}
+
+.mon-mod-bg-submitted {
+	background-color: #d4c99b;
+}
+
+.mon-mod-bg-ready {
+	background-color: #9ea97e;
+}
+
+.mon-mod-bg-other {
+	background-color: #485951;
+}

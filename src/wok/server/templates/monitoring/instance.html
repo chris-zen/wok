@@ -1,27 +1,47 @@
 {% extends "layout.html" %}
 
-	{% block stylesheets %}
-		<style type="text/css" >
-#module_template {
-	/*display: none;*/
-}
+{% block stylesheets %}
+	<link rel="stylesheet" type="text/css" href="{{ url_for('.static', filename='modules_tree.css') }}">
 
-.mon-mod-info {
-	width: 95%;
-	height: 2em;
-}
-
-.mon-mod-title {
-	
-}
-		</style>
-	{% endblock %}
+	<style type="text/css">
+	</style>
+{% endblock %}
 
 {% block scripts %}
+	<script type="text/javascript" src="{{ url_for('.static', filename='js/instance.js') }}"></script>
+	<script type="text/javascript" src="{{ url_for('.static', filename='js/modules_tree.js') }}"></script>
 	<script type="text/javascript">
-		$(document).ready(function(){
-			tmpl = $("#module_template").clone()
-			$("#modules").html(tmpl.html)
+		/*data = [
+			{
+				name: "m1",
+				state: "finished",
+				state_msg: "Return code 0",
+				tasks_count: { failed: 0, finished: 10, running: 4, queued: 9, submitted: 6, ready: 1 },
+				children: [
+					{
+						name: "m1.1",
+						state: "finished",
+						state_msg: "",
+						tasks_count: { failed: 6, finished: 11, running: 9, queued: 0, submitted: 3, ready: 0 }
+					}
+				]
+			},
+			{
+				name: "m2",
+				state: "submitted",
+				state_msg: "Queued",
+				tasks_count: { failed: 5, finished: 5, running: 10, queued: 6, submitted: 12, ready: 10 }
+			},
+			{
+				name: "m3",
+				state: "ready",
+				state_msg: "This is a long long long module state message",
+				tasks_count: { failed: 0, finished: 0, running: 10, queued: 0, submitted: 0, ready: 10 }
+			}
+		];*/
+
+		$(document).ready(function() {
+			update("{{ name }}");
 		});
 	</script>
 {% endblock %}
@@ -36,28 +56,30 @@
 {% block body %}
 	<h2>Modules</h2>
 
-	<div id="module_template">
-		<div class="mon-mod-info">
-			<div class="mon-mod-title">
-				<div class="mon-mod-margin"></div>
-				<div class="mon-mod-expander"></div>
-				<div class="mon-mod-name">Name</div>
+	<div id="mon-mod-templates">
+		<img id="mon-mod-expand" class="mon-mod-expander-img" src="{{url_for('.static', filename='img/tri_right.png')}}" alt="expand" title="expand" />
+		<img id="mon-mod-collapse" class="mon-mod-expander-img" src="{{url_for('.static', filename='img/tri_bottom.png')}}" alt="collapse" title="collapse" />
+
+		<div id="mon-mod-template" class="mon-mod">
+			<div class="mon-mod-info">
+				<div class="mon-mod-title">
+					<div class="mon-mod-margin"></div>
+					<div class="mon-mod-expander"></div>
+					<div class="mon-mod-name"></div>
+				</div>
+				<div class="mon-mod-state">
+					<div class="mon-mod-state-name"></div>
+					<div class="mon-mod-state-msg"></div>
+				</div>
+				<div class="mon-mod-tasks">
+					<div class="mon-mod-tasks-bar"></div>
+					<div class="mon-mod-tasks-total"></div>
+				</div>
 			</div>
-			<div class="mon-mod-status">
-				<div class="mon-mod-status-name">Ready</div>
-				<div class="mon-mod-status-msg">Waiting for start</div>
-			</div>
-			<div class="mon-mod-tasks">
-				<div class="mon-mod-tasks-finished"></div>
-				<div class="mon-mod-tasks-failed"></div>
-				<div class="mon-mod-tasks-running"></div>
-				<div class="mon-mod-tasks-submitted"></div>
-				<div class="mon-mod-tasks-other"></div>
-			</div>
-		</div>
-		<div id="mon-mod-children">
 		</div>
 	</div>
 
+	<div id="expand-all"></div>
+	<div id="collapse-all"></div>
 	<div id="modules"></div>
 {% endblock %}

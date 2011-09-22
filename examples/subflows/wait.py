@@ -5,7 +5,7 @@ from wok.task import Task
 
 task = Task()
 
-@task.processor()
+@task.foreach()
 def process(time):
 	#delay = task.conf.get("delay", 1, dtype=int)
 	#min_delay = task.conf.get("min_delay", delay, dtype=int)
