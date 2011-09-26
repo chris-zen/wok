@@ -8,8 +8,8 @@ sum = 0
 def main():
 	log = task.logger()
 
-	values = task.port("x")
-	result = task.port("sum")
+	values = task.ports("x")
+	result = task.ports("sum")
 
 	count = 0
 	sum = 0
@@ -19,6 +19,6 @@ def main():
 
 	log.info("Sum of {0} numbers = {1}".format(count, sum))
 	
-	result.write(sum)
+	result.send(sum)
 
 task.start()

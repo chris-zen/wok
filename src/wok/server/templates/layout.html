@@ -51,6 +51,10 @@
 
 		<div id="page">
 			<div id="content">
+				{% for message in get_flashed_messages() %}
+				<div class="flash">{{ message }}</div>
+				{% endfor %}
+
 				{% if breadcrumb is defined %}
 				<div id="breadcrumb">
 					<ul>
@@ -65,10 +69,6 @@
 				<div style="clear: both"></div>
 				{% endif %}
 
-				{% for message in get_flashed_messages() %}
-					<div class="flash">{{ message }}</div>
-				{% endfor %}
-
 				{# {% if session.logged_in %}
 					{% block body %}{% endblock %}
 				{% else %}
@@ -80,6 +80,8 @@
 				{% block body %}{% endblock %}
 			</div>
 		</div>
+
+		<div id="status-bar"></div>
 	</div>
 </body>
 </html>

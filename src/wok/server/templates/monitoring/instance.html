@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
 
 {% block stylesheets %}
+	<link rel="stylesheet" type="text/css" href="{{ url_for('.static', filename='monitoring.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ url_for('.static', filename='modules_tree.css') }}">
 
 	<style type="text/css">
@@ -8,42 +9,13 @@
 {% endblock %}
 
 {% block scripts %}
-	<script type="text/javascript" src="{{ url_for('.static', filename='js/instance.js') }}"></script>
-	<script type="text/javascript" src="{{ url_for('.static', filename='js/modules_tree.js') }}"></script>
 	<script type="text/javascript">
-		/*data = [
-			{
-				name: "m1",
-				state: "finished",
-				state_msg: "Return code 0",
-				tasks_count: { failed: 0, finished: 10, running: 4, queued: 9, submitted: 6, ready: 1 },
-				children: [
-					{
-						name: "m1.1",
-						state: "finished",
-						state_msg: "",
-						tasks_count: { failed: 6, finished: 11, running: 9, queued: 0, submitted: 3, ready: 0 }
-					}
-				]
-			},
-			{
-				name: "m2",
-				state: "submitted",
-				state_msg: "Queued",
-				tasks_count: { failed: 5, finished: 5, running: 10, queued: 6, submitted: 12, ready: 10 }
-			},
-			{
-				name: "m3",
-				state: "ready",
-				state_msg: "This is a long long long module state message",
-				tasks_count: { failed: 0, finished: 0, running: 10, queued: 0, submitted: 0, ready: 10 }
-			}
-		];*/
-
-		$(document).ready(function() {
-			update("{{ name }}");
-		});
+		var instance_name = "{{ name }}";
 	</script>
+
+	<script type="text/javascript" src="{{ url_for('.static', filename='js/common.js') }}"></script>
+	<script type="text/javascript" src="{{ url_for('.static', filename='js/modules_tree.js') }}"></script>
+	<script type="text/javascript" src="{{ url_for('.static', filename='js/instance.js') }}"></script>
 {% endblock %}
 
 {% block sub_bar %}
@@ -54,32 +26,31 @@
 {% endblock %}
 
 {% block body %}
-	<h2>Modules</h2>
-
-	<div id="mon-mod-templates">
-		<img id="mon-mod-expand" class="mon-mod-expander-img" src="{{url_for('.static', filename='img/tri_right.png')}}" alt="expand" title="expand" />
-		<img id="mon-mod-collapse" class="mon-mod-expander-img" src="{{url_for('.static', filename='img/tri_bottom.png')}}" alt="collapse" title="collapse" />
-
-		<div id="mon-mod-template" class="mon-mod">
-			<div class="mon-mod-info">
-				<div class="mon-mod-title">
-					<div class="mon-mod-margin"></div>
-					<div class="mon-mod-expander"></div>
-					<div class="mon-mod-name"></div>
-				</div>
-				<div class="mon-mod-state">
-					<div class="mon-mod-state-name"></div>
-					<div class="mon-mod-state-msg"></div>
-				</div>
-				<div class="mon-mod-tasks">
-					<div class="mon-mod-tasks-bar"></div>
-					<div class="mon-mod-tasks-total"></div>
-				</div>
-			</div>
-		</div>
-	</div>
-
 	<div id="expand-all"></div>
 	<div id="collapse-all"></div>
 	<div id="modules"></div>
+
+	<div id="mod-tree-templates">
+		<div class="mod-tree-node">
+			<div class="mod-tree-data">
+				<div class="mod-tree-rhead">
+					<div class="mod-tree-margin"></div>
+					<div class="mod-tree-expander"></div>
+					<div class="mod-tree-id">
+						<div class="mod-tree-name"></div>
+						<div class="mod-tree-title"></div>
+					</div>
+				</div>
+				<div class="mod-tree-state">
+					<div class="mod-tree-state-name"></div>
+					<div class="mod-tree-state-title"></div>
+				</div>
+				<div class="mod-tree-tasks">
+					<div class="mod-tree-tasks-bar"></div>
+					<div class="mod-tree-tasks-total"></div>
+				</div>
+			</div>
+			<div class="mod-tree-children"></div>
+		</div>
+	</div>
 {% endblock %}

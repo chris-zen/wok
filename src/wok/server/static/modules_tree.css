@@ -1,35 +1,29 @@
-#mon-mod-templates {
+#mod-tree-templates {
 	display: none;
 }
 
-.mon-mod-debug {
-	border: red solid 1px;
-	margin: 0;
-}
-
-.mon-mod {
+.mod-tree {
 	width: 100%;
 }
 
-.mon-mod-info {
+.mod-tree-data {
 	margin-bottom: 0.4em;
 	height: 3em;
 }
 
-.mon-mod-title {
+.mod-tree-rhead {
 	float: left;
-	width: 30em;
+	width: 24em;
 	height: 100%;
 }
 
-.mon-mod-margin {
+.mod-tree-margin {
 	float: left;
 
-	width: 1em; /* debug */
 	height: 100%;
 }
 
-.mon-mod-expander {
+.mod-tree-expander {
 	float: left;
 
 	width: 1.5em;
@@ -38,28 +32,17 @@
 	text-align: center;
 }
 
-.mon-mod-expander-img {
+.mod-tree-expander-img {
 	padding-top: 0.5em;
 }
 
-.mon-mod-name {
+.mod-tree-id {
 	float: left;
 
-	/*line-height: 3em;*/
-	height: 100%;
-
-	padding-left:0.4em;
-	font-size: 1.2em;
-}
-
-.mon-mod-state {
-	float: left;
-
-	width: 12em;
 	height: 100%;
 }
 
-.mon-mod-state-name {
+.mod-tree-name {
 	height: 60%;
 
 	padding-left: 0.4em;
@@ -67,7 +50,7 @@
 	font-weight: bold;
 }
 
-.mon-mod-state-msg {
+.mod-tree-title {
 	overflow: hidden;
 	height: 40%;
 
@@ -75,26 +58,49 @@
 	font-size: 0.8em;
 }
 
-.mon-mod-tasks {
+.mod-tree-state {
+	float: left;
+
+	width: 12em;
+	height: 100%;
+}
+
+.mod-tree-state-name {
+	height: 60%;
+
+	padding-left: 0.4em;
+	font-size: 1em;
+	font-weight: bold;
+}
+
+.mod-tree-state-title {
+	overflow: hidden;
+	height: 40%;
+
+	padding-left: 0.4em;
+	font-size: 0.8em;
+}
+
+.mod-tree-tasks {
 	float: left;
 	margin-left: 0.4em;
 	height: 100%;
 }
 
-.mon-mod-tasks-bar {
+.mod-tree-tasks-bar {
 	float: left;
 
 	width: 20em;
 	height: 100%;
 }
 
-.mon-mod-tasks-total {
+.mod-tree-tasks-total {
 	float: left;
 	margin-left: 0.4em;
 	line-height: 3em;
 }
 
-.mon-mod-tasks-base {
+.mod-tree-tasks-base {
 	float: left;
 	margin: auto 0;
 	height: 100%;
@@ -102,33 +108,33 @@
 	border: 0; /* debug */
 }
 
-.mon-mod-children {
+.mod-tree-children {
 }
 
-.mon-mod-bg-failed {
+.mod-tree-bg-failed {
 	background-color: #ea5138;
 }
 
-.mon-mod-bg-finished {
+.mod-tree-bg-finished {
 	background-color: #4dc626;
 }
 
-.mon-mod-bg-running {
+.mod-tree-bg-running {
 	background-color: #eabf14;
 }
 
-.mon-mod-bg-queued {
+.mod-tree-bg-queued {
 	background-color: #ecdc36;
 }
 
-.mon-mod-bg-submitted {
+.mod-tree-bg-submitted {
 	background-color: #d4c99b;
 }
 
-.mon-mod-bg-ready {
+.mod-tree-bg-ready {
 	background-color: #9ea97e;
 }
 
-.mon-mod-bg-other {
+.mod-tree-bg-other {
 	background-color: #485951;
 }
