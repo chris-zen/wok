@@ -227,8 +227,15 @@ $.widget("ui.modules_tree", {
 		for (var i = 0; i < states.length; i++)
 			count[states[i]] = 0;
 
-		for (state in m.tasks_count) {
-			state_count = m.tasks_count[state];
+		var node_count = m.tasks_count;
+		var node_count_type = "tasks";
+		if (m.modules_count !== undefined) {
+			node_count = m.modules_count;
+			node_count_type = "modules";
+		}
+
+		for (state in node_count) {
+			state_count = node_count[state];
 			if ($.inArray(state, states) != -1)
 				count[state] += state_count;
 			else
@@ -236,10 +243,10 @@ $.widget("ui.modules_tree", {
 			total += state_count;
 		}
 
-		var tasksDiv = $('<div class="mod-tree-tasks"></div>').appendTo(dataDiv);
+		var tasksDiv = $('<div class="mod-tree-progress"></div>').appendTo(dataDiv);
 
 		var total_percent = 0;
-		var tasksBarDiv = $('<div class="mod-tree-tasks-bar"></div>').appendTo(tasksDiv);
+		var tasksBarDiv = $('<div class="mod-tree-progress-bar"></div>').appendTo(tasksDiv);
 		if (total > 0) {
 			var last_percent_index = 0;
 			var percents = [];
@@ -257,7 +264,7 @@ $.widget("ui.modules_tree", {
 
 			for (i = 0; i < states.length; i++) {
 				state = states[i];
-				$('<div class="mod-tree-tasks-base"></div>')
+				$('<div class="mod-tree-progress-base"></div>')
 						.addClass("mod-tree-bg-" + state)
 						.width(percents[i] + "%")
 						.attr("title", state + ": " + count[state])
@@ -265,15 +272,15 @@ $.widget("ui.modules_tree", {
 			}
 
 			if (other > 0)
-				$('<div class="mod-tree-tasks-base"></div>')
+				$('<div class="mod-tree-progress-base"></div>')
 					.addClass("mod-tree-bg-other")
 					.width((100 - total_percent) + "%")
 					.attr("title", "other: " + other)
 					.appendTo(tasksBarDiv);
 		}
 
-		$('<div class="mod-tree-tasks-total"></div>')
-			.text(total + " tasks")
+		$('<div class="mod-tree-progress-total"></div>')
+			.text(total + " " + node_count_type)
 			.appendTo(tasksDiv);
 
 		if (hasChildren) {

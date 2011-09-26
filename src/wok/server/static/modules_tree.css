@@ -81,26 +81,26 @@
 	font-size: 0.8em;
 }
 
-.mod-tree-tasks {
+.mod-tree-progress {
 	float: left;
 	margin-left: 0.4em;
 	height: 100%;
 }
 
-.mod-tree-tasks-bar {
+.mod-tree-progress-bar {
 	float: left;
 
 	width: 20em;
 	height: 100%;
 }
 
-.mod-tree-tasks-total {
+.mod-tree-progress-total {
 	float: left;
 	margin-left: 0.4em;
 	line-height: 3em;
 }
 
-.mod-tree-tasks-base {
+.mod-tree-progress-base {
 	float: left;
 	margin: auto 0;
 	height: 100%;

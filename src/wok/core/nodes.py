@@ -236,6 +236,9 @@ class FlowNode(BaseModuleNode):
 	def __init__(self, instance, parent, model, namespace = ""):
 		BaseModuleNode.__init__(self, instance, parent, model, namespace)
 
+		# number of modules of each state {<state, count>}
+		self._modules_count_by_state = {}
+
 		self.modules = []
 
 	@property
@@ -274,6 +277,10 @@ class FlowNode(BaseModuleNode):
 	def flow_path(self):
 		return self.model.path
 
+	@property
+	def modules_count_by_state(self):
+		return self.__modules_count_by_state
+
 	def update_tasks_count_by_state(self):
 		count = {}
 		for module in self.modules:
@@ -287,11 +294,26 @@ class FlowNode(BaseModuleNode):
 		self._tasks_count_by_state = count
 		return count
 
+	def update_modules_count_by_state(self):
+		count = {}
+		for module in self.modules:
+			mcount = module.update_modules_count_by_state()
+			for state, cnt in mcount.items():
+				s = str(state)
+				if s not in count:
+					count[s] = cnt
+				else:
+					count[s] += cnt
+		self._modules_count_by_state = count
+		return count
+
 	def to_element(self, e = None):
 		e = BaseModuleNode.to_element(self, e)
 		mlist = e.create_list("modules")
 		for module in self.modules:
 			mlist.append(module.to_element())
+
+		e.create_element("modules_count", self._modules_count_by_state)
 		return e
 
 class LeafModuleNode(BaseModuleNode):
@@ -335,6 +357,9 @@ class LeafModuleNode(BaseModuleNode):
 		self._tasks_count_by_state = count
 		return count
 
+	def update_modules_count_by_state(self):
+		return { str(self.state) : 1 }
+	
 	def repr_level(self, sb, level):
 		level = BaseModuleNode.repr_level(self, sb, level)
 		sb.extend([self._INDENT * level, "Tasks: ", str(len(self.tasks)), "\n"])

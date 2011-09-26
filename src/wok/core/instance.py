@@ -575,7 +575,8 @@ class Instance(object):
 		e["conf"] = self.conf
 
 		self.root_node.update_tasks_count_by_state()
-		self.root_node.to_element(e.create_element("root_node"))
+		self.root_node.update_modules_count_by_state()
+		self.root_node.to_element(e.create_element("root"))
 
 		return e
 
