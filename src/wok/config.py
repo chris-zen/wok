@@ -1,14 +1,29 @@
-# ******************************************************************
-# Copyright 2009-2011, Universitat Pompeu Fabra
+###############################################################################
 #
-# Licensed under the Non-Profit Open Software License version 3.0
-# ******************************************************************
+#    Copyright 2009-2011, Universitat Pompeu Fabra
+#
+#    This file is part of Wok.
+#
+#    Wok is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    Wok is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses
+#
+###############################################################################
 
 import os
 import os.path
 import json
 
-from wok import __version__
+from wok import VERSION
 from wok.element import DataElement, DataFactory
 
 class Config(DataElement):
@@ -27,7 +42,7 @@ class Config(DataElement):
 		
 		from optparse import OptionParser
 
-		parser = OptionParser(usage = "usage: %prog [options] " + args_usage, version = __version__)
+		parser = OptionParser(usage = "usage: %prog [options] " + args_usage, version = VERSION)
 
 		parser.add_option("-L", "--log-level", dest="log_level", 
 			default=None, choices=["debug", "info", "warn", "error", "critical", "notset"],

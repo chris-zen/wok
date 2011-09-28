@@ -16,9 +16,7 @@
 			<desc>Value</desc>
 		</out>
 
-		<exec launcher="python">
-			<script>generate.py</script>
-		</exec>
+		<run>generate.py</run>
 	</module>
 
 	<module name="generate2">
@@ -34,9 +32,7 @@
 			<desc>Value</desc>
 		</out>
 
-		<exec launcher="python">
-			<script>generate.py</script>
-		</exec>
+		<run>generate.py</run>
 	</module>
 
 	<module name="square" maxpar="3">
@@ -47,12 +43,10 @@
 
 		<out name="x_square" serializer="json"/>
 
-		<exec launcher="python">
-			<script>square.py</script>
-		</exec>
+		<run>square.py</run>
 	</module>
 
-	<module name="sum" maxpar="1" enabled="true">
+	<module name="sum" maxpar="1">
 		<title>Sumatory</title>
 		<desc>Calculate sum of values</desc>
 
@@ -61,8 +55,6 @@
 		<out name="count" />
 		<out name="sum" />
 
-		<exec launcher="python">
-			<script>sum.py</script>
-		</exec>
+		<run>sum.py</run>
 	</module>
 </flow>

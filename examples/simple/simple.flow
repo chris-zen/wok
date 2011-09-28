@@ -29,8 +29,7 @@
 		<run>square.py</run>
 	</module>
 
-	<!-- enabled attribute is true by default -->
-	<module name="sum" maxpar="1" enabled="true">
+	<module name="sum" maxpar="1">
 		<title>Sumatory</title>
 		<desc>Calculate sum of values</desc>
 
