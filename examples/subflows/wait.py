@@ -1,5 +1,4 @@
 from time import sleep
-#from random import random
 
 from wok.task import Task
 

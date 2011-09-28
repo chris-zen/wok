@@ -12,7 +12,7 @@ def sequence(value):
 	log.info("Generating values from {0} to {1}".format(start, start + size - 1))
 
 	for v in xrange(start, start + size):
-		value.write(v)
+		value.send(v)
 
 task.start()
 	

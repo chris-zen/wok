@@ -17,9 +17,12 @@ import distribute_setup
 distribute_setup.use_setuptools()
 
 from setuptools import setup, find_packages
+
+from wok import VERSION, AUTHORS, AUTHORS_EMAIL
+
 setup(
     name = "wok",
-    version = "3.0.0",
+    version = VERSION,
     packages = find_packages(),
     scripts = [
 		'wok-run.py'
@@ -31,7 +34,8 @@ setup(
 		'docutils>=0.3',
 		'lxml>=2.3',
 		'drmaa',
-		'Flask=0.6'
+		'Flask==0.6',
+		'pygments'
 	],
 
     package_data = {
@@ -40,10 +44,10 @@ setup(
     },
 
     # metadata for upload to PyPI
-    author = "Christian Perez-Llamas",
-    author_email = "christian.perez@upf.edu",
+    author = AUTHORS,
+    author_email = AUTHORS_EMAIL,
     description = "Workflow management system",
-    license = "NOSL 3.0",
+    license = "GPL 3.0",
     keywords = "workflow dataflow analysis parallel",
     url = "http://bg.upf.edu/wok",
 	long_description = __doc__
