@@ -25,8 +25,6 @@ Each module corresponds with a piece of software that has to be run in order to 
 
 Workflows in *Wok* can be treated as any software project and managed with version control system tools and the IDE of your choice.
 
-It is recommended, but not necessary, that the workflow definition (*.flow* file) and the modules implementations are in the same folder. As for example, the path where the flow is located is included in the *PYTHONPATH* automatically.
-
 *Wok* can be used as a terminal script or can be runned in server mode.
 
 The execution of a workflow in the terminal is done using the *wok-run.py* script which allows few options:

@@ -7,7 +7,7 @@ Dependencies
 - python 2.6 or above
 - lxml
 - drmaa
-- flask
+- flask 0.6
 - pygments
 
 For developers:
