@@ -2,7 +2,7 @@ from wok.task import Task
 
 task = Task()
 
-sum = 0
+nsum = 0
 
 @task.main()
 def main():
@@ -11,13 +11,13 @@ def main():
 	values, result = task.ports("x", "sum")
 
 	count = 0
-	sum = 0
+	nsum = 0
 	for v in values:
 		count += 1
-		sum += v
+		nsum += v
 
-	log.info("Sum of {0} numbers = {1}".format(count, sum))
+	log.info("Sum of {0} numbers = {1}".format(count, nsum))
 	
-	result.send(sum)
+	result.send(nsum)
 
 task.start()
