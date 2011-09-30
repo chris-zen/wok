@@ -26,9 +26,35 @@
 {% endblock %}
 
 {% block body %}
-	<div id="expand-all"></div>
-	<div id="collapse-all"></div>
-	<div id="modules"></div>
+	<div id="tabs">
+		<ul>
+			<li><a href="#tab-details"><span>Details</span></a></li>
+			<li><a href="#tab-modules"><span>Modules</span></a></li>
+			<li><a href="#tab-tasks"><span>Tasks</span></a></li>
+			<li><a href="#tab-logs"><span>Logs</span></a></li>
+			<li><a href="#tab-ports"><span>Ports</span></a></li>
+			<li><a href="#tab-config"><span>Configuration</span></a></li>
+			<li><a href="#tab-workflow"><span>Workflow</span></a></li>
+		</ul>
+
+		<div id="tab-details"></div>
+		
+		<div id="tab-modules">
+			<div id="expand-all"></div>
+			<div id="collapse-all"></div>
+			<div id="modules"></div>
+		</div>
+
+		<div id="tab-tasks"></div>
+
+		<div id="tab-logs"></div>
+
+		<div id="tab-ports"></div>
+
+		<div id="tab-config"></div>
+
+		<div id="tab-workflow"></div>
+	</div>
 
 	<div id="mod-tree-templates">
 		<div class="mod-tree-node">

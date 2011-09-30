@@ -1,0 +1,9 @@
+{% extends "layout.html" %}
+{% block body %}
+	<h2>Workflow</h2>
+	{% autoescape false %}
+	{% code 'xml' %}
+{{ workflow_text }}
+	{% endcode %}
+	{% endautoescape %}
+{% endblock %}

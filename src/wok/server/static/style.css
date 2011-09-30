@@ -90,13 +90,14 @@ body {
 }
 
 #page {
-	margin: 1em auto;
-	width: 98%;
+	/*margin: 1em auto;*/
+	/*width: 98%;*/
 	/*border: 2px solid #ccc; background: white;*/
+	height: 100%;
 }
 
 #content {
-	padding: 0.2em;
+	/*padding: 0.2em;*/
 }
 
 #breadcrumb {

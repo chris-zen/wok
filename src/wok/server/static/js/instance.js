@@ -1,4 +1,7 @@
+// widgets
+var tabs = null;
 var treeWidget = null;
+
 var updating = false;
 
 function update() {
@@ -19,9 +22,10 @@ function update() {
 }
 
 $(document).ready(function() {
+	tabs = $("#tabs").tabs();
 	treeWidget = $("#modules").modules_tree().data("modules_tree");
 
 	update();
 	
-	window.setInterval(update, 1000);
+	//window.setInterval(update, 1000);
 });

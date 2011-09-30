@@ -1,0 +1,9 @@
+{% extends "layout.html" %}
+{% block body %}
+	<h2>Configuration</h2>
+	{% autoescape false %}
+	{% code 'javascript' %}
+{{ conf_text }}
+	{% endcode %}
+	{% endautoescape %}
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends "layout.html" %}
+{% block body %}
+	<div class="state-msg">
+		<table>
+			<tr>
+				<td colspan="2">{{ state.instance }}</td>
+			</tr>
+			<tr>
+				<td class="state-msg-title state-color-{{ state.name }}">{{ state.title }}</td>
+				<td>
+					<ul>
+						{% if state.name in ['ready'] %}
+							<li><a href="{{ url_for('engine_start') }}">start</a></li>
+						{% endif %}
+						{% if state.name in ['paused', 'failed'] %}
+							<li><a href="{{ url_for('engine_continue') }}">continue</a></li>
+						{% endif %}
+						{% if state.name == 'running' %}
+							<li><a href="{{ url_for('engine_pause') }}">pause</a></li>
+							<li><a href="{{ url_for('engine_stop') }}">stop</a></li>
+						{% endif %}
+						{% if state.name in ['finished', 'failed', 'exception'] %}
+							<li><a href="{{ url_for('engine_start') }}">restart</a></li>
+						{% endif %}
+					</ul>
+				</td>
+			</tr>
+		</table>
+	</div>
+
+	<div style="clear: both;"></div>
+
+	<h2>Modules</h2>
+
+	{% set mnodes = state.mnodes %}
+
+	<table id="module-table">
+		<tr>
+			<th colspan="2" rowspan="2"></th>
+			<td colspan="4">Tasks</td>
+			<th rowspan="2"></th>
+		</tr>
+		<tr>
+			<td>submitted</td>
+			<td>finished</td>
+			<td>failed</td>
+			<td>total</td>
+		</tr>
+		{% for m_id in state.mnodes_by_dep %}
+			{% set mnode = mnodes[m_id] %}
+			<tr>
+				<td><a href="{{ url_for('module', name=mnode.name) }}">{{ mnode.name }}</a></td>
+				<td class="state-color-{{ mnode.state }}">{{ mnode.state }}</td>
+				<td>{{ mnode.submitted_tasks|length }}</td>
+				<td>{{ mnode.finished_tasks|length }}</td>
+				<td>{{ mnode.failed_tasks|length }}</td>
+				<td>{{ mnode.num_tasks }}</td>
+				<td>
+					<ul class="module-table-options">
+						<li><a href="{{ url_for('module_conf', name=m_id) }}">configuration</a></li>
+						{# {% if mnode.state in ['finished', 'failed', 'exception'] %} #}
+						<li><a href="{{ url_for('module_output', name=m_id) }}">output</a></li>
+						{# {% endif %} #}
+					</ul>
+				</td>
+			</tr>
+		{% endfor %}
+	</table>
+{% endblock %}

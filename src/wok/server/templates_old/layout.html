@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+<head>
+	<title>Wok</title>
+	<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+
+	{% block stylesheets %}
+		{% if nav is defined %}
+		<style type="text/css" >
+			{% if nav.current == "state" %}
+			{% endif %}
+		</style>
+		{% endif %}
+	{% endblock %}
+
+	<script type="text/javascript"  src="{{ url_for('static', filename='jquery-1.6.min.js') }}"></script>
+	
+	{% block scripts %}
+	{% endblock %}
+</head>
+<body>
+	<div id="doc">
+		<div id="top-bar-outer">
+			<div id="top-bar">
+				<div id="logo">
+					<a href="{{ url_for('index') }}">Wok</a>
+				</div>
+				<div id="nav-links">
+					<ul>
+						<li><a id="nav-home" href="{{ url_for('index') }}">Home</a></li>
+						<li><a id="nav-conf" href="{{ url_for('configuration') }}">Configuration</a></li>
+						<li><a id="nav-workflow" href="{{ url_for('workflow') }}">Workflow</a></li>
+						{# <li><a id="nav-scheduler" href="{{ url_for('scheduler') }}">Scheduler</a></li> #}
+					</ul>
+				</div>
+				<div id="session-links">
+					<ul>
+						<li>
+							{% if not session.logged_in %}
+							<a href="{{ url_for('login') }}">Log in</a>
+							{% else %}
+							<a href="{{ url_for('logout') }}">Log out</a>
+							{% endif %}
+						</li>
+						<li><a href="{{ url_for('engine_exit') }}">Exit</a></li>
+					</ul>
+				</div>
+			</div>
+		</div>
+
+		<div id="page">
+			<div id="content">
+				{% if breadcrumb is defined %}
+				<div id="breadcrumb">
+					<ul>
+						{% for link in breadcrumb.links %}
+						<li><a href="{{ link.href }}">{{ link.title }}</a></li>
+						<li>&gt;</li>
+						{% endfor %}
+						<li>{{ breadcrumb.title }}</li>
+					</ul>
+				</div>
+
+				<div style="clear: both"></div>
+				{% endif %}
+
+				{% for message in get_flashed_messages() %}
+					<div class="flash">{{ message }}</div>
+				{% endfor %}
+
+				{# {% if session.logged_in %}
+					{% block body %}{% endblock %}
+				{% else %}
+					{% block login %}
+						<p>Log in to start session</p>
+					{% endblock %}
+				{% endif %} #}
+
+				{% block body %}{% endblock %}
+			</div>
+		</div>
+	</div>
+</body>
+</html>
