@@ -89,7 +89,7 @@ def _expand(key, value, context, path = None):
 		
 		if name not in path:
 			if name in context:
-				expanded_value = _expand(name, context[name], context, path.union(set([name])))
+				expanded_value = _expand(name, str(context[name]), context, path.union(set([name])))
 			else:
 				raise Exception("Undefined variable '%s' at '%s'" % (name, key))
 		else:

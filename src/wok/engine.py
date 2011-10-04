@@ -495,7 +495,7 @@ class WokEngine(object):
 			#t_id = "%s-%04i" % (mnode.m_id, 0)
 			t_id = mnode.m_id + "-0000"
 			task = self._create_task(self.conf, flow, mnode, t_id)
-			task["index"] = i
+			task["index"] = 0
 			tasks += [task]
 
 			for pnode in mnode.out_pnodes:

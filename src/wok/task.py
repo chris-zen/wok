@@ -174,11 +174,9 @@ class Task(object):
 			self._log.debug("".join([func.__name__,
 				"(out_ports=[", ", ".join([p.name for p in out_ports]), "])"]))
 
-			params = {}
-			for port in out_ports:
-				params[str(port.name)] = port
+			params = [port for port in out_ports]
 
-			func(**params)
+			func(*params)
 
 		## Execute foreach's
 
