@@ -495,6 +495,7 @@ class WokEngine(object):
 			#t_id = "%s-%04i" % (mnode.m_id, 0)
 			t_id = mnode.m_id + "-0000"
 			task = self._create_task(self.conf, flow, mnode, t_id)
+			task["index"] = i
 			tasks += [task]
 
 			for pnode in mnode.out_pnodes:
@@ -534,6 +535,7 @@ class WokEngine(object):
 			for i in xrange(num_partitions):
 				t_id = "%s-%04i" % (mnode.m_id, i)
 				task = self._create_task(self.conf, flow, mnode, t_id)
+				task["index"] = i
 				tasks += [task]
 				end = min(start + mwsize, psize)
 				size = end - start

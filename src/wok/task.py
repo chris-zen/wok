@@ -102,6 +102,8 @@ class Task(object):
 		del self.data["conf"]
 
 		self._id = self.data["id"]
+		self.id = self._id
+		self.index = self.data.get("index", -1, dtype = int)
 
 		# deprecated
 		self._start_func = start_func
