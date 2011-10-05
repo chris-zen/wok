@@ -1,4 +1,4 @@
-"""
+'''
 Wok is a workflow management system implemented in Python that makes very easy
 to structure the workflows, parallelize their execution
 and monitor its progress easily.
@@ -11,21 +11,26 @@ among others with a shared folder among work nodes.
 
 Other, more flexible infrastructures (such as the cloud)
 are being studied for future implementations.
-"""
+'''
 
 import distribute_setup
 distribute_setup.use_setuptools()
 
 from setuptools import setup, find_packages
 
+import os.path
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(sys.argv[0]), 'src'))
+
 from wok import VERSION, AUTHORS, AUTHORS_EMAIL
 
 setup(
-    name = "wok",
+    name = 'wok',
     version = VERSION,
-    packages = find_packages(),
+    packages = find_packages('src'),
+	package_dir = { '': 'src' },
     scripts = [
-		'wok-run.py'
+		'src/wok-run'
 	],
 
     # Project uses reStructuredText, so ensure that the docutils get
@@ -46,11 +51,27 @@ setup(
     # metadata for upload to PyPI
     author = AUTHORS,
     author_email = AUTHORS_EMAIL,
-    description = "Workflow management system",
-    license = "GPL 3.0",
-    keywords = "workflow dataflow analysis parallel",
-    url = "http://bg.upf.edu/wok",
-	long_description = __doc__
+    description = 'Workflow management system',
+    license = 'GPL 3.0',
+    keywords = 'workflow dataflow analysis parallel',
+    url = 'https://github.com/chris-zen/wok',
+	long_description = __doc__,
 
-    # could also include long_description, download_url, classifiers, etc.
+	classifiers = [
+        'Development Status :: 3 - Alpha',
+        'Intended Audience :: Developers',
+        'License :: OSI Approved :: GNU General Public License (GPL)',
+		'Environment :: Console',
+		'Environment :: Web Environment',
+		'Intended Audience :: Science/Research',
+		'Natural Language :: English',
+        'Operating System :: OS Independent',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
+        'Topic :: Scientific/Engineering',
+		'Topic :: Scientific/Engineering :: Bio-Informatics'
+    ]
+
+    # could also include download_url, etc.
 )

@@ -1,8 +1,10 @@
 {% extends "layout.html" %}
 
 {% block stylesheets %}
-	<link rel="stylesheet" type="text/css" href="{{ url_for('.static', filename='monitoring.css') }}">
-	<link rel="stylesheet" type="text/css" href="{{ url_for('.static', filename='modules_tree.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('.static', filename='monitoring/monitoring.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('.static', filename='monitoring/instance.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('.static', filename='monitoring/modules_state.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('.static', filename='monitoring/modules_select.css') }}">
 
 	<style type="text/css">
 	</style>
@@ -13,9 +15,10 @@
 		var instance_name = "{{ name }}";
 	</script>
 
-	<script type="text/javascript" src="{{ url_for('.static', filename='js/common.js') }}"></script>
-	<script type="text/javascript" src="{{ url_for('.static', filename='js/modules_tree.js') }}"></script>
-	<script type="text/javascript" src="{{ url_for('.static', filename='js/instance.js') }}"></script>
+	<script type="text/javascript" src="{{ url_for('.static', filename='common.js') }}"></script>
+	<script type="text/javascript" src="{{ url_for('.static', filename='monitoring/modules_state.js') }}"></script>
+	<script type="text/javascript" src="{{ url_for('.static', filename='monitoring/modules_select.js') }}"></script>
+	<script type="text/javascript" src="{{ url_for('.static', filename='monitoring/instance.js') }}"></script>
 {% endblock %}
 
 {% block sub_bar %}
@@ -27,56 +30,46 @@
 
 {% block body %}
 	<div id="tabs">
-		<ul>
-			<li><a href="#tab-details"><span>Details</span></a></li>
-			<li><a href="#tab-modules"><span>Modules</span></a></li>
-			<li><a href="#tab-tasks"><span>Tasks</span></a></li>
-			<li><a href="#tab-logs"><span>Logs</span></a></li>
-			<li><a href="#tab-ports"><span>Ports</span></a></li>
-			<li><a href="#tab-config"><span>Configuration</span></a></li>
-			<li><a href="#tab-workflow"><span>Workflow</span></a></li>
-		</ul>
-
-		<div id="tab-details"></div>
-		
-		<div id="tab-modules">
-			<div id="expand-all"></div>
-			<div id="collapse-all"></div>
-			<div id="modules"></div>
+		<div id="tabs-header">
+			<span id="tabs-buttons" class="ui-widget-header ui-corner-all">
+				<input type="radio" name="tabs" id="tab-btn-details" value="details" /><label for="tab-btn-details">Details</label>
+				<input type="radio" name="tabs" id="tab-btn-modules" value="modules" /><label for="tab-btn-modules">Modules</label>
+				<input type="radio" name="tabs" id="tab-btn-tasks" value="tasks" /><label for="tab-btn-tasks">Tasks</label>
+				<input type="radio" name="tabs" id="tab-btn-logs" value="logs" /><label for="tab-btn-logs">Logs</label>
+				<input type="radio" name="tabs" id="tab-btn-ports" value="ports" /><label for="tab-btn-ports">Ports</label>
+				<input type="radio" name="tabs" id="tab-btn-flow" value="flow" /><label for="tab-btn-flow">Logs</label>
+				<input type="radio" name="tabs" id="tab-btn-conf" value="conf" /><label for="tab-btn-conf">Configuration</label>
+			</span>
 		</div>
 
-		<div id="tab-tasks"></div>
+		<div id="tabs-body">
+			<div id="tab-details"></div>
 
-		<div id="tab-logs"></div>
+			<div id="tab-modules"></div>
 
-		<div id="tab-ports"></div>
-
-		<div id="tab-config"></div>
-
-		<div id="tab-workflow"></div>
-	</div>
-
-	<div id="mod-tree-templates">
-		<div class="mod-tree-node">
-			<div class="mod-tree-data">
-				<div class="mod-tree-rhead">
-					<div class="mod-tree-margin"></div>
-					<div class="mod-tree-expander"></div>
-					<div class="mod-tree-id">
-						<div class="mod-tree-name"></div>
-						<div class="mod-tree-title"></div>
-					</div>
-				</div>
-				<div class="mod-tree-state">
-					<div class="mod-tree-state-name"></div>
-					<div class="mod-tree-state-title"></div>
-				</div>
-				<div class="mod-tree-tasks">
-					<div class="mod-tree-tasks-bar"></div>
-					<div class="mod-tree-tasks-total"></div>
-				</div>
+			<div id="tab-tasks">
+				<div id="tab-tasks-mod-sel"></div>
+				<div id="tab-tasks-content"></div>
 			</div>
-			<div class="mod-tree-children"></div>
+
+			<div id="tab-logs">
+				<div id="tab-logs-mod-sel"></div>
+				<div id="tab-logs-filters">
+					<span>Task</span>
+					<button id="task-btn-first"></button>
+					<button id="task-btn-prev"></button>
+					<input />
+					<button id="task-btn-next"></button>
+					<button id="task-btn-end"></button>
+				</div>
+				<div id="tab-logs-content"></div>
+			</div>
+
+			<div id="tab-ports"></div>
+
+			<div id="tab-conf"></div>
+
+			<div id="tab-flow"></div>
 		</div>
 	</div>
 {% endblock %}

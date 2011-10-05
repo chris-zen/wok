@@ -17,10 +17,4 @@ Wok documentation
    server
    developers
 
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 

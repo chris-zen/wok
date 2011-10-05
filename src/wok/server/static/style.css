@@ -15,13 +15,13 @@ h5              { font-size: 0.6em; }
 body {
 	/*background: #eee;*/
 	background: white;
+	height: 100%;
 	margin: 0;
 	padding: 0;
 	font: 13px/1.5 'Helvetica Neue',Arial,Helvetica,'Liberation Sans',FreeSans,sans-serif;
 }
 
 #doc {
-	
 }
 
 #top-bar-outer {
@@ -93,7 +93,6 @@ body {
 	/*margin: 1em auto;*/
 	/*width: 98%;*/
 	/*border: 2px solid #ccc; background: white;*/
-	height: 100%;
 }
 
 #content {

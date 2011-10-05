@@ -1,29 +1,25 @@
-#mod-tree-templates {
-	display: none;
-}
-
-.mod-tree {
+.mod-st {
 	width: 100%;
 }
 
-.mod-tree-data {
+.mod-st-data {
 	margin-bottom: 0.4em;
 	height: 3em;
 }
 
-.mod-tree-rhead {
+.mod-st-rhead {
 	float: left;
 	width: 24em;
 	height: 100%;
 }
 
-.mod-tree-margin {
+.mod-st-margin {
 	float: left;
 
 	height: 100%;
 }
 
-.mod-tree-expander {
+.mod-st-expander {
 	float: left;
 
 	width: 1.5em;
@@ -32,17 +28,17 @@
 	text-align: center;
 }
 
-.mod-tree-expander-img {
+.mod-st-expander-img {
 	padding-top: 0.5em;
 }
 
-.mod-tree-id {
+.mod-st-id {
 	float: left;
 
 	height: 100%;
 }
 
-.mod-tree-name {
+.mod-st-name {
 	height: 60%;
 
 	padding-left: 0.4em;
@@ -50,7 +46,7 @@
 	font-weight: bold;
 }
 
-.mod-tree-title {
+.mod-st-title {
 	overflow: hidden;
 	height: 40%;
 
@@ -58,14 +54,14 @@
 	font-size: 0.8em;
 }
 
-.mod-tree-state {
+.mod-st-state {
 	float: left;
 
 	width: 12em;
 	height: 100%;
 }
 
-.mod-tree-state-name {
+.mod-st-state-name {
 	height: 60%;
 
 	padding-left: 0.4em;
@@ -73,7 +69,7 @@
 	font-weight: bold;
 }
 
-.mod-tree-state-title {
+.mod-st-state-title {
 	overflow: hidden;
 	height: 40%;
 
@@ -81,26 +77,26 @@
 	font-size: 0.8em;
 }
 
-.mod-tree-progress {
+.mod-st-progress {
 	float: left;
 	margin-left: 0.4em;
 	height: 100%;
 }
 
-.mod-tree-progress-bar {
+.mod-st-progress-bar {
 	float: left;
 
 	width: 20em;
 	height: 100%;
 }
 
-.mod-tree-progress-total {
+.mod-st-progress-total {
 	float: left;
 	margin-left: 0.4em;
 	line-height: 3em;
 }
 
-.mod-tree-progress-base {
+.mod-st-progress-base {
 	float: left;
 	margin: auto 0;
 	height: 100%;
@@ -108,33 +104,5 @@
 	border: 0; /* debug */
 }
 
-.mod-tree-children {
-}
-
-.mod-tree-bg-failed {
-	background-color: #ea5138;
-}
-
-.mod-tree-bg-finished {
-	background-color: #4dc626;
-}
-
-.mod-tree-bg-running {
-	background-color: #eabf14;
-}
-
-.mod-tree-bg-queued {
-	background-color: #ecdc36;
-}
-
-.mod-tree-bg-submitted {
-	background-color: #d4c99b;
-}
-
-.mod-tree-bg-ready {
-	background-color: #9ea97e;
-}
-
-.mod-tree-bg-other {
-	background-color: #485951;
+.mod-st-children {
 }

@@ -1,0 +1,42 @@
+#mon-bar-outer {
+	margin: 0 auto;
+	background-color: white;
+	text-align: center;
+	width: 100%;
+	height: 38px;
+	border-bottom: #ccc solid 1px;
+}
+
+#mon-bar {
+	margin: 0 auto;
+	width: 96%;
+	text-align: left;
+}
+
+.mon-state-bg-failed {
+	background-color: #ea5138;
+}
+
+.mon-state-bg-finished {
+	background-color: #4dc626;
+}
+
+.mon-state-bg-running {
+	background-color: #eabf14;
+}
+
+.mon-state-bg-queued {
+	background-color: #ecdc36;
+}
+
+.mon-state-bg-submitted {
+	background-color: #d4c99b;
+}
+
+.mon-state-bg-ready {
+	background-color: #9ea97e;
+}
+
+.mon-state-bg-other {
+	background-color: #485951;
+}

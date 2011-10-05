@@ -22,7 +22,7 @@
 import os.path
 import json
 
-from wok import __version__
+from wok import VERSION
 from wok.element import DataElement, DataFactory
 
 class ConfigFile(object):
@@ -97,7 +97,7 @@ class OptionsConfig(DataElement):
 		
 		from optparse import OptionParser
 
-		parser = OptionParser(usage = "usage: %prog [options] " + args_usage, version = __version__)
+		parser = OptionParser(usage = "usage: %prog [options] " + args_usage, version = VERSION)
 
 		parser.add_option("-L", "--log-level", dest="log_level", 
 			default=None, choices=["debug", "info", "warn", "error", "critical", "notset"],

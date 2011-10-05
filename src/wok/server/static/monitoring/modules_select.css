@@ -1,0 +1,52 @@
+.mod-sel {
+	width: 20em;
+	/*border-top: lightgrey solid 1px;
+	border-left: lightgrey solid 1px;*/
+	border-right: lightgrey solid 1px;
+	overflow: hidden;
+}
+
+.mod-sel-data {
+	height: 2em;
+	/*border-bottom: lightgrey solid 1px;*/
+}
+
+.mod-sel-selectable:hover {
+	background-color: lightgrey;
+	cursor: pointer;
+}
+
+.mod-sel-rhead {
+	float: left;
+	width: 24em;
+	height: 100%;
+}
+
+.mod-sel-margin {
+	float: left;
+
+	height: 100%;
+}
+
+.mod-sel-expander {
+	float: left;
+
+	padding-top: 0.4em;
+	width: 18px;
+	height: 100%;
+
+	text-align: center;
+}
+
+.mod-sel-name {
+	float: left;
+	height: 100%;
+
+	line-height: 2em;
+	
+	font-size: 1em;
+	font-weight: bold;
+}
+
+.mod-sel-children {
+}

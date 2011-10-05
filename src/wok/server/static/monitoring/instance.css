@@ -1,0 +1,50 @@
+#tabs {
+	height: 100%;
+	margin-left: 0.5em;
+}
+
+#tabs-header {
+	margin-top: 0.5em;
+}
+
+#tabs-body {
+	margin-top: 1em;
+}
+
+.tab {
+}
+
+#tab-details {}
+
+#tab-modules {}
+
+
+#tab-tasks {}
+
+#tab-tasks-mod-sel {}
+
+#tab-tasks-content {}
+
+
+#tab-logs {}
+
+#tab-logs-mod-sel {
+	float: left;
+}
+
+#tab-logs-filters {
+	float: left;
+	margin-left: 0.5em;
+}
+
+#tab-logs-content {
+	float: left;
+	margin-left: 0.5em;
+}
+
+
+#tab-ports {}
+
+#tab-flow {}
+
+#tab-conf {}

@@ -9,8 +9,8 @@
 	{% block stylesheets %}
 	{% endblock %}
 
-	<script type="text/javascript"  src="{{ url_for('.static', filename='js/jquery-1.6.2.min.js') }}"></script>
-	<script type="text/javascript"  src="{{ url_for('.static', filename='js/jquery-ui-1.8.16.custom.min.js') }}"></script>
+	<script type="text/javascript"  src="{{ url_for('.static', filename='jquery-1.6.2.min.js') }}"></script>
+	<script type="text/javascript"  src="{{ url_for('.static', filename='jquery-ui-1.8.16.custom.min.js') }}"></script>
 	
 	{% block scripts %}
 	{% endblock %}
@@ -21,7 +21,7 @@
 			<div id="top-bar">
 				<div id="logo">
 					<a href="{{ url_for('home.index') }}" title="Home">
-						<img id="logo-img" src="{{url_for('.static', filename='wok_logo.png')}}" alt="Wok"/>
+						<img id="logo-img" src="{{url_for('.static', filename='img/wok_logo.png')}}" alt="Wok"/>
 					</a>
 				</div>
 				<div id="nav-links">

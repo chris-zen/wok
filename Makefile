@@ -19,7 +19,7 @@ upload-docs:
 	#scp -r docs/build/wok-docs.zip pocoo.org:/var/www/flask.pocoo.org/docs/
 
 docs:
-	$(MAKE) -C doc html dirhtml latex
+	$(MAKE) -C doc clean html dirhtml latex
 	$(MAKE) -C doc/build/latex all-pdf
-	cd doc/build/; mv html wok-docs; zip -r wok-docs.zip wok-docs; mv wok-docs html
+	cd doc/build/; mv html wok-docs; rm wok-docs.zip; zip -r wok-docs.zip wok-docs; mv wok-docs html
 	cp doc/build/latex/wok.pdf doc/
