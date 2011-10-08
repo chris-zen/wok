@@ -25,27 +25,53 @@ data elements, a type of enhanced maps to manage structured data.
 
 It allows to load data from xml and json and manage the data hierarchically like:
 
-json = <load a json {"a": "1", "b" : {"c": 2, "d" : [10,20,30] } }>
-data = load_from_json(json)
-print data # prints the whole data tree
-print data["b.c"] # 2
-print data["b.d[2]"] # 30
-data["x.y"] = 5
-print data["x"] # {"y": 5}
+>>> json = {"a": "1", "b" : {"c": 2, "d" : [10,20,30] } }
+>>> data = dataelement_from_json(json)
+>>> print data # prints the whole data tree
+{
+  b = {
+    d = [
+      10
+      20
+      30
+    ]
+    c = 2
+  }
+  a = 1
+}
+
+>>> print data["b.c"] 
+2
+>>> print data["b.d[2]"] 
+30
+>>> data["x.y"] = 5
+>>> print data["x"] 
+{
+ y = 5
+}
 
 It allows to specify different node separation characters.
 By default it uses a dot '.'. The following example shows how to create
 a new element programmatically:
 
-data = DataElement(key_sep = '/')
-data["a/b"] = 6
-data["f/j/k"] = 8
-a_data = data["a"]
-print a_data # {"b": 6}
-x_data = a_data.create_element()
-x_data["y"] = "Hello"
-a_data["x"] = x_data
-print a_data # {"b": 6, "x": {"y": "Hello"}}
+>>> data = DataElement(key_sep = '/')
+>>> data["a/b"] = 6
+>>> data["f/j/k"] = 8
+>>> a_data = data["a"]
+>>> print a_data 
+{
+  b = 6
+}
+>>> x_data = a_data.create_element()
+>>> x_data["y"] = "Hello"
+>>> a_data["x"] = x_data
+>>> print a_data 
+{
+  x = {
+    y = Hello
+  }
+  b = 6
+}
 
 It offers many more functionalities such as:
 - variables expansion
