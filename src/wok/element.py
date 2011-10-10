@@ -52,7 +52,7 @@ DataElement and DataList objects contain nested data that can be interrogated hi
  y = 5
 }
 
-It is possible to specify a different node separation character (default is '.'). # TODO: is the choice of the key_sep permanent?
+It is possible to specify a different node separation character (default is '/'). # TODO: is the choice of the key_sep permanent?
 It is also possible to create new elements or to change the values of an item:
 
 >>> data = DataElement(key_sep = '.')
@@ -69,8 +69,8 @@ It is also possible to create new elements or to change the values of an item:
 Note that once defined, the key_sep can not be changed. 
 So, if you try to access to a item using a wrong key separator, you will get an error:
 >>> print data["a/b"] #doctest: +IGNORE_EXCEPTION_DETAIL
-Exception raised:
-		Traceback (most recent call last):
+Traceback (most recent call last):
+	...
 KeyError: 'a/b'
 
 >>> x_data = a_data.create_element()
@@ -189,6 +189,7 @@ def dataelement_from_json(obj, key_sep='/'):
 	>>> json_list = [1, 2, 3]
 	>>> json = dataelement_from_json(json_list)
 	>>> print json
+	[1, 2, 3]
 
 	"""
 	if isinstance(obj, dict):
@@ -359,6 +360,9 @@ class DataList(Data):
 	def __len__(self):
 		return len(self.data)
 		
+	def __repr__(self):
+		return str(self.data)
+
 	def __getitem__(self, key):
 		if isinstance(key, int):
 			return self.data[key]
