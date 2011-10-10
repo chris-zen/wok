@@ -1,21 +1,21 @@
 ###############################################################################
 #
-#    Copyright 2009-2011, Universitat Pompeu Fabra
+#	 Copyright 2009-2011, Universitat Pompeu Fabra
 #
-#    This file is part of Wok.
+#	 This file is part of Wok.
 #
-#    Wok is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
+#	 Wok is free software: you can redistribute it and/or modify
+#	 it under the terms of the GNU General Public License as published by
+#	 the Free Software Foundation, either version 3 of the License, or
+#	 (at your option) any later version.
 #
-#    Wok is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
+#	 Wok is distributed in the hope that it will be useful,
+#	 but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#	 GNU General Public License for more details.
 #
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses
+#	 You should have received a copy of the GNU General Public License
+#	 along with this program.  If not, see <http://www.gnu.org/licenses
 #
 ###############################################################################
 
@@ -23,57 +23,68 @@
 This module contains all the classes necessary to work with
 data elements, a type of enhanced maps to manage structured data.
 
-It allows to load data from xml and json and manage the data hierarchically like:
+The functions dataelement_from_json and dataelement_from_xml can convert XML and JSON strings to DataElement or DataList objects.
 
 >>> json = {"a": "1", "b" : {"c": 2, "d" : [10,20,30] } }
 >>> data = dataelement_from_json(json)
->>> print data # prints the whole data tree
+>>> print data # prints the whole data tree #doctest: +NORMALIZE_WHITESPACE
 {
   b = {
-    d = [
-      10
-      20
-      30
-    ]
-    c = 2
+	d = [
+	  10
+	  20
+	  30
+	]
+	c = 2
   }
   a = 1
 }
 
+
+DataElement and DataList objects contain nested data that can be interrogated hierarchically:
 >>> print data["b.c"] 
 2
 >>> print data["b.d[2]"] 
 30
 >>> data["x.y"] = 5
->>> print data["x"] 
+>>> print data["x"]  #doctest: +NORMALIZE_WHITESPACE
 {
  y = 5
 }
 
-It allows to specify different node separation characters.
-By default it uses a dot '.'. The following example shows how to create
-a new element programmatically:
+It is possible to specify a different node separation character (default is '.'). # TODO: is the choice of the key_sep permanent?
+It is also possible to create new elements or to change the values of an item:
 
 >>> data = DataElement(key_sep = '/')
 >>> data["a/b"] = 6
 >>> data["f/j/k"] = 8
 >>> a_data = data["a"]
->>> print a_data 
+>>> print a_data  #doctest: +NORMALIZE_WHITESPACE
 {
   b = 6
 }
+>>> print data["a/b"]
+6
+
+Note that once defined, the key_sep can not be changed. 
+>>> print data["a.b"]
+Exception raised:
+		Traceback (most recent call last):
+			...
+KeyError: 'a.b'
+
 >>> x_data = a_data.create_element()
 >>> x_data["y"] = "Hello"
 >>> a_data["x"] = x_data
->>> print a_data 
+>>> print a_data  #doctest: +NORMALIZE_WHITESPACE
 {
-  x = {
-    y = Hello
+x = {
+	y = Hello
   }
   b = 6
 }
 
-It offers many more functionalities such as:
+There are many more functionalities, such as:
 - variables expansion
 - key existence checking
 - basic tree transformations
@@ -129,6 +140,11 @@ def _expand(key, value, context, path = None):
 	return "".join(res)
 
 def dataelement_from_xml(xmle):
+	"""
+	Convert a XML string to a DataList object
+
+#TODO: example
+	"""
 	elen = len(xmle)
 	if elen == 0:
 		return xmle.text
@@ -152,7 +168,29 @@ def dataelement_from_xml(xmle):
 
 	return data
 
-def dataelement_from_json(obj):
+def dataelement_from_json(obj): #TODO: allow to specify a different key_sep. In the doctests, key_sep is '.', but in this function, key_sep is '/'
+	"""
+	Converts a JSON dictionary or List to a DataElement or a DataList element respectively.
+
+	# Example: converting a Dictionary
+	>>> json_dict = {'a': {'b': [1, 2]}}
+	>>> json = dataelement_from_json(json_dict)
+	>>> print json #doctest: +NORMALIZE_WHITESPACE
+	{
+	  a = {
+		b = [
+		  1
+		  2
+		]
+	  }
+	}
+
+	# Example: converting a list
+	>>> json_list = [1, 2, 3]
+	>>> json = dataelement_from_json(json_list)
+	>>> print json
+
+	"""
 	if isinstance(obj, dict):
 		return DataElement(obj, key_sep = "/")
 	elif isinstance(obj, list):
