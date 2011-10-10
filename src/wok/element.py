@@ -23,8 +23,12 @@
 This module contains all the classes necessary to work with
 data elements, a type of enhanced maps to manage structured data.
 
-The functions dataelement_from_json and dataelement_from_xml can convert XML and JSON strings to DataElement or DataList objects.
+DataElement and DataList are two custom classes that resemble python dictionary and list, but add extended functionality.
 
+The function dataelement_from_json() converts a python dictionary or list to a DataElement or DataList object.
+The function dataelement_from_xml() converts a XML-like string to a DataElement or DataList object.
+
+Examples: 
 >>> json = {"a": "1", "b" : {"c": 2, "d" : [10,20,30] } }
 >>> data = dataelement_from_json(json)
 >>> print data # prints the whole data tree #doctest: +NORMALIZE_WHITESPACE
