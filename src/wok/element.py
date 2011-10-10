@@ -42,11 +42,11 @@ The functions dataelement_from_json and dataelement_from_xml can convert XML and
 
 
 DataElement and DataList objects contain nested data that can be interrogated hierarchically:
->>> print data["b.c"] 
+>>> print data["b/c"] 
 2
->>> print data["b.d[2]"] 
+>>> print data["b/d[2]"] 
 30
->>> data["x.y"] = 5
+>>> data["x/y"] = 5
 >>> print data["x"]  #doctest: +NORMALIZE_WHITESPACE
 {
  y = 5
@@ -55,23 +55,23 @@ DataElement and DataList objects contain nested data that can be interrogated hi
 It is possible to specify a different node separation character (default is '.'). # TODO: is the choice of the key_sep permanent?
 It is also possible to create new elements or to change the values of an item:
 
->>> data = DataElement(key_sep = '/')
->>> data["a/b"] = 6
->>> data["f/j/k"] = 8
+>>> data = DataElement(key_sep = '.')
+>>> data["a.b"] = 6
+>>> data["f.j.k"] = 8
 >>> a_data = data["a"]
 >>> print a_data  #doctest: +NORMALIZE_WHITESPACE
 {
   b = 6
 }
->>> print data["a/b"]
+>>> print data["a.b"]
 6
 
 Note that once defined, the key_sep can not be changed. 
->>> print data["a.b"]
+So, if you try to access to a item using a wrong key separator, you will get an error:
+>>> print data["a/b"] #doctest: +IGNORE_EXCEPTION_DETAIL
 Exception raised:
 		Traceback (most recent call last):
-			...
-KeyError: 'a.b'
+KeyError: 'a/b'
 
 >>> x_data = a_data.create_element()
 >>> x_data["y"] = "Hello"
@@ -168,7 +168,7 @@ def dataelement_from_xml(xmle):
 
 	return data
 
-def dataelement_from_json(obj): #TODO: allow to specify a different key_sep. In the doctests, key_sep is '.', but in this function, key_sep is '/'
+def dataelement_from_json(obj, key_sep='/'): 
 	"""
 	Converts a JSON dictionary or List to a DataElement or a DataList element respectively.
 
@@ -192,9 +192,9 @@ def dataelement_from_json(obj): #TODO: allow to specify a different key_sep. In 
 
 	"""
 	if isinstance(obj, dict):
-		return DataElement(obj, key_sep = "/")
+		return DataElement(obj, key_sep = key_sep)
 	elif isinstance(obj, list):
-		return DataList(obj, key_sep = "/")
+		return DataList(obj, key_sep = key_sep)
 	else:
 		raise Exception("Simple value can not be translated to DataElement: {}".format(obj))
 
