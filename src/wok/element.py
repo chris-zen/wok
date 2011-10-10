@@ -170,7 +170,7 @@ def dataelement_from_xml(xmle):
 
 def dataelement_from_json(obj, key_sep='/'): 
 	"""
-	Converts a JSON dictionary or List to a DataElement or a DataList element respectively.
+	Converts a python dictionary or list to a JSON-like DataElement or DataList element respectively.
 
 	# Example: converting a Dictionary
 	>>> json_dict = {'a': {'b': [1, 2]}}
@@ -185,7 +185,7 @@ def dataelement_from_json(obj, key_sep='/'):
 	  }
 	}
 
-	# Example: converting a list
+	# Example: converting a List
 	>>> json_list = [1, 2, 3]
 	>>> json = dataelement_from_json(json_list)
 	>>> print json
