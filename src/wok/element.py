@@ -25,12 +25,9 @@ data elements, a type of enhanced maps to manage structured data.
 
 DataElement and DataList are two custom classes that resemble python dictionary and list, but add extended functionality.
 
-The function dataelement_from_json() converts a python dictionary or list to a DataElement or DataList object.
-The function dataelement_from_xml() converts a XML-like string to a DataElement or DataList object.
-
 Examples: 
 >>> json = {"a": "1", "b" : {"c": 2, "d" : [10,20,30] } }
->>> data = dataelement_from_json(json)
+>>> data = DataElement(json)
 >>> print data # prints the whole data tree #doctest: +NORMALIZE_WHITESPACE
 {
   b = {
@@ -56,10 +53,16 @@ DataElement and DataList objects contain nested data that can be interrogated hi
  y = 5
 }
 
+Note: DataElement and DataLists objects can also be obtained by DataFactory.from_native.
+
+>>> data = DataFactory.from_native(json)
+>>> print data['a']
+1
+
 It is possible to specify a different node separation character (default is '/'). # TODO: is the choice of the key_sep permanent?
 It is also possible to create new elements or to change the values of an item:
 
->>> data = DataElement(key_sep = '.')
+>>> data = DataElement(key_sep = '/')
 >>> data["a/b"] = 6
 >>> data["f/j/k"] = 8
 >>> a_data = data["a"]
