@@ -46,11 +46,11 @@ Examples:
 
 
 DataElement and DataList objects contain nested data that can be interrogated hierarchically:
->>> print data["b/c"] 
+>>> print data["b.c"] 
 2
->>> print data["b/d[2]"] 
+>>> print data["b.d[2]"] 
 30
->>> data["x/y"] = 5
+>>> data["x.y"] = 5
 >>> print data["x"]  #doctest: +NORMALIZE_WHITESPACE
 {
  y = 5
@@ -60,22 +60,22 @@ It is possible to specify a different node separation character (default is '/')
 It is also possible to create new elements or to change the values of an item:
 
 >>> data = DataElement(key_sep = '.')
->>> data["a.b"] = 6
->>> data["f.j.k"] = 8
+>>> data["a/b"] = 6
+>>> data["f/j/k"] = 8
 >>> a_data = data["a"]
 >>> print a_data  #doctest: +NORMALIZE_WHITESPACE
 {
   b = 6
 }
->>> print data["a.b"]
+>>> print data["a/b"]
 6
 
 Note that once defined, the key_sep can not be changed. 
 So, if you try to access to a item using a wrong key separator, you will get an error:
->>> print data["a/b"] #doctest: +IGNORE_EXCEPTION_DETAIL
+>>> print data["a.b"] #doctest: +IGNORE_EXCEPTION_DETAIL
 Traceback (most recent call last):
 	...
-KeyError: 'a/b'
+KeyError: 'a.b'
 
 >>> x_data = a_data.create_element()
 >>> x_data["y"] = "Hello"
