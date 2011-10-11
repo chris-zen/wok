@@ -87,7 +87,7 @@ class NativeCmdBuilder(CmdBuilder):
 				"-D", "module_path=" + ".".join([task.parent.namespace, task.parent.name]),
 				"-D", "task_index=" + str(task.index)]
 
-		for key, value in self._storage_conf(task.instance.storage.basic_conf):
+		for key, value in self._storage_conf(task.instance.engine.storage.basic_conf):
 			args += ["-D", "storage.{}={}".format(key, value)]
 
 		return cmd, args, env.to_native()

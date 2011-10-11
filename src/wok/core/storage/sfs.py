@@ -129,6 +129,16 @@ class SfsStorage(Storage):
 
 		return e
 
+	# Logs =====================================================================
+
+	def append_logs(self, instance_name, module_path, task_index):
+		if context != StorageContext.CONTROLLER:
+			raise Exception()
+	
+	def query_logs(self, instance_name, module_path, task_index):
+		#TODO
+		return None
+
 	# Ports ====================================================================
 
 	def create_port_data(self, port):

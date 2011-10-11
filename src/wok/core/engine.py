@@ -21,48 +21,31 @@
 
 import os
 import os.path
+import re
 
+from Queue import Queue, Empty
 from threading import Thread, Condition
+from multiprocessing import cpu_count
 
 from wok import logger
-from wok.element import DataElement, DataList, DataFactory, DataElementJsonEncoder
+from wok.element import DataList
 from wok.config import ConfigBuilder
 from wok.core import runstates
 from wok.core.sync import Synchronizable, synchronized
 from wok.core.flow.loader import FlowLoader
 from wok.core.instance import Instance, InstanceController
 from wok.core.jobmgr.factory import create_job_manager
+from wok.core.storage.base import StorageContext
+from wok.core.storage.factory import create_storage
 
-def _map_add_list(m, k, v):
-	if k not in m:
-		m[k] = [v]
-	else:
-		m[k] += [v]
 
-#def synchronized(f):
-#	"""WokEngine synchronization decorator."""
-#	def wrap(f):
-#		def sync_function(engine, *args, **kw):
-#			#engine._log.debug("<ACQUIRE %s>" % f.__name__)
-#			engine._lock.acquire()
-#			try:
-#				return f(engine, *args, ** kw)
-#			finally:
-#				#engine._log.debug("<RELEASE %s>" % f.__name__)
-#				try:
-#					engine._lock.release()
-#				except:
-#					engine._log.error("<RELEASE ERROR %s>" % f.__name__)
-#		return sync_function
-#	return wrap(f)
+# 2011-10-06 18:39:46,849 bfast_localalign-0000 INFO  : hello world
+_LOG_RE = re.compile("^(\d\d\d\d-\d\d-\d\d) (\d\d:\d\d:\d\d,\d\d\d) (.*) (DEBUG|INFO|WARN|ERROR) +: (.*)$")
 
 class WokEngine(Synchronizable):
 	"""
-	The Wok engine manages the execution of a workflow.
-
-	It is created from a configuration object and then the run() method
-	is called with a workflow already loaded in memory. At the end the exit()
-	method has to be called to release resources.
+	The Wok engine manages the execution of workflow instances.
+	Each instance represents a workflow loaded with a certain configuration.
 	"""
 
 	def __init__(self, conf):
@@ -96,11 +79,29 @@ class WokEngine(Synchronizable):
 		
 		self._run_thread = None
 		self._running = False
-		
+
+		self._job_task_map = {}
+
+		self._logs_threads = []
+		self._logs_queue = Queue()
+
+		self._join_thread = None
+		self._join_queue = Queue()
+
 		self._notified = False
 
 		self._job_mgr = self._create_job_manager(wok_conf)
+		
+		self._storage = self._create_storage(wok_conf)
 
+		self._db = SqliteEngineDB(self)
+
+		self._restore_state()
+
+	def _restore_state(self):
+		#TODO restore db state
+		pass
+	
 	def _create_job_manager(self, wok_conf):
 		jobmgr_name = wok_conf.get("job_manager", "mcore", dtype=str)
 		
@@ -122,6 +123,32 @@ class WokEngine(Synchronizable):
 
 		return create_job_manager(jobmgr_name, self, jobmgr_conf)
 
+	@staticmethod
+	def _create_storage(wok_conf):
+		storage_conf = wok_conf.get("storage")
+		if storage_conf is None:
+			storage_conf = wok_conf.create_element()
+
+		storage_type = storage_conf.get("type", "sfs")
+
+		if "work_path" not in storage_conf:
+			wok_work_path = wok_conf.get("work_path", os.path.join(os.getcwd(), "wok"))
+			storage_conf["work_path"] = os.path.join(wok_work_path, "storage")
+
+		return create_storage(storage_type, StorageContext.CONTROLLER, storage_conf)
+
+	@property
+	def work_path(self):
+		return self._work_path
+	
+	@property
+	def job_manager(self):
+		return self._job_mgr
+
+	@property
+	def storage(self):
+		return self._storage
+	
 	@property
 	def flow_loader(self):
 		return self._flow_loader
@@ -130,6 +157,7 @@ class WokEngine(Synchronizable):
 	def create_instance(self, inst_name, conf_builder, flow_file):
 		"Creates a new workflow instance"
 
+		#TODO check in the db
 		if inst_name in self._instances_map:
 			raise Exception("Instance with this name already exists: {}".format(inst_name))
 
@@ -148,6 +176,8 @@ class WokEngine(Synchronizable):
 			self._instances += [inst]
 			self._instances_map[inst_name] = inst
 			self._cvar.notify()
+
+			self._db.instance_persist(inst)
 		except:
 			self._log.error("Error while creating instance {} for the workflow {} with configuration {}".format(inst_name, flow_file, cb()))
 			raise
@@ -155,6 +185,30 @@ class WokEngine(Synchronizable):
 		self._log.debug("\n" + repr(inst))
 
 		return inst
+
+	def __queue_adaptative_get(self, queue, start_timeout = 1, max_timeout = 4):
+		timeout = start_timeout
+		msg = None
+		while self._running and msg is None:
+			try:
+				msg = queue.get(timeout=timeout)
+			except Empty:
+				if timeout < max_timeout:
+					timeout += 1
+		return msg
+
+	def __queue_batch_get(self, queue, start_timeout = 1, max_timeout = 4):
+		timeout = start_timeout
+		msg_batch = []
+		while self._running and len(msg_batch) == 0:
+			try:
+				msg_batch += [queue.get(timeout=timeout)]
+				while not queue.empty():
+					msg_batch += [queue.get(timeout=timeout)]
+			except Empty:
+				if timeout < max_timeout:
+					timeout += 1
+		return msg_batch
 
 	@synchronized
 	def _run(self):
@@ -165,9 +219,22 @@ class WokEngine(Synchronizable):
 		try:
 			job_mgr.start()
 
-			self._log.info("Engine ready")
+			# Start the logs threads
 
-			job_task_map = {}
+			for i in range(cpu_count()):
+			#for i in range(1):
+				t = Thread(target = self._logs, name = "wok-engine-logs-%d" % i)
+				self._logs_threads += [t]
+				t.start()
+
+			# Start the join thread
+
+			self._join_thread = Thread(
+									target = self._join,
+									name = "wok-engine-join")
+			self._join_thread.start()
+
+			self._log.info("Engine run thread ready")
 
 			while self._running:
 
@@ -180,7 +247,7 @@ class WokEngine(Synchronizable):
 						#self._log.debug("ready_tasks:\n" + "\n".join(["\t" + t.id for t in tasks]))
 						job_ids = job_mgr.submit(tasks)
 						for i, task in enumerate(tasks):
-							job_task_map[job_ids[i]] = task
+							self._job_task_map[job_ids[i]] = task
 							task.job_id = job_ids[i]
 				
 				#self._log.debug("Waiting for events ...")
@@ -192,22 +259,25 @@ class WokEngine(Synchronizable):
 				if not self._running:
 					break
 
-				# set of modules which state has been affected by jobs state
-				updated_modules = set()
-
 				job_states = job_mgr.state()
 				
 				#self._log.debug("Job states:\n" + "\n".join("\t{}: {}".format(jid, jst) for jid, jst in job_states))
 
+				updated_modules = set()
+
+				# detect tasks which state has changed
 				for job_id, state in job_states:
-					task = job_task_map[job_id]
+					task = self._job_task_map[job_id]
 					if task.state != state:
 						task.state = state
 						updated_modules.add(task.parent)
+						self._log.debug("Task %s changed state to %s" % (task.id, state))
 
+						# if task has finished, queue it for logs retrieval
+						# otherwise queue it directly for joining
 						if state in [runstates.FINISHED, runstates.FAILED]:
-							task.job_result = job_mgr.join(job_id)
-							del job_task_map[job_id]
+							self._logs_queue.put((task, job_id))
+							#self._join_queue.put((task, job_id))
 
 				#self._log.debug("Updating modules state ...\n" + "\n".join("\t{}".format(m.id) for m in sorted(updated_modules)))
 				#self._log.debug("Updating modules state ...")
@@ -217,6 +287,7 @@ class WokEngine(Synchronizable):
 				for m in updated_modules:
 					inst = m.instance
 					inst.update_module_state_from_children(m)
+					self._log.debug("Module %s updated state to %s ..." % (m.id, m.state))
 					updated_instances.add(inst)
 
 				#for inst in updated_instances:
@@ -232,16 +303,118 @@ class WokEngine(Synchronizable):
 		try:
 			# print instances state before leaving the thread
 			for inst in self._instances:
-				self._log.debug(repr(inst))
+				self._log.debug("Instances state:\n" + repr(inst))
 
-			self._log.info("Engine thread finished")
+			for t in self._logs_threads:
+				t.join()
+
+			self._join_thread.join()
+
+			self._log.info("Engine run thread finished")
 		except:
 			pass
+
+	def _logs(self):
+		"Log retrieval thread"
+
+		#_log = logger.get_logger(self.conf.get("wok.log"), "wok-engine")
+
+		self._log.info("Engine logs thread ready")
+
+		num_exc = 0
+
+		while self._running:
+			# get the next task to retrieve the logs
+			job_info = self.__queue_adaptative_get(self._logs_queue)
+			if job_info is None:
+				continue
+
+			task, job_id = job_info
+
+			try:
+				#TODO? self._lock.acquire()
+
+				task.state_msg = "Reading logs"
+				output = self._job_mgr.output(job_id)
+
+				#TODO? self._lock.release()
+
+				self._log.debug("Reading logs for task %s ..." % task.id)
+
+				logs = []
+				line = output.readline()
+				while len(line) > 0:
+					m = _LOG_RE.match(line)
+					if m:
+						timestamp = m.group(1) + " " + m.group(2)
+						name = m.group(3)
+						level = m.group(4).lower()
+						text = m.group(5).decode("utf-8", "replace")
+					else:
+						timestamp = ""
+						name = ""
+						level = ""
+						text = line.decode("utf-8", "replace")
+
+					logs += [(timestamp, name, level, text)]
+
+					line = output.readline()
+
+					if len(line) == 0 or len(logs) >= 1000:
+						self._lock.acquire()
+
+						#TODO incorporate logs into the storage
+						#self._storage.logs_append(instance_name, module_path, task_index, logs)
+
+						self._log.debug("Task %s partial logs:\n%s" % (task.id, "\n".join("\t".join(log) for log in logs)))
+
+						self._lock.release()
+
+						logs = []
+			except:
+				num_exc += 1
+				self._log.exception("Exception in wok-engine logs thread (%d)" % num_exc)
+
+			finally:
+				self._join_queue.put(job_info)
+
+		self._log.info("Engine logs thread finished")
+
+	def _join(self):
+		"Joiner thread"
+
+		self._log.info("Engine join thread ready")
+
+		num_exc = 0
+
+		while self._running:
+			try:
+				job_info = self.__queue_adaptative_get(self._join_queue)
+				if job_info is None:
+					continue
+
+				task, job_id = job_info
+
+				self._lock.acquire()
+
+				task.job_result = self._job_mgr.join(job_id)
+				del self._job_task_map[job_id]
+				task.state_msg = ""
+
+				self._log.debug("Task %s joined" % task.id)
+
+				self._lock.release()
+
+			except:
+				num_exc += 1
+				self._log.exception("Exception in wok-engine join thread (%d)" % num_exc)
+
+		self._log.info("Engine join thread finished")
 
 	@synchronized
 	def start(self, wait = True):
 		self._log.info("Starting engine ...")
-		
+
 		self._run_thread = Thread(target = self._run, name = "wok-engine-run")
 		self._run_thread.start()
 

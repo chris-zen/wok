@@ -84,6 +84,7 @@ class BaseModuleNode(ModelNode):
 		self.instance = instance
 
 		self.state = runstates.READY
+		self.state_msg = ""
 
 		self.priority = None
 		self.priority_factor = None
@@ -199,7 +200,7 @@ class BaseModuleNode(ModelNode):
 	def to_element(self, e = None):
 		e = ModelNode.to_element(self, e)
 		e["state"] = str(self.state)
-		e["state_msg"] = "" #TODO
+		e["state_msg"] = self.state_msg
 		e["priority"] = self.priority
 		e["depends"] = [m.id for m in self.depends]
 		e["enabled"] = self.enabled
@@ -396,10 +397,12 @@ class TaskNode(Node):
 		self.index = index
 
 		self.state = runstates.READY
+		self.state_msg = ""
 
 		self.in_port_data = []
 		self.out_port_data = []
 
+		self.job_id = None
 		self.job_result = None
 
 	@property

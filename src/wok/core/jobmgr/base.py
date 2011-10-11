@@ -80,24 +80,43 @@ class JobManager(object):
 		return cmd, args, env
 
 	def start(self):
-		raise Exception("Unimplemented")
+		"Start the job manager."
+
+		raise Exception("Abstract method unimplemented")
 
 	def submit(self, tasks):
-		raise Exception("Unimplemented")
+		"Submit a task."
+
+		raise Exception("Abstract method unimplemented")
 
 	def state(self, job_ids = None):
-		raise Exception("Unimplemented")
+		"Returns the execution state of a job by its id."
+
+		raise Exception("Abstract method unimplemented")
+
+	def job(self, job_id):
+		"""Returns a job by its id. A job can only be retrieved while
+		it has not been joined. Once joined the job structure is deleted."""
+
+		raise Exception("Abstract method unimplemented")
 
 	def join(self, job_id):
-		raise Exception("Unimplemented")
+		"Retrieve the job results and delete the job from memory."
+
+		raise Exception("Abstract method unimplemented")
 
 	def join_all(self, job_ids = None):
-		raise Exception("Unimplemented")
+		"Retrieve the jobs results and delete them from memory."
+
+		raise Exception("Abstract method unimplemented")
 
 	def close(self):
-		raise Exception("Unimplemented")
+		"Close the job manager and free resources."
+		raise Exception("Abstract method unimplemented")
 
 class JobResult(object):
+	"Represents the results of a job execution."
+
 	def __init__(self):
 		self.state = None
 		self.start_time = 0
@@ -115,10 +134,15 @@ class JobResult(object):
 
 
 class Job(object):
+	"Represents a task job while managed by the job manager."
+
 	def __init__(self, id, task, result = None):
 		self.id = id
 		self.task = task
 		self.state = runstates.WAITING
+		
+		self.work_path = None
+		self.output_file = None
 
 		if result is None:
 			result = JobResult()

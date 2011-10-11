@@ -28,21 +28,6 @@
 
 #tab-logs {}
 
-#tab-logs-mod-sel {
-	float: left;
-}
-
-#tab-logs-filters {
-	float: left;
-	margin-left: 0.5em;
-}
-
-#tab-logs-content {
-	float: left;
-	margin-left: 0.5em;
-}
-
-
 #tab-ports {}
 
 #tab-flow {}

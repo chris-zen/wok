@@ -1,6 +1,14 @@
-$.widget("ui.modules_state", {
+$.widget("ui.modules", {
 	options: {
-		data: undefined
+		//data: undefined
+	},
+
+	show: function() {
+		$(this.element).show();
+	},
+
+	hide: function() {
+		$(this.element).hide();
 	},
 
 	/* TODO */
@@ -171,7 +179,7 @@ $.widget("ui.modules_state", {
 
 	update: function(data) {
 		if (data !== undefined)
-			this._model = this._updateModel(data, this._model);
+			this._model = this._updateModel(data.root.modules, this._model);
 		
 		if (this._model !== undefined) {
 			this.body.empty();
@@ -187,8 +195,8 @@ $.widget("ui.modules_state", {
 		/*this.message = $('<div class="mod-st-msg"></div>').appendTo(e);*/
 		this.body = e; //$('<div class="mod-st-body"></div>').appendTo(e);
 
-		if (this.options.data !== undefined)
-			this._model = this._updateModel(this.options.data);
+		/*if (this.options.data !== undefined)
+			this._model = this._updateModel(this.options.data.root.modules);*/
 
 		this.update();
 	},

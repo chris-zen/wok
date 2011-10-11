@@ -53,7 +53,7 @@ $.widget("ui.modules_select", {
 			nodeDiv.addClass("mod-sel-selectable");
 			var e = this.element;
 			nodeDiv.click(function () {
-				$(e).trigger("select", [model]);
+				$(e).trigger("select", [model.data]);
 			});
 		}
 
