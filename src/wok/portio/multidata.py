@@ -124,7 +124,7 @@ class MultiDataReader(DataReader):
 			raise StopIteration()
 
 		if self._reader is None:
-			self._open()
+			self.open()
 
 		value = None
 		while value is None:
