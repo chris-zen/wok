@@ -26,8 +26,7 @@ data elements, a type of enhanced maps to manage structured data.
 DataElement and DataList are two custom classes that resemble python dictionary and list, but add extended functionality.
 
 Examples: 
->>> json = {"a": "1", "b" : {"c": 2, "d" : [10,20,30] } }
->>> data = DataElement(json)
+>>> data = DataElement({"a": "1", "b" : {"c": 2, "d" : [10,20,30] } })
 >>> print data # prints the whole data tree #doctest: +NORMALIZE_WHITESPACE
 {
   b = {
@@ -55,7 +54,7 @@ DataElement and DataList objects contain nested data that can be interrogated hi
 
 Note: DataElement and DataLists objects can also be obtained by DataFactory.from_native.
 
->>> data = DataFactory.from_native(json)
+>>> data = DataFactory.from_native({"a": "1", "b" : {"c": 2, "d" : [10,20,30] } })
 >>> print data['a']
 1
 
@@ -80,9 +79,8 @@ Traceback (most recent call last):
 	...
 KeyError: 'a.b'
 
->>> x_data = a_data.create_element()
+>>> x_data = a_data.create_element("x")
 >>> x_data["y"] = "Hello"
->>> a_data["x"] = x_data
 >>> print a_data  #doctest: +NORMALIZE_WHITESPACE
 {
 x = {
@@ -91,11 +89,65 @@ x = {
   b = 6
 }
 
-There are many more functionalities, such as:
-- variables expansion
-- key existence checking
-- basic tree transformations
-- trees merge
+Checking for keys:
+
+>>> print "a" in data
+True
+
+>>> print "a.x.y" in data
+True
+
+>>> print "m.x.y" in data
+False
+
+Variables expansion:
+
+>>> data = DataElement({"a" : {"x" : "X value", "y" : "Y value"}})
+>>> print data
+{
+  a = {
+    x = X Value
+    y = Y Value
+  }
+}
+
+>>> data["x"] = "${a.x}"
+>>> print data
+{
+  a = {
+    x = X Value
+    y = Y Value
+  }
+  x = ${a.x}
+}
+
+>>> data.expand_vars()
+>>> print data
+{
+  a = {
+    x = X Value
+    y = Y Value
+  }
+  x = X Value
+}
+
+Data elements can be merged like:
+
+>>> data2 = DataElement({"a" : {"z" : "Z Value"}, "x" : "Overwritten X Value"})
+>>> data.merge(data2)
+>>> print data
+{
+  a = {
+    x = X Value
+    y = Y Value
+    z = Z Value
+  }
+  x = Overwritten X Value
+}
+
+Basic tree transformations:
+
+# TODO ...
 """
 
 import re
@@ -146,80 +198,14 @@ def _expand(key, value, context, path = None):
 	
 	return "".join(res)
 
-def dataelement_from_xml(xmle):
-	"""
-	Convert a XML string to a DataList object
-
-#TODO: example
-	"""
-	elen = len(xmle)
-	if elen == 0:
-		return xmle.text
-	else:
-		tags = {}
-		for e in xmle:
-			if e.tag in tags:
-				tags[e.tag] += [e]
-			else:
-				tags[e.tag] = [e]
-
-		data = DataElement(key_sep = "/")
-		for tag, elist in tags.items():
-			if len(elist) == 1:
-				data[tag] = dataelement_from_xml(elist[0])
-			else:
-				l = DataList(key_sep = "/")
-				for e in elist:
-					l += [dataelement_from_xml(e)]
-				data[tag] = l
-
-	return data
-
-def dataelement_from_json(obj, key_sep='/'): 
-	"""
-	Converts a python dictionary or list to a JSON-like DataElement or DataList element respectively.
-
-	# Example: converting a Dictionary
-	>>> json_dict = {'a': {'b': [1, 2]}}
-	>>> json = dataelement_from_json(json_dict)
-	>>> print json #doctest: +NORMALIZE_WHITESPACE
-	{
-	  a = {
-		b = [
-		  1
-		  2
-		]
-	  }
-	}
-
-	# Example: converting a List
-	>>> json_list = [1, 2, 3]
-	>>> json = dataelement_from_json(json_list)
-	>>> print json
-	[1, 2, 3]
-
-	"""
-	if isinstance(obj, dict):
-		return DataElement(obj, key_sep = key_sep)
-	elif isinstance(obj, list):
-		return DataList(obj, key_sep = key_sep)
-	else:
-		raise Exception("Simple value can not be translated to DataElement: {}".format(obj))
-
-def dataelement_from_json_path(path):
-	f = open(path, "r")
-	d = json.load(f)
-	e = dataelement_from_json(d)
-	f.close()
-	return e
-
-class DataElementJsonEncoder(json.JSONEncoder):
+class DataJsonEncoder(json.JSONEncoder):
 	def default(self, obj):
-		if isinstance(obj, DataElement):
-			return obj.data
-		elif isinstance(obj, DataList):
+		if isinstance(obj, (DataElement, DataList)):
 			return obj.data
 
+# DEPRECATED for backward compatibility only
+class DataElementJsonEncoder(DataJsonEncoder):
+	pass
 
 class KeyPath(object):
 	def __init__(self, path, sep = _DEFAULT_KEY_SEP):
@@ -278,12 +264,71 @@ class KeyPathNode(object):
 class DataFactory(object):
 	@staticmethod
 	def from_native(obj, key_sep = _DEFAULT_KEY_SEP):
+		"""
+		Converts a python dictionary or list to a DataElement or DataList element respectively.
+
+		# Example: converting a Dictionary
+		>>> e = DataFactory.from_native({'a': {'b': [1, 2]}})
+		>>> print e #doctest: +NORMALIZE_WHITESPACE
+		{
+		  a = {
+			b = [
+			  1
+			  2
+			]
+		  }
+		}
+
+		# Example: converting a List
+		>>> l = DataFactory.from_native([1, 2, 3])
+		>>> print l
+		[1, 2, 3]
+
+		"""
 		if isinstance(obj, dict):
 			return DataElement(obj, key_sep)
 		elif isinstance(obj, list):
 			return DataList(obj, key_sep)
 		else:
 			return obj
+
+	@staticmethod
+	def from_json_file(path):
+		f = open(path, "r")
+		d = json.load(f)
+		e = DataFactory.from_native(d)
+		f.close()
+		return e
+
+	@staticmethod
+	def from_xmle(xmle, key_sep = _DEFAULT_KEY_SEP):
+		"""
+		Convert a XML string to a DataList object
+
+		#TODO: example
+		"""
+		elen = len(xmle)
+		if elen == 0:
+			return xmle.text
+		else:
+			tags = {}
+			for e in xmle:
+				if e.tag in tags:
+					tags[e.tag] += [e]
+				else:
+					tags[e.tag] = [e]
+
+			data = DataElement(key_sep = key_sep)
+			for tag, elist in tags.items():
+				if len(elist) == 1:
+					data[tag] = DataFactory.from_xmle(elist[0], key_sep)
+				else:
+					l = DataList(key_sep = key_sep)
+					for e in elist:
+						l += [DataFactory.from_xmle(e, key_sep)]
+					data[tag] = l
+
+		return data
 
 	@staticmethod
 	def create_element(data = None, key_sep = _DEFAULT_KEY_SEP):
@@ -469,7 +514,7 @@ class DataList(Data):
 		sb += [_INDENT * level]
 		sb += ["]"]
 
-# for backward compatibility only
+# DEPRECATED for backward compatibility only
 class DataElementList(DataList):
 	pass
 
