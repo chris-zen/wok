@@ -23,57 +23,75 @@
 This module contains all the classes necessary to work with
 data elements, a type of enhanced maps to manage structured data.
 
-It allows to load data from xml and json and manage the data hierarchically like:
+DataElement and DataList are two custom classes that resemble python dictionary and list, but add extended functionality.
 
+Examples: 
 >>> json = {"a": "1", "b" : {"c": 2, "d" : [10,20,30] } }
->>> data = dataelement_from_json(json)
->>> print data # prints the whole data tree
+>>> data = DataElement(json)
+>>> print data # prints the whole data tree #doctest: +NORMALIZE_WHITESPACE
 {
   b = {
-    d = [
-      10
-      20
-      30
-    ]
-    c = 2
+	d = [
+	  10
+	  20
+	  30
+	]
+	c = 2
   }
   a = 1
 }
 
+
+DataElement and DataList objects contain nested data that can be interrogated hierarchically:
 >>> print data["b.c"] 
 2
 >>> print data["b.d[2]"] 
 30
 >>> data["x.y"] = 5
->>> print data["x"] 
+>>> print data["x"]  #doctest: +NORMALIZE_WHITESPACE
 {
  y = 5
 }
 
-It allows to specify different node separation characters.
-By default it uses a dot '.'. The following example shows how to create
-a new element programmatically:
+Note: DataElement and DataLists objects can also be obtained by DataFactory.from_native.
+
+>>> data = DataFactory.from_native(json)
+>>> print data['a']
+1
+
+It is possible to specify a different node separation character (default is '/'). # TODO: is the choice of the key_sep permanent?
+It is also possible to create new elements or to change the values of an item:
 
 >>> data = DataElement(key_sep = '/')
 >>> data["a/b"] = 6
 >>> data["f/j/k"] = 8
 >>> a_data = data["a"]
->>> print a_data 
+>>> print a_data  #doctest: +NORMALIZE_WHITESPACE
 {
   b = 6
 }
+>>> print data["a/b"]
+6
+
+Note that once defined, the key_sep can not be changed. 
+So, if you try to access to a item using a wrong key separator, you will get an error:
+>>> print data["a.b"] #doctest: +IGNORE_EXCEPTION_DETAIL
+Traceback (most recent call last):
+	...
+KeyError: 'a.b'
+
 >>> x_data = a_data.create_element()
 >>> x_data["y"] = "Hello"
 >>> a_data["x"] = x_data
->>> print a_data 
+>>> print a_data  #doctest: +NORMALIZE_WHITESPACE
 {
-  x = {
-    y = Hello
+x = {
+	y = Hello
   }
   b = 6
 }
 
-It offers many more functionalities such as:
+There are many more functionalities, such as:
 - variables expansion
 - key existence checking
 - basic tree transformations
@@ -129,6 +147,11 @@ def _expand(key, value, context, path = None):
 	return "".join(res)
 
 def dataelement_from_xml(xmle):
+	"""
+	Convert a XML string to a DataList object
+
+#TODO: example
+	"""
 	elen = len(xmle)
 	if elen == 0:
 		return xmle.text
@@ -152,11 +175,34 @@ def dataelement_from_xml(xmle):
 
 	return data
 
-def dataelement_from_json(obj):
+def dataelement_from_json(obj, key_sep='/'): 
+	"""
+	Converts a python dictionary or list to a JSON-like DataElement or DataList element respectively.
+
+	# Example: converting a Dictionary
+	>>> json_dict = {'a': {'b': [1, 2]}}
+	>>> json = dataelement_from_json(json_dict)
+	>>> print json #doctest: +NORMALIZE_WHITESPACE
+	{
+	  a = {
+		b = [
+		  1
+		  2
+		]
+	  }
+	}
+
+	# Example: converting a List
+	>>> json_list = [1, 2, 3]
+	>>> json = dataelement_from_json(json_list)
+	>>> print json
+	[1, 2, 3]
+
+	"""
 	if isinstance(obj, dict):
-		return DataElement(obj, key_sep = "/")
+		return DataElement(obj, key_sep = key_sep)
 	elif isinstance(obj, list):
-		return DataList(obj, key_sep = "/")
+		return DataList(obj, key_sep = key_sep)
 	else:
 		raise Exception("Simple value can not be translated to DataElement: {}".format(obj))
 
@@ -321,6 +367,9 @@ class DataList(Data):
 	def __len__(self):
 		return len(self.data)
 		
+	def __repr__(self):
+		return str(self.data)
+
 	def __getitem__(self, key):
 		if isinstance(key, int):
 			return self.data[key]
