@@ -92,7 +92,7 @@ class MultiDataReader(DataReader):
 		self._source_size = 0
 		self._reader = None
 
-	def _open(self):
+	def open(self):
 		if not self._sources:
 			raise StopIteration()
 

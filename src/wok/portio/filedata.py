@@ -91,7 +91,7 @@ class FileDataReader(DataReader):
 
 		self._data_f = None
 
-	def _open(self):
+	def open(self):
 		if self._data_f is not None:
 			self.close()
 
