@@ -117,6 +117,10 @@ class Task(object):
 		self.conf = self.data["conf"]
 		del self.data["conf"]
 
+		# set per task configuration values and expand
+		self.conf["__task_index"] = task_index
+		self.conf.expand_vars()
+
 		self.id = self.data["id"]
 		self.name = self.data["name"]
 		self.module_path = self.data["module"]

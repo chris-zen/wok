@@ -31,16 +31,15 @@ from wok import logger
 from wok.element import DataList
 from wok.config import ConfigBuilder
 from wok.core import runstates
-from wok.core.sync import Synchronizable, synchronized
+#from wok.core.enginedb import SqliteEngineDB
+from wok.core.utils.sync import Synchronizable, synchronized
+from wok.core.utils.logs import parse_log
 from wok.core.flow.loader import FlowLoader
 from wok.core.instance import Instance, InstanceController
 from wok.core.jobmgr.factory import create_job_manager
 from wok.core.storage.base import StorageContext
 from wok.core.storage.factory import create_storage
 
-
-# 2011-10-06 18:39:46,849 bfast_localalign-0000 INFO  : hello world
-_LOG_RE = re.compile("^(\d\d\d\d-\d\d-\d\d) (\d\d:\d\d:\d\d,\d\d\d) (.*) (DEBUG|INFO|WARN|ERROR) +: (.*)$")
 
 class WokEngine(Synchronizable):
 	"""
@@ -94,7 +93,7 @@ class WokEngine(Synchronizable):
 		
 		self._storage = self._create_storage(wok_conf)
 
-		self._db = SqliteEngineDB(self)
+		#TODO self._db = SqliteEngineDB(self)
 
 		self._restore_state()
 
@@ -177,7 +176,7 @@ class WokEngine(Synchronizable):
 			self._instances_map[inst_name] = inst
 			self._cvar.notify()
 
-			self._db.instance_persist(inst)
+			#TODO self._db.instance_persist(inst)
 		except:
 			self._log.error("Error while creating instance {} for the workflow {} with configuration {}".format(inst_name, flow_file, cb()))
 			raise
@@ -215,6 +214,8 @@ class WokEngine(Synchronizable):
 		self._running = True
 
 		job_mgr = self._job_mgr
+
+		num_exc = 0
 
 		try:
 			job_mgr.start()
@@ -277,7 +278,6 @@ class WokEngine(Synchronizable):
 						# otherwise queue it directly for joining
 						if state in [runstates.FINISHED, runstates.FAILED]:
 							self._logs_queue.put((task, job_id))
-							#self._join_queue.put((task, job_id))
 
 				#self._log.debug("Updating modules state ...\n" + "\n".join("\t{}".format(m.id) for m in sorted(updated_modules)))
 				#self._log.debug("Updating modules state ...")
@@ -294,7 +294,8 @@ class WokEngine(Synchronizable):
 				#	self._log.debug(repr(inst))
 
 		except Exception:
-			self._log.exception("Exception in wok-engine run thread")
+			num_exc += 1
+			self._log.exception("Exception in wok-engine run thread (%d)" % num_exc)
 		finally:
 			self._lock.release()
 			job_mgr.close()
@@ -314,6 +315,10 @@ class WokEngine(Synchronizable):
 		except:
 			pass
 
+		#TODO self._db.close()
+		
+		self._running = False
+
 	def _logs(self):
 		"Log retrieval thread"
 
@@ -332,43 +337,34 @@ class WokEngine(Synchronizable):
 			task, job_id = job_info
 
 			try:
-				#TODO? self._lock.acquire()
-
 				task.state_msg = "Reading logs"
 				output = self._job_mgr.output(job_id)
 
-				#TODO? self._lock.release()
-
 				self._log.debug("Reading logs for task %s ..." % task.id)
 
+				task_index = task.index
+				module = task.parent
+				module_id = module.id
+				instance_name = module.instance.name
+				logs_storage = self._storage.logs
+
 				logs = []
+#				last_timestamp = None
 				line = output.readline()
 				while len(line) > 0:
-					m = _LOG_RE.match(line)
-					if m:
-						timestamp = m.group(1) + " " + m.group(2)
-						name = m.group(3)
-						level = m.group(4).lower()
-						text = m.group(5).decode("utf-8", "replace")
-					else:
-						timestamp = ""
-						name = ""
-						level = ""
-						text = line.decode("utf-8", "replace")
+					timestamp, level, name, text = parse_log(line)
+#					if timestamp is None:
+#						timestamp = last_timestamp
+#					last_timestamp = timestamp
 
-					logs += [(timestamp, name, level, text)]
+					logs += [(timestamp, level, name, text)]
 
 					line = output.readline()
 
 					if len(line) == 0 or len(logs) >= 1000:
-						self._lock.acquire()
-
-						#TODO incorporate logs into the storage
-						#self._storage.logs_append(instance_name, module_path, task_index, logs)
-
-						self._log.debug("Task %s partial logs:\n%s" % (task.id, "\n".join("\t".join(log) for log in logs)))
-
-						self._lock.release()
+						logs_storage.append(instance_name, module_id, task_index, logs)
+						
+						#self._log.debug("Task %s partial logs:\n%s" % (task.id, "\n".join("\t".join(log) for log in logs)))
 
 						logs = []
 			except:
@@ -377,6 +373,8 @@ class WokEngine(Synchronizable):
 
 			finally:
 				self._join_queue.put(job_info)
+
+		#self._db.clean()
 
 		self._log.info("Engine logs thread finished")
 

@@ -35,28 +35,29 @@ def instance_state(name):
 
 	return make_json_response(e.to_native())
 
-@monitoring_api.route("/task/logs/<instance_name>/<module_path>/<task_index>")
-def task_logs(instance_name, module_path, task_index):
+@monitoring_api.route("/task/logs/<instance_name>/<module_id>/<task_index>")
+def task_logs(instance_name, module_id, task_index):
 	inst = wok().instance(instance_name)
 	if inst is None:
 		abort(404)
 
-	#if not inst.task_exists(module_path, task_index):
+	module_id = ".".join([inst.root_node_name, module_id])
+	
+	#if not inst.task_exists(module_id, task_index):
 	#	abort(404)
 
 	try:
 		task_index = int(task_index)
 		
-		logs = inst.task_logs(module_path, task_index)
+		logs = inst.task_logs(module_id, task_index)
 		
 		return make_json_response({
 			"ok" : True,
 			"logs" : logs })
-	except:
+	except Exception as e:
 		if wok().conf.get("wok.server.debug", False, dtype=bool):
 			raise
 		
-		import traceback
 		return make_json_response({
 			"ok" : False,
-			"error" :  traceback.format_exc()})
+			"error" :  repr(e)})

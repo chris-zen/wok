@@ -94,7 +94,7 @@ class FileDataReader(DataReader):
 
 		self._data_f = None
 
-	def _open(self):
+	def open(self):
 		if self._data_f is not None:
 			self.close()
 
@@ -119,7 +119,7 @@ class FileDataReader(DataReader):
 			raise StopIteration()
 
 		if self._data_f is None:
-			self._open()
+			self.open()
 
 		data = self._data_f.readline().rstrip()
 		data = self._serializer.unmarshall(data)

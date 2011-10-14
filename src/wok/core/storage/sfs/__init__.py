@@ -19,4 +19,4 @@
 #
 ###############################################################################
 
-from wok.core.portio.portio import *
+from wok.core.storage.sfs.sfs import *

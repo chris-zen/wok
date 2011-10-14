@@ -28,7 +28,7 @@ import re
 from wok import logger
 from wok.element import DataElement
 from wok.core import runstates
-from wok.core.sync import Synchronizable, synchronized
+from wok.core.utils.sync import Synchronizable, synchronized
 from wok.core.nodes import *
 
 # 2011-10-06 18:39:46,849 bfast_localalign-0000 INFO  : hello world
@@ -575,30 +575,31 @@ class Instance(object):
 			if recursive and module.parent is not None:
 				self.update_module_state_from_children(module.parent)
 
-	def task(self, module_path, task_index):
+	@property
+	def root_node_name(self):
+		return self.root_node.name
+	
+	def task(self, module_id, task_index):
 		"""Returns a task by module path and task index.
 		It it doesn't exist raises an exception otherwise returns the task node."""
 
-		module_path = ".".join([self.root_node.name, module_path])
+		if module_id not in self._module_index:
+			raise Exception("Module not found: %s" % module_id)
 
-		if module_path not in self._module_index:
-			raise Exception("Module not found: %s" % module_path)
-
-		m = self._module_index[module_path]
+		m = self._module_index[module_id]
 		if not isinstance(m, LeafModuleNode):
-			raise Exception("Not a leaf module: %s" % module_path)
+			raise Exception("Not a leaf module: %s" % module_id)
 
 		if m.tasks is None or task_index >= len(m.tasks):
 			raise Exception("Task index out of bounds: %d" % task_index)
 
 		return m.tasks[task_index]
 
-	def task_logs(self, module_path, task_index):
-		logs = self._storage.get_logs(self.name, module_path, task_index)
-		if logs is not None:
-			return logs
+	def task_logs(self, module_id, task_index):
+		if self._storage.logs.exist(self.name, module_id, task_index):
+			return self._storage.logs.query(self.name, module_id, task_index)
 
-		task = self.task(module_path, task_index)
+		task = self.task(module_id, task_index)
 		if task.job_id is None:
 			raise Exception("Task has not been submited yet: %s" % task.id)
 
@@ -611,19 +612,8 @@ class Instance(object):
 
 		logs = []
 		for line in open(job.output_file):
-			m = _LOG_RE.match(line)
-			if m:
-				timestamp = m.group(1) + " " + m.group(2)
-				name = m.group(3)
-				level = m.group(4).lower()
-				text = m.group(5).decode("utf-8", "replace")
-			else:
-				timestamp = ""
-				name = ""
-				level = ""
-				text = line.decode("utf-8", "replace")
-
-			logs += [(timestamp, name, level, text)]
+			timestamp, level, name, text = parse_log(line)
+			logs += [(timestamp, level, name, text)]
 		
 		return logs
 
@@ -666,6 +656,10 @@ class InstanceController(Synchronizable):
 	def state(self):
 		return self.__instance.root_node.state
 
+	@property
+	def root_node_name(self):
+		return self.__instance.root_node.name
+
 	@synchronized
 	def task_exists(self, module_path, task_index):
 		try:
@@ -675,8 +669,8 @@ class InstanceController(Synchronizable):
 		return True
 
 	@synchronized
-	def task_logs(self, module_path, task_index):
-		return self.__instance.task_logs(module_path, task_index)
+	def task_logs(self, module_id, task_index):
+		return self.__instance.task_logs(module_id, task_index)
 
 	@synchronized
 	def start(self):

@@ -679,13 +679,18 @@ class DataElement(Data):
 				e[key] = self[path]
 
 		return e
-		
+
 	def copy_from(self, e, keys = None):
 		if keys is None:
 			keys = e.keys()
 
 		for key in keys:
 			self[key] = deepcopy(e[key])
+
+		return self
+
+	def clone(self):
+		return DataElement().copy_from(self)
 
 	def merge(self, e, keys = None):
 		if not (isinstance(e, DataElement) or isinstance(e, dict)):
@@ -704,6 +709,8 @@ class DataElement(Data):
 					d.merge(ed)
 				else:
 					self.data[key] = deepcopy(ed)
+
+		return self
 
 	def missing_fields(self, keys):
 		missing = []
@@ -730,6 +737,8 @@ class DataElement(Data):
 				data.expand_vars(context, current_path)
 			elif isinstance(data, str) or isinstance(data, unicode):
 				self.data[key] = _expand(".".join(current_path), data, context)
+
+		return self
 
 	def to_native(self):
 		native = {}

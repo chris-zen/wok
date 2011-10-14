@@ -83,8 +83,8 @@ conf.builder.add_value("__cwd", os.getcwd())
 
 # expand variables
 
-#conf.expand_vars()
-#log.debug("Configuration: %s" % conf)
+c = conf.builder()
+log.debug("Configuration: %s" % c)
 
 def main():
 	server_mode = wok_conf.get("server.enabled", False, dtype=bool)
@@ -100,6 +100,8 @@ def main():
 		# create instances
 		if flow_paths is not None:
 			instance_names = conf.options.instance_names
+			if instance_names is None:
+				instance_names = []
 			for i, flow_path in enumerate(flow_paths):
 				if i < len(instance_names):
 					instance_name = instance_names[i]

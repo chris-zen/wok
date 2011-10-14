@@ -24,7 +24,9 @@ import os.path
 import json
 
 from wok.element import DataElement, DataFactory, DataElementJsonEncoder
-from wok.core.storage.base import Storage, StorageContext
+from wok.core.storage import Storage, StorageContext
+
+from wok.core.storage.sfs.logs import SfsLogs
 
 from wok.core.portio.filedata import FileData
 from wok.core.portio.pathdata import PathData
@@ -36,6 +38,21 @@ _PORT_DATA_TYPES = {
 	MultiData.TYPE_NAME : MultiData
 }
 
+_LOG_LEVEL_ID = {
+	"debug" : 1,
+	"info" : 2,
+	"warn" : 3,
+	"error" : 4
+}
+
+_LOG_LEVEL_NAME = {
+	0 : None,
+	1 : "debug",
+	2 : "info",
+	3 : "warn",
+	4 : "error"
+}
+
 class SfsStorage(Storage):
 	"""
 	Implements Storage interface for a Shared File System (i.e. NFS).
@@ -45,13 +62,19 @@ class SfsStorage(Storage):
 	def __init__(self, context, conf):
 		Storage.__init__(self, context, conf, "sfs")
 
-		self.work_path = conf.get("work_path", os.path.join(os.getcwd(), "wok"))
-		self.execution_path = conf.get("execution_work_path", self.work_path)
+		self._logs_mgr = None
+
+		work_path = conf.get("work_path", os.path.join(os.getcwd(), "wok"))
+		self.execution_path = conf.get("execution_work_path", work_path)
 		self.controller_path = conf.get("controller_work_path", self.execution_path)
 
 		self.update_context(context)
 
+	# Internal methods =========================================================
+
 	def _ensure_path(self, path):
+		"Checks whether the path exists or creates it"
+
 		if not os.path.isdir(path):
 			try:
 				os.makedirs(path)
@@ -61,15 +84,25 @@ class SfsStorage(Storage):
 					raise
 
 	def _module_path(self, mod):
+#		mod_path = os.path.join(
+#						self.work_path,
+#						mod.instance.name,
+#						os.path.join(*mod.namespace.split(".")),
+#						mod.name)
+		return self.module_path(mod.instance.name, mod.id)
+
+	def module_path(self, instance_name, module_id):
 		mod_path = os.path.join(
 						self.work_path,
-						mod.instance.name,
-						os.path.join(*mod.namespace.split(".")),
-						mod.name)
+						instance_name,
+						os.path.join(*module_id.split(".")[1:]))
 
 		self._ensure_path(mod_path)
 
 		return mod_path
+
+	def task_prefix(self, task_index):
+		return "%06d" % task_index
 
 	# ==========================================================================
 
@@ -90,14 +123,19 @@ class SfsStorage(Storage):
 		c["work_path"] = self.work_path
 		return c
 
+	def close(self):
+		self._logs_mgr.close()
+
 	# Tasks ====================================================================
 
 	def save_task_config(self, task):
 		"Save a task configuration"
 
-		mod_path = self._module_path(task.parent)
+		mod = task.parent
+		mod_path = self.module_path(mod.instance.name, mod.id)
 
-		task_config_path = os.path.join(mod_path, "%06d.task" % task.index)
+		task_config_path = os.path.join(mod_path,
+				"{}.task".format(self.task_prefix(task.index)))
 
 		e = self._task_config_to_element(task)
 		try:
@@ -108,15 +146,13 @@ class SfsStorage(Storage):
 			self._log.error("Failed creating task config file: " + task_config_path)
 			raise
 
-	def load_task_config(self, instance_name, module_path, task_index):
+	def load_task_config(self, instance_name, module_id, task_index):
 		"Load a task configuration"
 
-		mod_path = os.path.join(
-						self.work_path,
-						instance_name,
-						os.path.join(*module_path.split(".")))
-						
-		task_config_path = os.path.join(mod_path, "%06d.task" % task_index)
+		mod_path = self.module_path(instance_name, module_id)
+								
+		task_config_path = os.path.join(mod_path,
+				"{}.task".format(self.task_prefix(task_index)))
 
 		try:
 			f = open(task_config_path, "r")
@@ -131,13 +167,11 @@ class SfsStorage(Storage):
 
 	# Logs =====================================================================
 
-	def append_logs(self, instance_name, module_path, task_index):
-		if context != StorageContext.CONTROLLER:
-			raise Exception()
-	
-	def query_logs(self, instance_name, module_path, task_index):
-		#TODO
-		return None
+	@property
+	def logs(self):
+		if self._logs_mgr is None:
+			self._logs_mgr = SfsLogs(self)
+		return self._logs_mgr
 
 	# Ports ====================================================================
 
