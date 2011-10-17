@@ -19,17 +19,20 @@
 #
 ###############################################################################
 
+from wok.core.nodes import runstates
 import sys
 import os.path
 import math
+import re
 
 from wok import logger
 from wok.element import DataElement
 from wok.core import runstates
-from wok.core.sync import Synchronizable, synchronized
+from wok.core.utils.sync import Synchronizable, synchronized
 from wok.core.nodes import *
-from wok.core.storage.base import StorageContext
-from wok.core.storage.factory import create_storage
+
+# 2011-10-06 18:39:46,849 bfast_localalign-0000 INFO  : hello world
+_LOG_RE = re.compile("^(\d\d\d\d-\d\d-\d\d) (\d\d:\d\d:\d\d,\d\d\d) (.*) (DEBUG|INFO|WARN|ERROR) : (.*)$")
 
 class Instance(object):
 
@@ -37,6 +40,7 @@ class Instance(object):
 
 	def __init__(self, engine, name, conf_builder, flow_file):
 		self.engine = engine
+		self._storage = engine.storage
 
 		self.name = name
 		
@@ -48,6 +52,9 @@ class Instance(object):
 		self.root_flow = None
 
 		self.root_node = None
+		
+		# modules by name
+		self._module_index = None
 	
 	def initialize(self):
 		self.conf = self.conf_builder()
@@ -59,13 +66,8 @@ class Instance(object):
 
 		self._work_path = inst_conf["work_path"] # TODO deprecated
 
-		self.storage = self._create_storage(wok_conf)
-
-		#TODO deprecated ?
-		if "port_map" in wok_conf:
-			self._port_data_conf = wok_conf["port_map"]
-		else:
-			self._port_data_conf = wok_conf.create_element()
+		#TODO deprecated
+		self._port_data_conf = wok_conf.create_element()
 
 		self.default_maxpar = wok_conf.get("defaults.maxpar", 0, dtype=int)
 		self.default_wsize = wok_conf.get("defaults.wsize", 1, dtype=int)
@@ -105,23 +107,11 @@ class Instance(object):
 	def _load_state(self):
 		raise Exception("Not yet implemented")
 
-	@staticmethod
-	def _create_storage(wok_conf):
-		storage_conf = wok_conf.get("storage")
-		if storage_conf is None:
-			storage_conf = wok_conf.create_element()
-
-		storage_type = storage_conf.get("type", "sfs")
-
-		if "work_path" not in storage_conf:
-			wok_work_path = wok_conf.get("work_path", os.path.join(os.getcwd(), "wok"))
-			storage_conf["work_path"] = os.path.join(wok_work_path, "storage")
-
-		return create_storage(storage_type, StorageContext.CONTROLLER, storage_conf)
-
 	def _create_tree(self, flow_def, parent = None, namespace = ""):
 
 		#self._log.debug("_create_tree({}, {}, {})".format(flow_def.name, parent, namespace))
+		if parent is None:
+			self._module_index = {}
 
 		flow = FlowNode(instance = self, parent = parent, model = flow_def, namespace = namespace)
 
@@ -136,9 +126,10 @@ class Instance(object):
 
 		# create module nodes
 		for mod_def in flow_def.modules:
+			mns = ".".join([ns, mod_def.name])
+
 			if mod_def.flow_ref is None:
 				module = LeafModuleNode(instance = self, model = mod_def, parent = flow, namespace = ns)
-				mns = ".".join([ns, module.name])
 
 				# create module port nodes
 				module.set_in_ports(self._create_port_nodes(module, mod_def.in_ports, mns))
@@ -160,6 +151,8 @@ class Instance(object):
 					if port_def.serializer is not None:
 						port.model.serializer = port_def.serializer
 					port.model.link = port_def.link
+
+			self._module_index[mns] = module
 
 			flow.modules += [module]
 
@@ -275,7 +268,7 @@ class Instance(object):
 #			elif ...
 
 			if len(port_def.link) == 0: # link not defined (they are source ports)
-				port.data = self.storage.create_port_data(port)
+				port.data = self._storage.create_port_data(port)
 				#TODO clean port data
 				#self._log.debug(">>> {} -> [{}] {}".format(port.parent.id, id(port.data), port.data))
 
@@ -306,9 +299,9 @@ class Instance(object):
 					linked_data += [linked_port.data]
 
 				if len(linked_data) == 1:
-					port.data = self.storage.create_port_linked_data(port, linked_data[0])
+					port.data = self._storage.create_port_linked_data(port, linked_data[0])
 				else:
-					port.data = self.storage.create_port_joined_data(port, linked_data)
+					port.data = self._storage.create_port_joined_data(port, linked_data)
 
 		# check that there are no ports without data
 		for port_id, port in ports:
@@ -448,9 +441,9 @@ class Instance(object):
 					require_rescheduling = True
 					#self._log.debug("FINISHED: {}".format(repr(module)))
 				else:
-					#TODO self.storage.remove_task(task) ???
+					#TODO self._storage.remove_task(task) ???
 					for task in module.tasks:
-						self.storage.save_task_config(task)
+						self._storage.save_task_config(task)
 
 					tasks += module.tasks
 					self.change_module_state(module, runstates.WAITING)
@@ -582,6 +575,48 @@ class Instance(object):
 			if recursive and module.parent is not None:
 				self.update_module_state_from_children(module.parent)
 
+	@property
+	def root_node_name(self):
+		return self.root_node.name
+	
+	def task(self, module_id, task_index):
+		"""Returns a task by module path and task index.
+		It it doesn't exist raises an exception otherwise returns the task node."""
+
+		if module_id not in self._module_index:
+			raise Exception("Module not found: %s" % module_id)
+
+		m = self._module_index[module_id]
+		if not isinstance(m, LeafModuleNode):
+			raise Exception("Not a leaf module: %s" % module_id)
+
+		if m.tasks is None or task_index >= len(m.tasks):
+			raise Exception("Task index out of bounds: %d" % task_index)
+
+		return m.tasks[task_index]
+
+	def task_logs(self, module_id, task_index):
+		if self._storage.logs.exist(self.name, module_id, task_index):
+			return self._storage.logs.query(self.name, module_id, task_index)
+
+		task = self.task(module_id, task_index)
+		if task.job_id is None:
+			raise Exception("Task has not been submited yet: %s" % task.id)
+
+		job = self.engine.job_manager.job(task.job_id)
+		if job is None:
+			raise Exception("Task job not found: %s" % task.job_id)
+
+		if job.output_file is None or not os.path.exists(job.output_file):
+			return []
+
+		logs = []
+		for line in open(job.output_file):
+			timestamp, level, name, text = parse_log(line)
+			logs += [(timestamp, level, name, text)]
+		
+		return logs
+
 	def to_element(self, e = None):
 		if e is None:
 			e = DataElement()
@@ -620,6 +655,22 @@ class InstanceController(Synchronizable):
 	@property
 	def state(self):
 		return self.__instance.root_node.state
+
+	@property
+	def root_node_name(self):
+		return self.__instance.root_node.name
+
+	@synchronized
+	def task_exists(self, module_path, task_index):
+		try:
+			self.__instance.task(module_path, task_index)
+		except:
+			return False
+		return True
+
+	@synchronized
+	def task_logs(self, module_id, task_index):
+		return self.__instance.task_logs(module_id, task_index)
 
 	@synchronized
 	def start(self):

@@ -98,7 +98,7 @@ class MultiDataReader(DataReader):
 		self._source_size = 0
 		self._reader = None
 
-	def _open(self):
+	def open(self):
 		if not self._sources:
 			raise StopIteration()
 
@@ -130,7 +130,7 @@ class MultiDataReader(DataReader):
 			raise StopIteration()
 
 		if self._reader is None:
-			self._open()
+			self.open()
 
 		value = None
 		while value is None:

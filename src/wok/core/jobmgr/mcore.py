@@ -94,7 +94,7 @@ class McoreJobManager(JobManager):
 				if work_path is not None:
 					work_path = os.path.abspath(work_path)
 				else:
-					work_path = tempfile.mkdtemp(prefix = "wok-")
+					work_path = tempfile.mkdtemp(prefix = "wok-" + task_id + "-")
 
 				default_output_path = os.path.join(work_path, "output")
 				if not os.path.exists(default_output_path):
@@ -104,9 +104,12 @@ class McoreJobManager(JobManager):
 				output_file = os.path.abspath(os.path.join(
 								output_path, "{}.txt".format(task_id)))
 
-				self._task_output_files[task_id] = (work_path, output_file)
+				#self._task_output_files[task_id] = (work_path, output_file)
+				job.work_path = work_path
+				job.output_file = output_file
 
-			o = open(self._task_output_files[task_id][1], "a")
+			#o = open(self._task_output_files[task_id][1], "a")
+			o = open(job.output_file, "w")
 
 			cwd = self.conf.get("working_directory")
 			if cwd is not None:
@@ -143,7 +146,7 @@ class McoreJobManager(JobManager):
 				result.exit_code = p.returncode
 				result.exit_message = "Task exited with return code {}".format(result.exit_code)
 
-				#TODO take results and update task node
+				#TODO take task results
 
 			except Exception as e:
 				result.end_time = time.time()
@@ -203,6 +206,14 @@ class McoreJobManager(JobManager):
 			for job_id in job_ids:
 				states += [(job_id, self._jobs[job_id].state)]
 		return states
+
+	def output(self, job_id):
+		with self._run_lock:
+			if job_id not in self._jobs:
+				raise UnknownJob(job_id)
+
+			job = self._jobs[job_id]
+			return open(job.output_file)
 
 	def join(self, job_id):
 		with self._run_lock:

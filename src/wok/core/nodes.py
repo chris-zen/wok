@@ -84,6 +84,7 @@ class BaseModuleNode(ModelNode):
 		self.instance = instance
 
 		self.state = runstates.READY
+		self.state_msg = ""
 
 		self.priority = None
 		self.priority_factor = None
@@ -105,6 +106,9 @@ class BaseModuleNode(ModelNode):
 
 		self.out_ports = []
 		self.out_port_map = {}
+
+		self._conf = None
+		self._expanded_conf = None
 
 	def set_in_ports(self, in_ports):
 		self.in_ports = in_ports
@@ -158,8 +162,11 @@ class BaseModuleNode(ModelNode):
 
 	@property
 	def conf(self):
+		if self._conf is not None:
+			return self._conf
+
 		if self.parent is None:
-			conf = DataElement()
+			conf = self.instance.conf.clone()
 		else:
 			conf = self.parent.conf
 
@@ -167,6 +174,13 @@ class BaseModuleNode(ModelNode):
 			conf.merge(self.model.conf)
 
 		return conf
+
+	@property
+	def expanded_conf(self):
+		if self._expanded_conf is None:
+			self._expanded_conf = self.conf.expand_vars()
+
+		return self._expanded_conf
 
 	@property
 	def resources(self):
@@ -199,7 +213,7 @@ class BaseModuleNode(ModelNode):
 	def to_element(self, e = None):
 		e = ModelNode.to_element(self, e)
 		e["state"] = str(self.state)
-		e["state_msg"] = "" #TODO
+		e["state_msg"] = self.state_msg
 		e["priority"] = self.priority
 		e["depends"] = [m.id for m in self.depends]
 		e["enabled"] = self.enabled
@@ -396,10 +410,12 @@ class TaskNode(Node):
 		self.index = index
 
 		self.state = runstates.READY
+		self.state_msg = ""
 
 		self.in_port_data = []
 		self.out_port_data = []
 
+		self.job_id = None
 		self.job_result = None
 
 	@property
@@ -421,6 +437,10 @@ class TaskNode(Node):
 	@property
 	def conf(self):
 		return self.parent.conf
+
+	@property
+	def expanded_conf(self):
+		return self.parent.expanded_conf
 
 class PortNode(ModelNode):
 	def __init__(self, parent, model, namespace = ""):

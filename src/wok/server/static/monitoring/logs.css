@@ -1,0 +1,60 @@
+#logs-mod-sel {
+	float: left;
+}
+
+#logs-body {
+	float: left;
+	border-left: lightgrey solid 1px;
+}
+
+#logs-filters {
+	float: left;
+}
+
+#logs-task-box {
+	float: left;
+	margin-left: 1em;
+}
+
+#logs-task-index {
+	width: 4em;
+}
+
+#logs-level-box {
+	float: left;
+	margin-left: 1em;
+}
+
+#logs-search-box {
+	float: left;
+	margin-left: 1em;
+}
+
+#logs-content {
+	margin-top: 1em;
+	margin-left: 1em;
+	height: 100%;
+}
+
+#logs-content > p {
+	margin: 0;
+	padding: 0;
+}
+
+#logs-content > p .f {
+	float: left;
+}
+
+#logs-content > p .ts {
+	font-weight: bold;
+}
+
+#logs-content > p .nm {
+}
+
+#logs-content > p .lv {
+	font-weight: bold;
+}
+
+#logs-content > p .tx {
+}

@@ -3,8 +3,9 @@
 {% block stylesheets %}
 	<link rel="stylesheet" type="text/css" href="{{ url_for('.static', filename='monitoring/monitoring.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ url_for('.static', filename='monitoring/instance.css') }}">
-	<link rel="stylesheet" type="text/css" href="{{ url_for('.static', filename='monitoring/modules_state.css') }}">
 	<link rel="stylesheet" type="text/css" href="{{ url_for('.static', filename='monitoring/modules_select.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('.static', filename='monitoring/modules.css') }}">
+	<link rel="stylesheet" type="text/css" href="{{ url_for('.static', filename='monitoring/logs.css') }}">
 
 	<style type="text/css">
 	</style>
@@ -16,8 +17,9 @@
 	</script>
 
 	<script type="text/javascript" src="{{ url_for('.static', filename='common.js') }}"></script>
-	<script type="text/javascript" src="{{ url_for('.static', filename='monitoring/modules_state.js') }}"></script>
 	<script type="text/javascript" src="{{ url_for('.static', filename='monitoring/modules_select.js') }}"></script>
+	<script type="text/javascript" src="{{ url_for('.static', filename='monitoring/modules.js') }}"></script>
+	<script type="text/javascript" src="{{ url_for('.static', filename='monitoring/logs.js') }}"></script>
 	<script type="text/javascript" src="{{ url_for('.static', filename='monitoring/instance.js') }}"></script>
 {% endblock %}
 
@@ -53,16 +55,35 @@
 			</div>
 
 			<div id="tab-logs">
-				<div id="tab-logs-mod-sel"></div>
-				<div id="tab-logs-filters">
-					<span>Task</span>
-					<button id="task-btn-first"></button>
-					<button id="task-btn-prev"></button>
-					<input />
-					<button id="task-btn-next"></button>
-					<button id="task-btn-end"></button>
+				<div id="logs-mod-sel"></div>
+				<div id="logs-body">
+					<div id="logs-filters">
+						<div id="logs-task-box">
+							<span>Task</span>
+							<button id="logs-task-btn-first"></button>
+							<button id="logs-task-btn-prev"></button>
+							<input id="logs-task-index" name="task-index" value="0" />
+							<button id="logs-task-btn-next"></button>
+							<button id="logs-task-btn-end"></button>
+						</div>
+						<div id="logs-level-box" style="float:left">
+							<label for="logs-level">Level</label>
+							<select id="logs-level">
+								<option value="debug">debug</option>
+								<option value="info" selected="selected">info</option>
+								<option value="warn">warn</option>
+								<option value="error">error</option>
+								<option value="exception">exception</option>
+							</select>
+						</div>
+						<div id="logs-search-box" style="float:left">
+							<label for="logs-search-text">Search</label>
+							<input id="logs-search-text" name="logs-search-text" />
+							<button id="logs-search-clean"></button>
+						</div>
+					</div>
+					<div id="logs-content">hola</div>
 				</div>
-				<div id="tab-logs-content"></div>
 			</div>
 
 			<div id="tab-ports"></div>

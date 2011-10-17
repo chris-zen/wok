@@ -21,7 +21,7 @@
 
 from wok.server.common import wok, make_json_response
 
-from flask import Module
+from flask import Module, abort
 
 monitoring_api = Module(__name__)
 
@@ -32,6 +32,32 @@ def instance_state(name):
 		abort(404)
 
 	e = inst.to_element()
+
 	return make_json_response(e.to_native())
 
+@monitoring_api.route("/task/logs/<instance_name>/<module_id>/<task_index>")
+def task_logs(instance_name, module_id, task_index):
+	inst = wok().instance(instance_name)
+	if inst is None:
+		abort(404)
 
+	module_id = ".".join([inst.root_node_name, module_id])
+	
+	#if not inst.task_exists(module_id, task_index):
+	#	abort(404)
+
+	try:
+		task_index = int(task_index)
+		
+		logs = inst.task_logs(module_id, task_index)
+		
+		return make_json_response({
+			"ok" : True,
+			"logs" : logs })
+	except Exception as e:
+		if wok().conf.get("wok.server.debug", False, dtype=bool):
+			raise
+		
+		return make_json_response({
+			"ok" : False,
+			"error" :  repr(e)})

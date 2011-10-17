@@ -44,7 +44,7 @@ except ImportError:
 					sys.stderr.write("Failed to import ElementTree from any known place\n")
 					raise
 
-from wok.element import DataElement, dataelement_from_xml
+from wok.element import DataElement, DataFactory
 from wok.core.flow.model import *
 
 def str_to_bool(s):
@@ -203,7 +203,7 @@ class FlowReader(object):
 		return port
 
 	def _parse_conf(self, xmle):
-		return dataelement_from_xml(xmle)
+		return DataFactory.from_xmle(xmle)
 
 	def _parse_exec(self, xmle):
 		execution = Exec()
@@ -213,7 +213,7 @@ class FlowReader(object):
 			if execution.mode == "python":
 				execution.mode = "native"
 
-		execution.conf = dataelement_from_xml(xmle)
+		execution.conf = DataFactory.from_xmle(xmle)
 
 		return execution
 
