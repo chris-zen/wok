@@ -78,6 +78,7 @@ class ModNode(object):
 		self.m_id = m_id
 		self.module = module
 		self.state = self.S_UNINITIALIZED
+		self.wsize = 0
 		self.in_pnodes = None
 		self.out_pnodes = None
 		self.conf = DataElement()
@@ -192,6 +193,11 @@ class WokEngine(object):
 
 		self._start_module = wok_conf.get("start_module")
 
+		if "modules" not in wok_conf:
+			self._mod_conf = DataElement()
+		else:
+			self._mod_conf = wok_conf["modules"]
+
 		self._flow = None
 		
 		self._state = WokEngine.S_UNINITIALIZED
@@ -244,6 +250,12 @@ class WokEngine(object):
 				mnode = ModNode(m_id, m)
 				self._mod_map[m_id] = mnode
 				self._mnodes_by_flow.append(mnode)
+				if m.name in self._mod_conf:
+					mconf = self._mod_conf[m.name]
+					mnode.wsize = mconf.get("wsize", 0, dtype=int)
+					if "conf" in mconf:
+						for entry in mconf["conf"]:
+							mnode.conf[entry[0]] = entry[1]
 
 		# create port nodes
 		self._create_port_nodes(flow.in_ports, flow = flow)
@@ -460,14 +472,17 @@ class WokEngine(object):
 			raise
 		return task
 
-	def _effective_wsize(self, mnode_wsize, pnode_wsize):
-		if pnode_wsize == 0:
-			if mnode_wsize == 0:
-				return max(self._wsize, 1)
+	def _effective_wsize(self, conf_wsize, mnode_wsize, pnode_wsize):
+		if conf_wsize == 0:
+			if pnode_wsize == 0:
+				if mnode_wsize == 0:
+						return max(self._wsize, 1)
+				else:
+					return mnode_wsize
 			else:
-				return mnode_wsize
+				return pnode_wsize
 		else:
-			return pnode_wsize
+			return conf_wsize
 
 	def _effective_maxpar(self, maxpar):
 		if maxpar == 0:
@@ -483,7 +498,7 @@ class WokEngine(object):
 		for pnode in mnode.in_pnodes:
 			psize = pnode.data.size()
 			psizes += [psize]
-			pwsize = self._effective_wsize(mnode.module.wsize, pnode.port.wsize)
+			pwsize = self._effective_wsize(mnode.wsize, mnode.module.wsize, pnode.port.wsize)
 			self._log.debug("{0}: size={1}, wsize={2}".format(pnode.p_id, psize, pwsize))
 			if pwsize < mwsize:
 				mwsize = pwsize
