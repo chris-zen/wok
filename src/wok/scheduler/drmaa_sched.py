@@ -22,12 +22,14 @@
 import drmaa
 import os
 import shutil
+import time
 from stat import S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 
 from wok import logger
+from wok import exit_codes
+from wok.element import DataElement
 from wok.scheduler import JobScheduler
 from wok.launcher.factory import create_launcher
-from wok import exit_codes
 
 class DrmaaJobScheduler(JobScheduler):
 	def __init__(self, conf):
@@ -168,21 +170,35 @@ class DrmaaJobScheduler(JobScheduler):
 	
 	def wait(self, timeout=None):
 		tasks = []
-		
-		self._session.synchronize(self._waiting, drmaa.Session.TIMEOUT_WAIT_FOREVER, False)
-		for jobid in self._waiting:
-			job = self._jobs[jobid]
-			task = job["task"]
-			tasks += [task]
 
-			try:
-				ret = self._session.wait(jobid, drmaa.Session.TIMEOUT_WAIT_FOREVER)
-			
-				sh_path = job["sh_path"]
+		num_tasks = len(self._waiting)
+		while len(tasks) != num_tasks:
+			joined_jobs = []
+			for jobid in self._waiting:
+				job = self._jobs[jobid]
+				task = job["task"]
+
+				try:
+					ret = self._session.wait(jobid, drmaa.Session.TIMEOUT_NO_WAIT)
+					joined_jobs += [jobid]
+				except drmaa.ExitTimeoutException:
+					ret = None
+				except Exception as e:
+					self._log.exception(e)
+					task["job/exit/code"] = exit_codes.EXCEPTION_WAITING
+					task["job/exit/message"] = "There was an exception while waiting for the job to finish: %s" % e
+					joined_jobs += [jobid]
+
+				if ret is None:
+					continue
+
+				tasks += [task]
+
 				output_path = job["output_path"]
 				del self._jobs[jobid]
 
 				if self._autorm_sh:
+					sh_path = job["sh_path"]
 					os.remove(sh_path)
 
 				exit_code = exit_codes.UNKNOWN
@@ -204,11 +220,53 @@ class DrmaaJobScheduler(JobScheduler):
 
 				task["job/exit/code"] = exit_code
 				task["job/exit/message"] = exit_msg
-			except Exception as e:
-				self._log.exception(e)
-				task["job/exit/code"] = exit_codes.EXCEPTION_WAITING
-				task["job/exit/message"] = "There was an exception while waiting for the job to finish: %s" % e
-			
+				task["job/exit/resources"] = DataElement(ret.resourceUsage, key_sep = "/")
+
+			for job_id in joined_jobs:
+				self._waiting.remove(job_id)
+
+			time.sleep(2)
+#
+#		self._session.synchronize(self._waiting, drmaa.Session.TIMEOUT_WAIT_FOREVER, False)
+#		for jobid in self._waiting:
+#			job = self._jobs[jobid]
+#			task = job["task"]
+#			tasks += [task]
+#
+#			try:
+#				ret = self._session.wait(jobid, drmaa.Session.TIMEOUT_WAIT_FOREVER)
+#
+#				sh_path = job["sh_path"]
+#				output_path = job["output_path"]
+#				del self._jobs[jobid]
+#
+#				if self._autorm_sh:
+#					os.remove(sh_path)
+#
+#				exit_code = exit_codes.UNKNOWN
+#				sb = ["Task %s (job %s)" % (task["id"], jobid)]
+#				if ret.wasAborted:
+#					sb += [" was aborted"]
+#					if ret.hasCoreDump:
+#						sb += [" with core dump"]
+#				elif ret.hasExited:
+#					sb += [" has exited with code %s" % ret.exitStatus]
+#					exit_code = ret.exitStatus
+#				elif ret.hasSignal:
+#					sb += [" got signal %s" % ret.terminatedSignal]
+#				else:
+#					sb += [" has finished unexpectedly"]
+#
+#				exit_msg = "".join(sb)
+#				self._log.debug(exit_msg)
+#
+#				task["job/exit/code"] = exit_code
+#				task["job/exit/message"] = exit_msg
+#			except Exception as e:
+#				self._log.exception(e)
+#				task["job/exit/code"] = exit_codes.EXCEPTION_WAITING
+#				task["job/exit/message"] = "There was an exception while waiting for the job to finish: %s" % e
+#
 		self._waiting = []
 		
 		return tasks

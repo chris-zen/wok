@@ -28,5 +28,14 @@
 			<tr><td>Exit exception</td><td>{{ exit["exception"] }}</td></tr>
 			{% endif %}
 		</table>
+
+		{% if "resources" in exit %}
+		{% set resources = exit["resources"] %}
+		<table class="exit-status-table">
+			{% for name in resources %}
+			<tr><td>{{ name }}</td><td>{{ resources[name] }}</td></tr>
+			{% endfor %}
+		</table>
+		{% endif %}
 	{% endif %}
 {% endblock %}

@@ -28,6 +28,7 @@ setup(
     name = 'wok',
     version = VERSION,
     packages = find_packages('src'),
+    package_dir = { '': 'src' },
     scripts = [
 		'src/wok-run'
 	],

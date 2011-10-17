@@ -752,7 +752,7 @@ class WokEngine(object):
 				self._log.error("Flow finished before completing all modules")
 
 			if len(failed_tasks) > 0:
-				msg = ", ".join(["\t%s" % task["id"] for task in failed_tasks])
+				msg = ", ".join(["%s" % task["id"] for task in failed_tasks])
 				self._log.error("Flow '%s' failed:\n%s" % (self._flow.name, msg))
 				self._state = WokEngine.S_FAILED
 			else:
