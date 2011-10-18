@@ -1,3 +1,4 @@
+import re
 ###############################################################################
 #
 #    Copyright 2009-2011, Universitat Pompeu Fabra
@@ -103,12 +104,12 @@ class ModNode(object):
 		return self.m_id
 
 	def __repr__(self):
-		sb = [self.m_id]
+		sb = [self.m_id, ":"]
 		if self.in_pnodes is not None:
 			sb += [" (%s)" % ",".join([str(x) for x in self.in_pnodes])]
 		if self.out_pnodes is not None:
 			sb += [" --> (%s)" % ",".join([str(x) for x in self.out_pnodes])]
-		sb += [" [%s]" % self.status]
+		sb += [" [%s]" % self.state]
 		return "".join(sb)
 
 def _map_add_list(m, k, v):
@@ -250,12 +251,6 @@ class WokEngine(object):
 				mnode = ModNode(m_id, m)
 				self._mod_map[m_id] = mnode
 				self._mnodes_by_flow.append(mnode)
-				if m.name in self._mod_conf:
-					mconf = self._mod_conf[m.name]
-					mnode.wsize = mconf.get("wsize", 0, dtype=int)
-					if "conf" in mconf:
-						for entry in mconf["conf"]:
-							mnode.conf[entry[0]] = entry[1]
 
 		# create port nodes
 		self._create_port_nodes(flow.in_ports, flow = flow)
@@ -412,6 +407,36 @@ class WokEngine(object):
 				ids.add(mnode.m_id)
 		
 		return mnodes
+
+	def _init_modules_conf(self):
+		self._log.debug("Initializing modules configuration ...")
+
+		for mnode in self._mod_map.values():
+			mnode.conf.merge(self.conf)
+			if mnode.module.conf is not None:
+				mnode.conf.merge(mnode.module.conf)
+			for rule in self._mod_conf:
+				names = rule["name"]
+				names_are_strings = [isinstance(a, basestring) for a in names]
+				if isinstance(names, basestring):
+					names = [names]
+				elif not isinstance(names, (list, DataList)) \
+						or not reduce(lambda x,y: x and y, names_are_strings):
+					self._log.error("wok.modules[*].name must be a string or a list of strings")
+					continue
+				m = None
+				for name in names:
+					m = re.match(name, mnode.module.name)
+					if m is not None:
+						break
+				if m is not None:
+					if "wsize" in rule:
+						mnode.wsize = rule.get("wsize", dtype=int)
+					if "conf" in rule:
+						for entry in rule["conf"]:
+							mnode.conf[entry[0]] = entry[1]
+
+			mnode.conf.expand_vars()
 
 	def _next_batch(self):
 		batch = []
@@ -642,10 +667,7 @@ class WokEngine(object):
 			i += 1
 
 		# initialize module nodes configuration
-		for mnode in self._mod_map.values():
-			mnode.conf.merge(self.conf)
-			if mnode.module.conf is not None:
-				mnode.conf.merge(mnode.module.conf)
+		self._init_modules_conf()
 
 		sb = ["Modules input ports mapping:\n"]
 		for mnode in self._mnodes_by_dep:
