@@ -284,7 +284,7 @@ class DataElementValue(Data): # not used
 	def __repr__(self):
 		return str(self.value)
 
-class DataElementList(Data):
+class DataList(Data):
 	def __init__(self, obj = None, key_sep = _DEFAULT_KEY_SEP):
 		Data.__init__(self, key_sep)
 		
@@ -387,6 +387,10 @@ class DataElementList(Data):
 		level -= 1
 		sb += [_INDENT * level]
 		sb += ["]"]
+
+# for backward compatibility
+class DataElementList(DataList):
+	pass
 
 class DataElement(Data):
 	def __init__(self, obj = None, key_sep = _DEFAULT_KEY_SEP):
@@ -545,6 +549,8 @@ class DataElement(Data):
 		for key in keys:
 			self[key] = deepcopy(e[key])
 
+		return self
+
 	def merge(self, e, keys = None):
 		if not (isinstance(e, DataElement) or isinstance(e, dict)):
 			raise Exception("A data element cannot merge an element of type " % type(e))
@@ -562,6 +568,8 @@ class DataElement(Data):
 					d.merge(ed)
 				else:
 					self.data[key] = deepcopy(ed)
+
+		return self
 
 	def missing_fields(self, keys):
 		missing = []
@@ -586,8 +594,10 @@ class DataElement(Data):
 			current_path = path + [key]
 			if isinstance(data, Data):
 				data.expand_vars(context, current_path)
-			elif isinstance(data, str) or isinstance(data, unicode):
+			elif isinstance(data, basestring):
 				self.data[key] = _expand(".".join(current_path), data, context)
+
+		return self
 
 	def to_native(self):
 		native = {}

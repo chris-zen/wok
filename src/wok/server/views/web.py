@@ -53,9 +53,11 @@ def index():
 
 @web.route('/conf')
 def configuration():
-	conf = wok().conf.to_native()
-	conf_text = json.dumps(conf, indent=4)
-	return render_template('conf.html', conf_text=conf_text)
+	src_conf = wok().conf
+	src_conf_text = json.dumps(src_conf.to_native(), indent=4)
+	conf = src_conf.clone().expand_vars()
+	conf_text = json.dumps(conf.to_native(), indent=4)
+	return render_template('conf.html', conf_text=conf_text, src_conf_text=src_conf_text)
 
 @web.route('/workflow')
 def workflow():
@@ -124,7 +126,6 @@ def kill_process(pid):
 
 @web.route('/engine/exit')
 def engine_exit():
-	wok().exit()
 	import os
 	pid = os.getpid()
 	from multiprocessing import Process

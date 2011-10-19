@@ -87,9 +87,9 @@ wok_conf["__flow.file"] = os.path.basename(flow_arg)
 
 wok_conf["__cwd"] = os.getcwd()
 
-# expand variables
+# expand wok_conf
+wok_conf = wok_conf.clone().expand_vars(context = conf)
 
-conf.expand_vars()
 #log.debug("Configuration: %s" % conf)
 
 def main():
@@ -116,10 +116,19 @@ def main():
 			log.info("Starting engine ...")
 			wok.start()
 
-		app.run(host=server_host, port=server_port, debug = server_debug)
+		running = True
+		while running:
+			try:
+				app.run(host=server_host, port=server_port, debug = server_debug)
+				wok.exit()
+				running = False
+			except Exception as e:
+				log.exception(e)
 	else:
 		wok = WokEngine(conf, flow)
 		wok.start(async = False)
+		wok.exit()
+			
 
 if __name__ == "__main__":
 	main()

@@ -6,4 +6,11 @@
 {{ conf_text }}
 	{% endcode %}
 	{% endautoescape %}
+
+	<h2>Source configuration</h2>
+	{% autoescape false %}
+	{% code 'javascript' %}
+{{ src_conf_text }}
+	{% endcode %}
+	{% endautoescape %}
 {% endblock %}

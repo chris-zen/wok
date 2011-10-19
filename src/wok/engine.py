@@ -1,4 +1,3 @@
-import re
 ###############################################################################
 #
 #    Copyright 2009-2011, Universitat Pompeu Fabra
@@ -21,13 +20,13 @@ import re
 ###############################################################################
 
 import os
+import os.path
 import shutil
 import sys
 import math
 import uuid
 import json
-import os
-import os.path
+import re
 
 from threading import Thread, Lock
 
@@ -37,7 +36,7 @@ from wok.serializer import DEFAULT_SERIALIZER_NAME
 from wok.portio.filedata import FileData
 from wok.portio.pathdata import PathData
 from wok.portio.multidata import MultiData
-from wok.element import DataElement, DataFactory, DataElementJsonEncoder
+from wok.element import DataElement, DataList, DataFactory, DataElementJsonEncoder
 
 class WokAlreadyRunningError(Exception):
 	pass
@@ -166,8 +165,8 @@ class WokEngine(object):
 	def __init__(self, conf, flow = None):
 		self.conf = conf
 		
-		wok_conf = conf["wok"]
-		
+		wok_conf = conf["wok"].clone().expand_vars(context = conf)
+
 		self._log = logger.get_logger(wok_conf.get("log"), "engine")
 
 		self._instance_name = wok_conf["__instance.name"]
@@ -197,12 +196,13 @@ class WokEngine(object):
 		if "modules" not in wok_conf:
 			self._mod_conf = DataElement()
 		else:
-			self._mod_conf = wok_conf["modules"]
-
+			self._mod_conf = conf["wok.modules"]
+		
 		self._flow = None
 		
 		self._state = WokEngine.S_UNINITIALIZED
 
+		self._running = False
 		self._run_thread = None
 
 		self._job_sched = self._create_job_scheduler(wok_conf)
@@ -412,9 +412,16 @@ class WokEngine(object):
 		self._log.debug("Initializing modules configuration ...")
 
 		for mnode in self._mod_map.values():
-			mnode.conf.merge(self.conf)
+			self._log.debug("Module %s" % (mnode.module.name))
+
+			# base conf
+			mnode.conf = self.conf.clone()
+
+			# per module conf from the definition
 			if mnode.module.conf is not None:
 				mnode.conf.merge(mnode.module.conf)
+
+			# per module conf from rules
 			for rule in self._mod_conf:
 				names = rule["name"]
 				names_are_strings = [isinstance(a, basestring) for a in names]
@@ -434,8 +441,11 @@ class WokEngine(object):
 						mnode.wsize = rule.get("wsize", dtype=int)
 					if "conf" in rule:
 						for entry in rule["conf"]:
+							self._log.debug("%s=%s" % (entry[0], entry[1]))
 							mnode.conf[entry[0]] = entry[1]
+							self._log.debug(">> %s=%s" % (entry[0], mnode.conf[entry[0]]))
 
+			self._log.debug(mnode.conf)
 			mnode.conf.expand_vars()
 
 	def _next_batch(self):
@@ -455,7 +465,7 @@ class WokEngine(object):
 	
 		return batch
 	
-	def _create_task(self, conf, flow, mnode, t_id = None):
+	def _create_task(self, flow, mnode, t_id = None):
 		task = DataElement(key_sep = "/")
 		if t_id is not None:
 			task["id"] = t_id
@@ -534,7 +544,7 @@ class WokEngine(object):
 			# Submit a task for the module without input ports information
 			#t_id = "%s-%04i" % (mnode.m_id, 0)
 			t_id = mnode.m_id + "-0000"
-			task = self._create_task(self.conf, flow, mnode, t_id)
+			task = self._create_task(flow, mnode, t_id)
 			task["index"] = 0
 			tasks += [task]
 
@@ -574,7 +584,7 @@ class WokEngine(object):
 			partitions = []
 			for i in xrange(num_partitions):
 				t_id = "%s-%04i" % (mnode.m_id, i)
-				task = self._create_task(self.conf, flow, mnode, t_id)
+				task = self._create_task(flow, mnode, t_id)
 				task["index"] = i
 				tasks += [task]
 				end = min(start + mwsize, psize)
@@ -683,6 +693,7 @@ class WokEngine(object):
 	def _run(self):
 		self._run_lock.acquire()
 
+		self._running = True
 		self._state = WokEngine.S_RUNNING
 
 		self._log.info("Running instance '%s' ..." % self._instance_name)
@@ -695,7 +706,7 @@ class WokEngine(object):
 
 			batch_index = 0
 			batch_modules = self._next_batch()
-			while len(batch_modules) > 0:
+			while len(batch_modules) > 0 and self._running:
 				sb = ["Batch %i: " % batch_index]
 				sb += [", ".join([str(x) for x in batch_modules])]
 				self._log.info("".join(sb))
@@ -788,13 +799,14 @@ class WokEngine(object):
 			if len(self._waiting) > 0:
 				self._log.error("Flow finished before completing all modules")
 
-			if len(failed_tasks) > 0:
-				msg = ", ".join(["%s" % task["id"] for task in failed_tasks])
-				self._log.error("Flow '%s' failed:\n%s" % (self._flow.name, msg))
-				self._state = WokEngine.S_FAILED
-			else:
-				self._log.info("Flow '%s' finished successfully" % self._flow.name)
-				self._state = WokEngine.S_FINISHED
+			if self._running:
+				if len(failed_tasks) > 0:
+					msg = ", ".join(["%s" % task["id"] for task in failed_tasks])
+					self._log.error("Flow '%s' failed:\n%s" % (self._flow.name, msg))
+					self._state = WokEngine.S_FAILED
+				else:
+					self._log.info("Flow '%s' finished successfully" % self._flow.name)
+					self._state = WokEngine.S_FINISHED
 
 		except:
 			self._state = WokEngine.S_EXCEPTION
@@ -805,7 +817,7 @@ class WokEngine(object):
 
 	def _stop(self):
 		pass
-	
+
 	@synchronized(_engine_lock)
 	def initialize(self, flow):
 		self._initialize(flow)
@@ -825,7 +837,8 @@ class WokEngine(object):
 		if self._state in [WokEngine.S_FINISHED, WokEngine.S_FAILED, WokEngine.S_EXCEPTION]:
 			self._initialize(self._flow);
 
-		self._run_thread = RunThread(self)
+		#self._run_thread = RunThread(self)
+		self._run_thread = Thread(name = "wok-engine-run", target = self._run)
 		self._run_thread.start()
 
 		if not async:
@@ -843,19 +856,46 @@ class WokEngine(object):
 
 	@synchronized(_engine_lock)
 	def stop(self):
-		self._stop()
+		pass
 
 	@synchronized(_engine_lock)
 	def wait(self):
 		if self._run_thread is not None:
-			self._run_thread.join()
+			_engine_lock.release()
+
+			key_int = False
+			while self._run_thread.isAlive():
+				try:
+					self._run_thread.join(1)
+				except KeyboardInterrupt:
+					with _engine_lock:
+						if not key_int:
+							self._log.warn("Ctrl-C pressed, stopping the engine ...")
+							self._running = False
+							key_int = True
+						else:
+							self._log.warn("Ctrl-C pressed, killing the process ...")
+							import signal
+							os.kill(os.getpid(), signal.SIGTERM)
+				except Exception:
+					with _engine_lock:
+						self._log.exception("Exception while waiting for the engine to finish, stopping the engine ...")
+						self._running = False
+
+			_engine_lock.acquire()
 			self._run_thread = None
 
 	@synchronized(_engine_lock)
 	def exit(self):
-		self._stop()
-
+		self._log.info("Stopping the engine ...")
 		self._state = WokEngine.S_EXITING
+		self._running = False
+
+		_engine_lock.release()
+		self.wait()
+		_engine_lock.acquire()
+
+		self._log.info("Stopping job scheduler ...")
 		self._job_sched.exit()
 		self._state = WokEngine.S_EXITED
 

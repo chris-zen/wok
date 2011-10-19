@@ -21,6 +21,7 @@
 
 import time
 from datetime import timedelta
+import types
 
 from wok import logger
 from wok.config import Config
@@ -433,3 +434,32 @@ class Task(object):
 			self.set_end(f)
 			return f
 		return decorator
+
+	def shell(self, cmd, env, success = None, **kwargs):
+		sb = [cmd]
+		if env is not None:
+			for k in sorted(env):
+				sb += ["\n\t", k, "=", env[k]]
+		self._log.debug("".join(sb))
+
+		exit_code, stats = monproc.call(cmd, env, **kwargs)
+
+		sb = ["Exit code = ", str(exit_code)]
+		for k in sorted(stats):
+			sb += ["\n\t", k, " = ", stats[k]]
+		self._log.debug("".join(sb))
+
+		if success is not None:
+			if success.__class__ is types.FunctionType:
+				ok = success(exit_code)
+			elif isinstance(success, list):
+				ok = exit_code in success
+			else:
+				ok = exit_code == success
+
+			if not ok:
+				raise Exception("Shell command failed with exit code = %s" % exit_code)
+		else:
+			ok = True
+
+		return (ok, exit_code, stats)
