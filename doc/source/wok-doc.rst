@@ -1,6 +1,6 @@
-wok-doc.py
-==========
-
-Not implemented yet
+wok-doc
+=======
 
 Generates workflow html documentation from a flow definition.
+
+**Not implemented yet**

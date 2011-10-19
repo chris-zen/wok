@@ -7,7 +7,7 @@ Installation
 Dependencies
 ++++++++++++
 
-Wok requeries Python 2.6 or above to be installed in the system.
+Wok requeries Python 2.7 or above to be installed in the system.
 
 It also depends on the following packages that are automatically installed if you follow the instructions in the following sections:
 

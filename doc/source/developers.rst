@@ -1,7 +1,7 @@
 Developers documentation
 ========================
 
-Talk about:
+**TODO**: *Talk about:*
 
 - Architecture
 - Extension points

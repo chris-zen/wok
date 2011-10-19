@@ -1,10 +1,11 @@
-wok-run.py
-==========
+wok-run
+=======
 
 This is the script that executes a workflow.
 
 ::
-	Usage: wok-run.py [options] <flow-file>
+
+	Usage: wok-run [options] <flow-file>
 
 	Options:
 	  --version             show program's version number and exit
@@ -18,4 +19,4 @@ This is the script that executes a workflow.
 
 Example::
 
-	$ wok-run.py -c laptop.conf -c common.conf -D wok.server=true mrna/mrna.flow
+	$ wok-run -c laptop.conf -c common.conf -D wok.server=true mrna/mrna.flow
