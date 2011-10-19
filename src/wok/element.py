@@ -474,6 +474,15 @@ class DataList(Data):
 			self.data += [None] * (index + 1 - list_len)
 
 	def merge(self, e):
+		"""
+		# Merge two lists
+		>>> l1 = DataList([2, 3])
+		>>> l2 = DataList([2, 3])
+		>>> l1.merge(l2)
+ 		>>> print l1
+		[2, 3, 2, 3]
+		"""
+
 		if not (isinstance(e, DataList) or isinstance(e, list)):
 			raise Exception("A data element list cannot merge an element of type " % type(e))
 
@@ -519,6 +528,33 @@ class DataElementList(DataList):
 	pass
 
 class DataElement(Data):
+	"""
+	A dict-like object, designed to store XML or JSON like objects.
+
+	>>> json = {1: 3, 'a': [2, 4]}
+	>>> d = DataElement(json)
+	>>> print d #doctest: +NORMALIZE_WHITESPACE
+		   { 
+	  a = [
+		2
+		4
+	  ]
+	  1 = 3
+	}
+
+	# test different key_sep
+
+	# test accessing values
+	# values can be access hierarchically
+	TODO
+
+	# WARNING: don't try to make a DataElement from a list. You will get an empty object.
+	>>> l = DataElement([1,2])
+	>>> print l 
+	{
+	}
+
+	"""
 	def __init__(self, obj = None, key_sep = _DEFAULT_KEY_SEP):
 		Data.__init__(self, key_sep)
 		
@@ -693,6 +729,26 @@ class DataElement(Data):
 		return DataElement().copy_from(self)
 
 	def merge(self, e, keys = None):
+		"""
+		Merge two DataElement (in place).
+		
+		# Merge two dictionary-like data elements:
+		>>> d1 = DataElement({'a': 1})
+		>>> d2 = DataElement({'b': 2})
+		>>> d1.merge(d2)
+		>>> print d1
+		{
+		  b = 2
+		  a = 1
+		}
+
+		# Merge DataElement and string (should return error)
+		>>> d1.merge('c') #doctest: +IGNORE_EXCEPTION_DETAIL
+		Traceback (most recent call last):
+			...
+		TypeError: not all arguments converted during string formatting
+
+		"""
 		if not (isinstance(e, DataElement) or isinstance(e, dict)):
 			raise Exception("A data element cannot merge an element of type " % type(e))
 
