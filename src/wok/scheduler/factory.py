@@ -19,13 +19,20 @@
 #
 ###############################################################################
 
-from wok.scheduler.drmaa_sched import DrmaaJobScheduler
 from wok.scheduler.mcore import McoreJobScheduler
 
 JOB_SCHEDULERS = {
-	"drmaa" : DrmaaJobScheduler,
 	"mcore" : McoreJobScheduler
 }
+
+try:
+	from wok.scheduler.drmaa_ import DrmaaJobScheduler
+	JOB_SCHEDULERS["drmaa"] = DrmaaJobScheduler
+except:
+	from wok.logger import get_logger
+	log = get_logger()
+	log.warn("DRMAA is not installed in this machine")
+
 
 def create_job_scheduler(name, conf):
 	if name == "default":
