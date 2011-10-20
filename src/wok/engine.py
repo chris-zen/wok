@@ -412,7 +412,7 @@ class WokEngine(object):
 		self._log.debug("Initializing modules configuration ...")
 
 		for mnode in self._mod_map.values():
-			self._log.debug("Module %s" % (mnode.module.name))
+			#self._log.debug("Module %s" % (mnode.module.name))
 
 			# base conf
 			mnode.conf = self.conf.clone()
@@ -441,11 +441,11 @@ class WokEngine(object):
 						mnode.wsize = rule.get("wsize", dtype=int)
 					if "conf" in rule:
 						for entry in rule["conf"]:
-							self._log.debug("%s=%s" % (entry[0], entry[1]))
+							#self._log.debug("%s=%s" % (entry[0], entry[1]))
 							mnode.conf[entry[0]] = entry[1]
-							self._log.debug(">> %s=%s" % (entry[0], mnode.conf[entry[0]]))
+							#self._log.debug(">> %s=%s" % (entry[0], mnode.conf[entry[0]]))
 
-			self._log.debug(mnode.conf)
+			#self._log.debug(mnode.conf)
 			mnode.conf.expand_vars()
 
 	def _next_batch(self):
