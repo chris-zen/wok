@@ -70,13 +70,17 @@ class PathData(PortData):
 
 		ps = self._partition_size(partition)
 
+		#print "get_slice(start=%s, size=%s)" % (start, size)
+		#print "\tp=%s, ps=%s, st=%s" % (partition, ps, start)
+
 		if start is None:
 			start = 0
 		else:
-			while start > ps:
+			while start >= ps:
 				start -= ps
 				partition += 1
 				ps = self._partition_size(partition)
+				#print "\tp=%s, ps=%s, st=%s" % (partition, ps, start)
 		
 		if size is None:
 			size = 0
