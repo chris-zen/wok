@@ -34,9 +34,10 @@ from wok.engine import WokEngine
 # Wok initialization
 
 def add_options(parser):
-	pass
+	parser.add_option("-n", "--instance-name", dest="instance_name", default=None, metavar="NAME",
+			help="Specify a name for the instance")
 
-instance_name = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+instance_name = datetime.now().strftime("i%Y-%m-%d-%H-%M-%S")
 install_path = os.path.dirname(os.path.realpath(__file__))
 
 initial_conf = {
@@ -58,9 +59,18 @@ conf = Config(
 	args_usage = "<flow-file>",
 	add_options = add_options)
 
+# check arguments
+
+if len(conf.args) != 1:
+	log.error("Incorrect number of arguments")
+	exit(-1)
+
 if "wok" not in conf:
 	print("Missing wok configuration")
 	exit(-1)
+
+if conf.options.instance_name is not None:
+	conf["wok.__instance.name"] = conf.options.instance_name
 
 wok_conf = conf["wok"]
 
@@ -68,12 +78,6 @@ wok_conf = conf["wok"]
 
 logger.initialize(wok_conf.get("log"))
 log = logger.get_logger(wok_conf.get("log"), name = "wok-run")
-
-# check arguments
-
-if len(conf.args) != 1:
-	log.error("Incorrect number of arguments")
-	exit(-1)
 
 # read the workflow definition
 
