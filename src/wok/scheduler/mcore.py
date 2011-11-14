@@ -100,7 +100,7 @@ class McoreJobScheduler(JobScheduler):
 
 		self._waiting = []
 
-		self._num_proc = conf.get("max_proc", mp.cpu_count(), dtype=int)
+		self._max_proc = conf.get("max_proc", mp.cpu_count(), dtype=int)
 
 		self.init() #TODO this should be done by wok
 
@@ -109,11 +109,11 @@ class McoreJobScheduler(JobScheduler):
 
 		try:
 			# maxtasksperchild requires python 2.7+
-			self._pool = mp.Pool(self._num_proc, maxtasksperchild = 8)
+			self._pool = mp.Pool(self._max_proc, maxtasksperchild = 8)
 		except:
-			self._pool = mp.Pool(self._num_proc)
+			self._pool = mp.Pool(self._max_proc)
 
-		self._log.debug("Multi-core scheduler initialized with %i processors" % self._num_proc)
+		self._log.debug("Multi-core scheduler initialized with %i processors" % self._max_proc)
 
 	def clean(self):
 		#for path in [self._work_path]:

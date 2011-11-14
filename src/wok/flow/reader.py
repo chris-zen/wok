@@ -90,13 +90,13 @@ class FlowReader(object):
 		if "serializer" in root.attrib:
 			flow.serializer = root.attrib["serializer"]
 
-		for e in root.xpath("in"):
+		for e in root.findall("in"):
 			flow.add_in_port(self.parse_port(e))
 		
-		for e in root.xpath("out"):
+		for e in root.findall("out"):
 			flow.add_out_port(self.parse_port(e))
 
-		for e in root.xpath("module"):
+		for e in root.findall("module"):
 			flow.add_module(self.parse_module(e))
 		
 		return flow
@@ -160,14 +160,14 @@ class FlowReader(object):
 		if "serializer" in attr:
 			mod.serializer = attr["serializer"]
 
-		for ep in e.xpath("in"):
+		for ep in e.findall("in"):
 			mod.add_in_port(self.parse_port(ep))
 		
-		for ep in e.xpath("out"):
+		for ep in e.findall("out"):
 			mod.add_out_port(self.parse_port(ep))
 
 		mod.conf = DataElement()
-		for el in e.xpath("conf"):
+		for el in e.findall("conf"):
 			mod.conf.merge(self.parse_conf(el))
 
 		exec_xml = e.find("exec")
@@ -202,6 +202,16 @@ class FlowReader(object):
 			execution.launcher = attr["launcher"]
 
 		execution.conf = dataelement_from_xml(e)
+
+		from wok import logger
+		logger.initialize()
+		log = logger.get_logger(name = "flow")
+		msg = ""
+
+		if "script" in execution.conf:
+			msg = " Use <run>{}</run> instead".format(execution.conf["script"])
+
+		log.warn("<exec> tag has been deprecated !" + msg)
 
 		return execution
 

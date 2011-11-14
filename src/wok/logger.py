@@ -29,7 +29,7 @@ _log_level_map = {
 	"critical" : logging.CRITICAL,
 	"notset" : logging.NOTSET }
 
-def initialize(conf):
+def initialize(conf = None):
 	"""
 	Initialize the logging system.
 
