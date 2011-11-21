@@ -76,7 +76,7 @@ class PathData(PortData):
 		if start is None:
 			start = 0
 		else:
-			while start >= ps:
+			while start >= ps and start != 0:
 				start -= ps
 				partition += 1
 				ps = self._partition_size(partition)
