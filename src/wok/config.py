@@ -34,7 +34,8 @@ class Config(DataElement):
 	and appends new configuration parameters (with -D option)
 	"""
 	
-	def __init__(self, initial_conf_files = None, initial_conf = None,
+	def __init__(self,
+					initial_conf_files = None, initial_conf = None,
 					required = [], args_usage = "",
 					add_options = None, expand_vars = False):
 
@@ -96,11 +97,17 @@ class Config(DataElement):
 			self["__files"] = DataFactory.from_native(files)
 
 		for data in self.options.data:
-			d = data.split("=")
-			if len(d) != 2:
-				raise Exception("Data argument wrong: " + data)
-
-			self[d[0]] = d[1]
+			try:
+				pos = data.index("=")
+				key = data[0:pos]
+				value = data[pos+1:]
+				try:
+					v = json.loads(value)
+				except:
+					v = value
+				self.conf[key] = DataFactory.from_native(v)
+			except:
+				raise Exception("Wrong configuration data: KEY=VALUE expected but found '%s'" % data)
 
 		if len(required) > 0:
 			self.check_required(required)
