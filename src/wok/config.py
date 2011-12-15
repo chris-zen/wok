@@ -105,7 +105,7 @@ class Config(DataElement):
 					v = json.loads(value)
 				except:
 					v = value
-				self.conf[key] = DataFactory.from_native(v)
+				self[key] = DataFactory.from_native(v)
 			except:
 				raise Exception("Wrong configuration data: KEY=VALUE expected but found '%s'" % data)
 
