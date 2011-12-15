@@ -427,7 +427,10 @@ class DataElement(Data):
 		
 		if len(path) == 1:
 			if p0.is_list():
-				lst = self.data[p0.name]
+				if p0.name in self.data:
+					lst = self.data[p0.name]
+				else:
+					lst = self.data[p0.name] = list()
 				_list_ensure_index(lst, p0.index)
 				lst[p0.index] = value
 			else:
