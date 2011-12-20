@@ -28,5 +28,5 @@ VERSION = __version__
 AUTHORS = u"Christian Pérez-Llamas"
 AUTHORS_EMAIL = u"christian.perez@upf.edu"
 
-COPYRIGHT = u"2011, Universitat Pompeu Fabra"
+COPYRIGHT = u"2009-2011, Universitat Pompeu Fabra"
 

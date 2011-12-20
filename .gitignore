@@ -1,6 +1,6 @@
 doc/build
+doc/*.pdf
 *.pyc
 nbproject
-doc/*.pdf
 build
 dist
