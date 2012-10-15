@@ -39,12 +39,13 @@ $.widget("ui.logs", {
 	_updateLogs: function(logs) {
 		this._logs = logs;
 		var content = $("#logs-content").empty();
+		// for a scroll widget see http://www.simonbattersby.com/blog/vertical-scrollbar-plugin-using-jquery-ui-slider/
 		for (log_idx in logs) {
 			var log = logs[log_idx];
-			$('<p>'
-					+ '<span class="f ts">' + log[0] + '</span>'
-					+ '<span class="f nm">' + log[1] + '</span>'
-					+ '<span class="f lv">' + log[2] + '</span>'
+			$('<p class="' + log[1] + '">'
+					+ '<span class="f ts">' + log[0] + '</span> '
+					/*+ '<span class="f nm">' + log[2] + '</span> '*/
+					+ '<span class="f lv">' + log[1] + '</span> '
 					+ '<span class="tx">' + log[3] + '</span></p>')
 				.appendTo(content);
 		}
@@ -52,16 +53,16 @@ $.widget("ui.logs", {
 
 	_moduleSelected: function(module) {
 		updating = true; //TODO
-		wok.status.debug("Loading logs for " + module.name + " ...");
+		wok.status.debug("Loading logs for " + module.id + " ...");
 
-		var resource = instance_name + "/" + module.name + "/" + this.options.task_index;
+		var resource = instance_name + "/" + module.id + "/" + this.options.task_index;
 
 		var self = this;
 		$.getJSON("/api/monitoring/task/logs/" + resource, function(data) {
 			if (data.ok) {
 				wok.status.hide();
 				self._updateLogs(data.logs);
-				self._selectedModule = module.name
+				self._selectedModule = module.id
 			}
 			else {
 				if (data.error !== undefined)
@@ -96,10 +97,13 @@ $.widget("ui.logs", {
 		// filtering
 
 		$("#logs-task-btn-first", root).button({ text: false, icons: { primary: "ui-icon-seek-first" } })
-			.click(function() { });
-		$("#logs-task-btn-prev", root).button({ text: false, icons: { primary: "ui-icon-seek-prev" } });
-		$("#logs-task-btn-next", root).button({ text: false, icons: { primary: "ui-icon-seek-next" } });
-		$("#logs-task-btn-end", root).button({ text: false, icons: { primary: "ui-icon-seek-end" } });
+			.click(function() { self.go_first() });
+		$("#logs-task-btn-prev", root).button({ text: false, icons: { primary: "ui-icon-seek-prev" } })
+			.click(function() { self.go_prev() });
+		$("#logs-task-btn-next", root).button({ text: false, icons: { primary: "ui-icon-seek-next" } })
+			.click(function() { self.go_next() });
+		$("#logs-task-btn-end", root).button({ text: false, icons: { primary: "ui-icon-seek-end" } })
+			.click(function() { self.go_last() });
 
 		$("#logs-task-index", root).val(this.options.task_index);
 

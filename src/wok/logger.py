@@ -29,22 +29,29 @@ _log_level_map = {
 	"critical" : logging.CRITICAL,
 	"notset" : logging.NOTSET }
 
-def initialize(conf):
+_initialized = False
+
+def initialize(conf = None):
 	"""
 	Initialize the logging system.
 
 	* Configuration parameters:
 	- log.format: Logger format
 	"""
+	global _initialized
 	
 	if conf is not None and "format" in conf:
 		format = conf["format"]
 	else:
-		format = "%(asctime)s %(name)s %(levelname) -5s : %(message)s"
+		#format = "%(asctime)s %(module)s %(funcName)s %(name)s %(levelname) -5s : %(message)s"
+		format = "%(asctime)s %(name)s %(levelname)-5s : %(message)s"
 
+	#, datefmt="%Y-%m-%d %H:%M:%S:%f"
 	logging.basicConfig(format = format)
+
+	_initialized = True
 	
-def get_logger(conf = None, name = None):
+def get_logger(name = None, level = "info", conf = None):
 	"""
 	Returns a logger.
 
@@ -54,6 +61,9 @@ def get_logger(conf = None, name = None):
 	- level: Logging level: debug, info, warn, error, critical, notset
 	"""
 
+	if not _initialized:
+		initialize(conf)
+
 	if conf is None:
 		conf = {}
 
@@ -62,7 +72,7 @@ def get_logger(conf = None, name = None):
 		if "name" in conf:
 			name = conf["name"]
 
-	log_level = "info"
+	log_level = level
 	if "level" in conf:
 		log_level = conf["level"].lower()
 		if log_level not in _log_level_map:

@@ -42,14 +42,17 @@ class UndefinedState(Exception):
 
 
 READY = RunState(1, 'ready')
-PAUSED = RunState(2, 'paused')
-WAITING = RunState(3, 'waiting')
-RUNNING = RunState(4, 'running')
-FINISHED = RunState(5, 'finished')
-FAILED = RunState(6, 'failed')
+WAITING = RunState(2, 'waiting')
+RUNNING = RunState(3, 'running')
+PAUSED = RunState(4, 'paused')
+ABORTING = RunState(5, 'aborting')
+FINISHED = RunState(6, 'finished')
+RETRY = RunState(7, 'retry')
+FAILED = RunState(8, 'failed')
+ABORTED = RunState(9, 'aborted')
 
 __STATES = [
-	READY, PAUSED, WAITING, RUNNING, FINISHED, FAILED ]
+	READY, WAITING, RUNNING, PAUSED, ABORTING, FINISHED, RETRY, FAILED, ABORTED ]
 
 __MAP = {}
 for s in __STATES:

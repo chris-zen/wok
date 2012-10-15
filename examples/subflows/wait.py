@@ -13,6 +13,9 @@ def process(time):
 	#delay = min_delay + (max_delay - min_delay) * random()
 
 	log = task.logger()
+	log.info("{}: {}".format(type(time), repr(time)))
+	#if time > 1.5:
+	#	return -1
 	log.info("Waiting for {:.2} seconds ...".format(time))
 	sleep(time)
 

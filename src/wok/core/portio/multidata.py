@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-from wok.core.portio.base import PortData, DataReader
+from wok.core.portio import PortData, DataReader
 
 class MultiData(PortData):
 

@@ -83,23 +83,18 @@ class SfsStorage(Storage):
 					self._log.error("Failed creating path: " + path)
 					raise
 
-	def _module_path(self, mod):
-#		mod_path = os.path.join(
-#						self.work_path,
-#						mod.instance.name,
-#						os.path.join(*mod.namespace.split(".")),
-#						mod.name)
-		return self.module_path(mod.instance.name, mod.id)
-
 	def module_path(self, instance_name, module_id):
 		mod_path = os.path.join(
 						self.work_path,
 						instance_name,
-						os.path.join(*module_id.split(".")[1:]))
+						os.path.join(*module_id.split(".")))
 
 		self._ensure_path(mod_path)
 
 		return mod_path
+
+	def _module_path_from_node(self, mod):
+		return self.module_path(mod.instance.name, mod.id)
 
 	def task_prefix(self, task_index):
 		return "%06d" % task_index
@@ -176,8 +171,8 @@ class SfsStorage(Storage):
 	# Ports ====================================================================
 
 	def create_port_data(self, port):
-		mod_path = self._module_path(port.parent)
-		port_path = os.path.join(mod_path, port.name)
+		mod_path = self._module_path_from_node(port.parent)
+		port_path = os.path.join(mod_path, "ports", port.name)
 		self._ensure_path(port_path)
 		e = DataElement(key_sep = "/")
 		e["name"] = port.name

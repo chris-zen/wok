@@ -22,7 +22,7 @@
 import os
 import struct
 
-from wok.core.portio.base import PortData, DataReader, DataWriter
+from wok.core.portio import PortData, DataReader, DataWriter
 
 class PathData(PortData):
 
@@ -78,10 +78,12 @@ class PathData(PortData):
 		if start is None:
 			start = 0
 		else:
-			while start > ps:
+			#print "p=%d, ps=%d, start=%d" % (partition, ps, start)
+			while start >= ps and start != 0:
 				partition += 1
 				start -= ps
 				ps = self._partition_size(partition)
+				#print "p=%d, ps=%d, start=%d" % (partition, ps, start)
 
 		if size is None:
 			size = 0

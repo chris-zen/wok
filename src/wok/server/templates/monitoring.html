@@ -1,5 +1,35 @@
 {% extends "layout.html" %}
+
+{% block stylesheets %}
+	<link rel="stylesheet" type="text/css" href="{{ url_for('.static', filename='monitoring/monitoring.css') }}">
+
+	<style type="text/css">
+	</style>
+{% endblock %}
+
 {% block body %}
-	<h2>Monitoring</h2>
-	<p>...</p>
+	<div id="content">
+		{% if instances %}
+		<table class="mon-workflows">
+			<tr>
+				<th>Identifier</th>
+				<th>Title</th>
+				<th>State</th>
+				<th>Created</th>
+				<th>Running time</th>
+			</tr>
+			{% for inst in instances %}
+			<tr>
+				<td><a href="{{ url_for('monitoring.instance', name=inst.name) }}">{{ inst.name }}</a></td>
+				<td>{{ inst.title }}</td>
+				<td><span class="mon-state-square mon-state-bg-{{ inst.state.title }}">&nbsp;</span>{{ inst.state.title }}</td>
+				<td>{{ inst.created }}</td>
+				<td>{{ inst.running_time }}</td>
+			</tr>
+			{% endfor %}
+		</table>
+		{% else %}
+		<p>No running workflows available</p>
+		{% endif %}
+	</div>
 {% endblock %}

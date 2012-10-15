@@ -21,8 +21,8 @@
 
 import os.path
 import sqlite3
-import time
-#from datetime import datetime
+#import time
+from datetime import datetime
 
 from wok.core.utils.sql import BatchInsert
 
@@ -50,7 +50,7 @@ class SfsLogs(object):
 		c = conn.cursor()
 		c.execute("""
 		CREATE TABLE logs (
-			timestamp	TIMESTAMP,
+			timestamp	TEXT,
 			level		INTEGER,
 			name		TEXT,
 			msg			TEXT
@@ -80,7 +80,8 @@ class SfsLogs(object):
 		for log in logs:
 			timestamp = None
 			if log[0] is not None:
-				timestamp = time.mktime(log[0].timetuple()) + 1e-6 * log[0].microsecond
+			#	timestamp = time.mktime(log[0].timetuple()) + 1e-6 * log[0].microsecond
+				timestamp = log[0].strftime("%Y%m%d %H%M%S %f")
 			level = _LOG_LEVEL_ID.get(log[1], 0)
 			bi.insert(timestamp, level, log[2], log[3])
 		bi.close()
@@ -100,7 +101,11 @@ class SfsLogs(object):
 
 		log = cur.fetchone()
 		while log is not None:
-			logs += [log]
+			timestamp = datetime.strptime(log[0], "%Y%m%d %H%M%S %f")
+			ms = timestamp.microsecond / 1000
+			timestamp = timestamp.strftime("%Y-%m-%d %H:%M:%S:" + "{0:03}".format(ms))
+			level = _LOG_LEVEL_NAME[log[1]].upper()
+			logs += [(timestamp, level, log[2], log[3])]
 			log = cur.fetchone()
 		
 		cur.close()

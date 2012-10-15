@@ -78,7 +78,8 @@ $.widget("ui.modules", {
 		$('<div class="mod-st-state-name"></div>').text(m.state).appendTo(stateDiv);
 		$('<div class="mod-st-state-title"></div>').text(m.state_title || "").appendTo(stateDiv);
 		
-		var states = ["failed", "finished", "running", "queued", "submitted", "ready"];
+		//var states = ["failed", "finished", "running", "queued", "submitted", "ready"];
+		var states = ["finished", "failed", "aborted", "aborting", "running", "submitted", "waiting", "ready"];
 		var total = 0;
 		var count = {};
 		var other = 0;

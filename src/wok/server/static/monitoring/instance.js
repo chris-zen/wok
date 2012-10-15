@@ -1,10 +1,12 @@
+var icontrol = null;
+
 var tabs = {};
-var currentTab = "logs";
+var currentTab = "modules";
 
 var instance_state = null;
 var updating = false;
 
-function update() {
+function update(done) {
 	if (updating)
 		return;
 
@@ -15,8 +17,11 @@ function update() {
 		instance_state = data;
 		if (tabs[currentTab] !== undefined)
 			tabs[currentTab].update(data)
+		icontrol.update(data)
 		wok.status.hide();
 		updating = false;
+		if (done !== undefined)
+			done();
 	}).error(function(jqXHR, error_type, exception) {
 		wok.status.error("Connection error loading status: " + error_type);
 		updating = false;
@@ -39,16 +44,25 @@ function tabChanged() {
 }
 
 $(document).ready(function() {
-	// tabs
+
+	// instance controller
+	icontrol = $("#icontrol").icontrol().data("icontrol");
+
+	// reset and hide all tabs
 	$("#tabs-body > div").addClass("tab").hide();
-	$("#tab-btn-" + currentTab).attr("checked", "checked");
 
-	tabs["modules"] = $("#tab-modules").modules({ instance_name: instance_name }).data("modules");
-	tabs["logs"] = $("#tab-logs").logs({ instance_name: instance_name }).data("logs")
+	// hide tabs buttons
+	$("#tabs-buttons").hide();
 
-	$("#tabs-buttons").buttonset().change(tabChanged).trigger("change");
+	update(function() {
+		// tabs
+		$("#tab-btn-" + currentTab).attr("checked", "checked");
 
-	update();
-	
-	window.setInterval(update, 10000);
+		tabs["modules"] = $("#tab-modules").modules({ instance_name: instance_name }).data("modules");
+		tabs["logs"] = $("#tab-logs").logs({ instance_name: instance_name }).data("logs")
+
+		$("#tabs-buttons").show().buttonset().change(tabChanged).trigger("change");
+
+		window.setInterval(function() { update() }, 2000);
+	});
 });

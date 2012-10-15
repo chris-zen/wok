@@ -20,17 +20,18 @@
 ###############################################################################
 
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # 2011-10-06 18:39:46,849 bfast_localalign-0000 INFO  : hello world
-_LOG_RE = re.compile("^(\d\d\d\d-\d\d-\d\d) (\d\d:\d\d:\d\d),\d\d\d (.*) (DEBUG|INFO|WARN|ERROR) +: (.*)$")
+_LOG_RE = re.compile("^(\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d),(\d\d\d) (.*) (DEBUG|INFO|WARN|ERROR) +: (.*)$")
+# 2011-10-06 18:39:46 +0200 bfast_localalign-0000 INFO  : hello world
+#_LOG_RE = re.compile("^(\d\d\d\d-\d\d-\d\d) (\d\d:\d\d:\d\d:\d+) (.*) (DEBUG|INFO|WARN|ERROR) +: (.*)$")
 
 def parse_log(line):
 	m = _LOG_RE.match(line)
 	if m:
-		timestamp = datetime.strptime(
-						m.group(1) + " " + m.group(2),
-						"%Y-%m-%d %H:%M:%S")
+		timestamp = datetime.strptime(m.group(1), "%Y-%m-%d %H:%M:%S")
+		timestamp += timedelta(milliseconds=int(m.group(2)))
 		name = m.group(3)
 		level = m.group(4).lower()
 		text = m.group(5).decode("utf-8", "replace")

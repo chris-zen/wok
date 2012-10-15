@@ -1,16 +1,25 @@
-#mon-bar-outer {
-	margin: 0 auto;
-	background-color: white;
-	text-align: center;
-	width: 100%;
-	height: 38px;
-	border-bottom: #ccc solid 1px;
+.mon-state-bg-ready {
+	background-color: #FAE4BB; /*9ea97e;*/
 }
 
-#mon-bar {
-	margin: 0 auto;
-	width: 96%;
-	text-align: left;
+.mon-state-bg-running {
+	background-color: #eabf14;
+}
+
+.mon-state-bg-pausing {
+	background-color: #DBD5CE; /*BBB236;*/
+}
+
+.mon-state-bg-paused {
+	background-color: #DBD5CE; /*828C46;*/
+}
+
+.mon-state-bg-aborting {
+	background-color: #FF602F;
+}
+
+.mon-state-bg-aborted {
+	background-color: #FF602F;
 }
 
 .mon-state-bg-failed {
@@ -21,22 +30,26 @@
 	background-color: #4dc626;
 }
 
-.mon-state-bg-running {
-	background-color: #eabf14;
-}
-
-.mon-state-bg-queued {
-	background-color: #ecdc36;
-}
-
 .mon-state-bg-submitted {
 	background-color: #d4c99b;
 }
 
-.mon-state-bg-ready {
-	background-color: #9ea97e;
+.mon-state-bg-waiting {
+	background-color: #ecdc36;
 }
 
 .mon-state-bg-other {
 	background-color: #485951;
+}
+
+.mon-workflows {
+	margin: auto;
+	width: 96%;
+}
+
+.mon-state-square {
+	display: inline-block;
+	margin-right: 0.8em;
+	width: 2em;
+	height: 100%;
 }

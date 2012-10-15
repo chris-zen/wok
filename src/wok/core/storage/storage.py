@@ -33,7 +33,7 @@ class Storage(object):
 		self.conf = conf
 		self.name = name
 
-		self._log = logger.get_logger(conf.get("log"), name)
+		self._log = logger.get_logger(name, conf = conf.get("log"))
 
 	@staticmethod
 	def _task_config_to_element(task):

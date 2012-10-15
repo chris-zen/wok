@@ -8,9 +8,9 @@
 		<desc>Generate N random values MIN&lt;x&lt;MAX</desc>
 
 		<conf>
-			<N>10</N>
+			<N>4</N>
 			<MIN>1</MIN>
-			<MAX>4</MAX>
+			<MAX>3</MAX>
 		</conf>
 
 		<out name="value" serializer="json">

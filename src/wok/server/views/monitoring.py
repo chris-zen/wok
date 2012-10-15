@@ -28,8 +28,9 @@ monitoring = Module(__name__)
 
 @monitoring.route('/')
 def index():
-	return render_template('monitoring.html')
+	instances = wok().instances()
+	return render_template('monitoring.html', instances=instances)
 
 @monitoring.route('/instance/<name>')
 def instance(name):
-	return render_template('monitoring/instance.html', name = name)
+	return render_template('monitoring/instance.html', name=name)

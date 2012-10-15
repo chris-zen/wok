@@ -20,8 +20,8 @@
 ###############################################################################
 
 from wok.element import DataElement
-from wok.serializer import DEFAULT_SERIALIZER_NAME
-from wok.serializer import SerializerFactory
+from wok.core.serializer import DEFAULT_SERIALIZER_NAME
+from wok.core.serializer import SerializerFactory
 
 class PortData(object):
 	def __init__(self, serializer = None, conf = None, port_desc = None, factory = None):

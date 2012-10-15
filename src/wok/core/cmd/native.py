@@ -22,7 +22,7 @@
 import os.path
 
 from wok.element import DataElement
-from wok.core.cmd.base import CmdBuilder
+from wok.core.cmd import CmdBuilder
 from wok.core.cmd.errors import *
 
 class UnknownNativeCmdBuilderLanguage(Exception):

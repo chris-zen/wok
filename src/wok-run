@@ -30,63 +30,64 @@ from wok.config import OptionsConfig
 from wok.element import DataElement
 from wok.core.engine import WokEngine
 
-# Wok initialization
-
-default_instance_name = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-install_path = os.path.dirname(os.path.realpath(__file__))
-
 def add_options(parser):
 	parser.add_option("-n", "--instance-name", dest="instance_names",
 				action="append", metavar="NAME",
 				help="Set the instance name. Default name is built from the current date.")
 
-initial_conf = {
-	"wok" : {
-		"execution" : {
-			"mode" : {
-				"native" : {
-					"python" : {
-						"lib_path" : [install_path]
+def main():
+	# Wok initialization
+
+	default_instance_name = datetime.now().strftime("i%Y-%m-%d-%H-%M-%S")
+	install_path = os.path.dirname(os.path.realpath(__file__))
+
+	# Get configuration
+
+	initial_conf = {
+		"wok" : {
+			"execution" : {
+				"mode" : {
+					"native" : {
+						"python" : {
+							"lib_path" : [install_path]
+						}
 					}
 				}
 			}
-		}
+		},
+
+		"__cwd" : os.getcwd()
 	}
-}
 
-conf = OptionsConfig(
-	initial_conf = initial_conf,
-	args_usage = "[<flow-file>]",
-	add_options = add_options)
+	conf = OptionsConfig(
+		initial_conf = initial_conf,
+		args_usage = "[<flow-file>]",
+		add_options = add_options)
 
-if "wok" not in conf:
-	print("Missing wok configuration")
-	exit(-1)
+	if "wok" not in conf:
+		print("Missing wok configuration")
+		exit(-1)
 
-wok_conf = conf["wok"]
+	# wok configuration
 
-# initialize logging
+	wok_conf = conf["wok"].expand_vars(context = conf)
 
-logger.initialize(wok_conf.get("log"))
-log = logger.get_logger(wok_conf.get("log"), name = "wok-run")
+	# initialize logging
 
-# check arguments
+	logger.initialize(wok_conf.get("log"))
+	log = logger.get_logger("wok-run", conf = wok_conf.get("log"))
 
-flow_paths = None
-if len(conf.args) > 0:
-	flow_paths = conf.args
-#elif len(conf.args) > 1:
-#	log.error("More than one workflow definition file specified")
-#	exit(-1)
+	log.debug("Wok configuration: %s" % repr(wok_conf))
 
-conf.builder.add_value("__cwd", os.getcwd())
+	# check arguments
 
-# expand variables
+	flow_paths = None
+	if len(conf.args) > 0:
+		flow_paths = conf.args
+	#elif len(conf.args) > 1:
+	#	log.error("More than one workflow definition file specified")
+	#	exit(-1)
 
-c = conf.builder()
-log.debug("Configuration: %s" % c)
-
-def main():
 	server_mode = wok_conf.get("server.enabled", False, dtype=bool)
 	server_host = wok_conf.get("server.host", "localhost", dtype=str)
 	server_port = wok_conf.get("server.port", 5000, dtype=int)
@@ -129,7 +130,7 @@ def main():
 			if log_conf is None:
 				log_conf = DataElement()
 				log_conf["level"] = "warn"
-			app_log = logger.get_logger(conf = log_conf, name = "werkzeug")
+			app_log = logger.get_logger("werkzeug", conf = log_conf)
 			app_log.info("Log configured")
 
 			app.config["WOK"] = wok

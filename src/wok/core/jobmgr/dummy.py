@@ -26,7 +26,7 @@ import multiprocessing as mp
 from threading import Thread, Lock, Condition
 
 from wok.core import runstates
-from wok.core.jobmgr.base import JobManager, Job
+from wok.core.jobmgr import JobManager, Job
 
 class DummyJob(Job):
 	def __init__(self, job_id, task):

@@ -37,7 +37,7 @@ setup(
     # installed or upgraded on the target machine
     install_requires = [
 		'docutils>=0.3',
-		'lxml>=2.3',
+#		'lxml>=2.3',
 		'drmaa',
 		'Flask==0.6',
 		'pygments'

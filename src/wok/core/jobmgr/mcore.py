@@ -30,11 +30,14 @@ import time
 
 from wok import exit_codes
 from wok.core import runstates
-from wok.core.jobmgr.base import JobManager, Job
+from wok.core.jobmgr import JobManager, Job
 
 class McoreJob(Job):
 	def __init__(self, job_id, task):
 		Job.__init__(self, job_id, task)
+
+		self.process = None
+		self.stopped = False
 
 
 class McoreJobManager(JobManager):
@@ -77,12 +80,16 @@ class McoreJobManager(JobManager):
 			
 			result = job.result
 
+			if job.stopped:
+				with self._run_lock:
+					result.state = job.state = runstates.ABORTED
+					result.exit_code = exit_codes.STOPPED
+					result.exit_message = "Task stopped"
+				self.engine.notify()
+				continue
+
 			with self._run_lock:
 				self._log.debug("Running task [{}] {} ...".format(job.id, job.task.id))
-
-			job.state = runstates.RUNNING
-
-			self.engine.notify()
 
 			# Prepare command
 			cmd, args, env = self._prepare_cmd(task)
@@ -97,18 +104,18 @@ class McoreJobManager(JobManager):
 					work_path = tempfile.mkdtemp(prefix = "wok-" + task_id + "-")
 
 				default_output_path = os.path.join(work_path, "output")
-				if not os.path.exists(default_output_path):
-					os.makedirs(default_output_path)
-
 				output_path = self.conf.get("output_path", default_output_path)
 				output_file = os.path.abspath(os.path.join(
 								output_path, "{}.txt".format(task_id)))
 
-				#self._task_output_files[task_id] = (work_path, output_file)
-				job.work_path = work_path
-				job.output_file = output_file
+				with self._run_lock:
+					if not os.path.exists(default_output_path):
+						os.makedirs(default_output_path)
 
-			#o = open(self._task_output_files[task_id][1], "a")
+					#self._task_output_files[task_id] = (work_path, output_file)
+					job.work_path = work_path
+					job.output_file = output_file
+
 			o = open(job.output_file, "w")
 
 			cwd = self.conf.get("working_directory")
@@ -117,34 +124,49 @@ class McoreJobManager(JobManager):
 
 			args = [cmd] + args
 
-			result.start_time = time.time()
-
 			try:
-				p = subprocess.Popen(
-									args = args,
-									stdin=None,
-									stdout=o,
-									stderr=subprocess.STDOUT,
-									cwd=cwd,
-									env=env)
+				with self._run_lock:
+					result.start_time = time.time()
 
-				while not self._kill_threads and p.poll() is None:
+					job.process = subprocess.Popen(
+										args = args,
+										stdin=None,
+										stdout=o,
+										stderr=subprocess.STDOUT,
+										cwd=cwd,
+										env=env)
+
+					job.state = runstates.RUNNING
+
+				self.engine.notify()
+
+				while not self._kill_threads and job.process.poll() is None:
 					time.sleep(1)
 
+				result.end_time = time.time()
+
 				if self._kill_threads:
-					p.terminate()
+					job.process.terminate()
+					result.state = job.state = runstates.ABORTED
+					result.exit_code = job.process.returncode
+					result.exit_message = "Task stopped"
 					self._log.warn("Not waiting for Popen.terminate(). Should I do?")
 					o.close()
 					return
 
-				result.end_time = time.time()
-
-				if p.returncode == 0:
-					result.state = job.state = runstates.FINISHED
+				if job.stopped:
+					result.state = job.state = runstates.ABORTED
+					result.exit_code = job.process.returncode
+					result.exit_message = "Task stopped"
 				else:
-					result.state = job.state = runstates.FAILED
-				result.exit_code = p.returncode
-				result.exit_message = "Task exited with return code {}".format(result.exit_code)
+					if job.process.returncode == 0:
+						result.state = job.state = runstates.FINISHED
+					else:
+						result.state = job.state = runstates.FAILED
+					result.exit_code = job.process.returncode
+					result.exit_message = "Task exited with return code {}".format(result.exit_code)
+
+				self.engine.notify()
 
 				#TODO take task results
 
@@ -163,6 +185,8 @@ class McoreJobManager(JobManager):
 			with self._run_lock:
 				if result.state == runstates.FINISHED:
 					self._log.debug("Task finished [{}] {}".format(job.id, job.task.id))
+				elif result.state == runstates.ABORTED:
+					self._log.debug("Task stopped [{}] {}".format(job.id, job.task.id))
 				else:
 					sb = ["Task failed [{}] {}: {}".format(job.id, job.task.id, result.exit_message)]
 					if result.exception_trace is not None:
@@ -213,6 +237,9 @@ class McoreJobManager(JobManager):
 				raise UnknownJob(job_id)
 
 			job = self._jobs[job_id]
+			if job.output_file is None:
+				return None
+
 			return open(job.output_file)
 
 	def join(self, job_id):
@@ -221,7 +248,7 @@ class McoreJobManager(JobManager):
 				raise UnknownJob(job_id)
 
 			job = self._jobs[job_id]
-			while self._running and job.state not in [runstates.FINISHED, runstates.FAILED]:
+			while self._running and job.state not in [runstates.FINISHED, runstates.FAILED, runstates.ABORTED]:
 				self._run_cvar.wait(2)
 
 			del self._jobs[job_id]
@@ -239,7 +266,7 @@ class McoreJobManager(JobManager):
 					raise UnknownJob(job_id)
 
 				job = self._jobs[job_id]
-				while self._running and job.state not in [runstates.FINISHED, runstates.FAILED]:
+				while self._running and job.state not in [runstates.FINISHED, runstates.FAILED, runstates.ABORTED]:
 					self._run_cvar.wait(2)
 
 				del self._jobs[job_id]
@@ -247,6 +274,20 @@ class McoreJobManager(JobManager):
 		
 		return results
 
+	def stop(self, job_ids = None):
+		with self._run_lock:
+			if job_ids is None:
+				job_ids = self._jobs.keys()
+
+			for job_id in job_ids:
+				if job_id not in self._jobs:
+					raise UnknownJob(job_id)
+
+				job = self._jobs[job_id]
+				job.stopped = True
+				if job.state == runstates.RUNNING and job.process is not None:
+					self._log.debug("Terminating job %s with PID %s ..." % (job_id, job.process.pid))
+					job.process.terminate()
 
 	def close(self):
 		with self._run_lock:

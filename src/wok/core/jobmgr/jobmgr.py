@@ -37,7 +37,7 @@ class JobManager(object):
 
 		self.__next_id = 1
 
-		self._log = logger.get_logger(conf.get("log"), name)
+		self._log = logger.get_logger(name, conf = conf.get("log"))
 
 		if "work_path" not in self.conf:
 			raise Exception("Missing 'work_path' in configuration")

@@ -165,12 +165,12 @@ def _list_ensure_index(l, index):
 	if index >= list_len:
 		l += [None] * (index + 1 - list_len)
 
-_VARPAT = re.compile(r"\$(\{[._a-z0-9]+\}|[._a-z0-9]+)")
+_VARPAT = re.compile(r"\$(\{[._a-zA-Z0-9]+\}|[._a-zA-Z0-9]+)")
 
 def _expand(key, value, context, path = None):
 	if path is None:
 		path = set()
-	
+
 	res = []
 	last = 0
 	for m in _VARPAT.finditer(value):
@@ -484,10 +484,12 @@ class DataList(Data):
 		"""
 
 		if not (isinstance(e, DataList) or isinstance(e, list)):
-			raise Exception("A data element list cannot merge an element of type " % type(e))
+			raise Exception("A data element list cannot merge an element of type %" % type(e))
 
 		for d in e:
 			self.data += [d]
+
+		return self
 
 	def expand_vars(self, context, path = None):
 		if path is None:
@@ -501,6 +503,8 @@ class DataList(Data):
 				data.expand_vars(context, path + ['[%i]' % i])
 			elif isinstance(data, str) or isinstance(data, unicode):
 				self.data[i] = _expand(key, data, context)
+
+		return self
 
 	def to_native(self):
 		native = []
@@ -589,7 +593,10 @@ class DataElement(Data):
 		
 		if len(path) == 1:
 			if p0.is_list():
-				lst = self.data[p0.name]
+				if p0.name in self.data:
+					lst = self.data[p0.name]
+				else:
+					lst = self.data[p0.name] = list()
 				_list_ensure_index(lst, p0.index)
 				lst[p0.index] = value
 			else:
@@ -750,7 +757,7 @@ class DataElement(Data):
 
 		"""
 		if not (isinstance(e, DataElement) or isinstance(e, dict)):
-			raise Exception("A data element cannot merge an element of type " % type(e))
+			raise Exception("A data element cannot merge an element of type %" % type(e))
 
 		if keys is None:
 			keys = e.keys()

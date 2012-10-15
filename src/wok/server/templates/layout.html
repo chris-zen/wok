@@ -26,10 +26,10 @@
 				</div>
 				<div id="nav-links">
 					<ul>
-						<li><a href="{{ url_for('workflows.index') }}">Workflows</a></li>
+						<!--<li><a href="{{ url_for('workflows.index') }}">Workflows</a></li>-->
 						<li><a href="{{ url_for('monitoring.index') }}">Monitoring</a></li>
-						<li><a href="{{ url_for('files.index') }}">Files</a></li>
-						<li><a href="{{ url_for('settings.index') }}">Settings</a></li>
+						<!--<li><a href="{{ url_for('files.index') }}">Files</a></li>-->
+						<!--<li><a href="{{ url_for('settings.index') }}">Settings</a></li>-->
 					</ul>
 				</div>
 				<div id="session-links">
@@ -51,7 +51,7 @@
 		{% endblock %}
 
 		<div id="page">
-			<div id="content">
+			<!--<div id="content">-->
 				{% for message in get_flashed_messages() %}
 				<div class="flash">{{ message }}</div>
 				{% endfor %}
@@ -79,7 +79,7 @@
 				{% endif %} #}
 
 				{% block body %}{% endblock %}
-			</div>
+			<!--</div>-->
 		</div>
 
 		<div id="status-bar"></div>

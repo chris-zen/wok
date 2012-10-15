@@ -1,3 +1,9 @@
+
+* {
+	margin: 0;
+	padding: 0;
+}
+
 a, h1, h2, h3, h4, h5 { color: #377BA8; }
 h1, h2, h3, h4, h5    { margin: 0.4em 0 0.4em 0; }
 
@@ -7,9 +13,31 @@ h3              { font-size: 1.0em; }
 h4              { font-size: 0.8em; }
 h5              { font-size: 0.6em; }
 
-* {
-	margin: 0;
-	padding: 0;
+table {
+	font-family: "Lucida Sans Unicode", "Lucida Grande", Sans-Serif;
+	font-size: 12px;
+	text-align: left;
+	border-width: 1px;
+	/*border-collapse: collapse;*/
+}
+
+table th {
+	padding: 8px;
+	font-weight: bold;
+	font-size: 13px;
+	color: black;
+	background: #87ccdd;
+}
+
+table td {
+	padding: 8px;
+	background: #e0f2f6;
+	border-top: 1px solid #fff;
+	color: black;
+}
+
+table tbody tr:hover td {
+	background: #bfe8f3;
 }
 
 body {
@@ -96,7 +124,7 @@ body {
 }
 
 #content {
-	/*padding: 0.2em;*/
+	padding: 0.4em 0.8em;
 }
 
 #breadcrumb {

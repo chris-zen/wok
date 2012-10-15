@@ -30,11 +30,19 @@ class ConfigFile(object):
 		self.path = os.path.abspath(path)
 
 	def merge_into(self, conf):
-		f = open(self.path, "r")
-		v = json.load(f)
-		cf = DataFactory.from_native(v)
-		conf.merge(cf)
-		f.close()
+		try:
+			f = open(self.path, "r")
+			v = json.load(f)
+			cf = DataFactory.from_native(v)
+			conf.merge(cf)
+			f.close()
+		except Exception as e:
+			from wok import logger
+			msg = ["Error loading configuration from ",
+					self.path, ":\n\n", str(e), "\n"]
+			logger.get_logger("config").error("".join(msg))
+			raise
+			
 
 class ConfigValue(object):
 	def __init__(self, key, value):
@@ -90,6 +98,26 @@ class OptionsConfig(DataElement):
 
 	It parses the arguments, loads configuration files (with -c option)
 	and appends new configuration parameters (with -D option)
+
+	Constructor:
+
+	initial_conf: Base configuration
+	required: A list of required configuration keys
+	args_usage: The command line arguments usage help string
+	add_options: A function that will be called to populate the OptionParser with new options
+	             Example:
+				    def more_options(parser):
+						parser.add_option("-o", "--output", dest="output")
+
+					c = OptionsConfig(add_options = more_options)
+					print c.options.output
+	expand_vars: whether to expand references like ${key1} or not
+
+	Attributes:
+
+	options: The option variables got from the OptionParser
+	args: The arguments got from the OptionParser
+	builder: The configuration builder
 	"""
 	
 	def __init__(self, initial_conf = None, required = [], args_usage = "", add_options = None, expand_vars = False):

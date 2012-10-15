@@ -22,11 +22,18 @@ def sequence(value_port):
 
 	# get logger
 	log = task.logger()
+	log.debug("<<<DEBUG>>>")
+	log.info("<<<INFO>>>")
+	log.warn("<<<WARN>>>")
+	log.error("<<<ERROR>>>")
+	
 	log.info("N = {}, MIN = {}, MAX = {}".format(N, MIN, MAX))
 
 	# generate values and send them through the value_port
-	for _ in xrange(N):
-		value_port.send((random() * (MAX - MIN)) + MIN)
+	for i in xrange(N):
+		value = (random() * (MAX - MIN)) + MIN
+		log.debug("v[{}] = {}".format(i, value))
+		value_port.send(value)
 
 task.start()
 	
