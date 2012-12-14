@@ -92,7 +92,7 @@ class FlowLoader(object):
 			return self.__flow_cache[uri]
 
 		flow = reader.read()
-		self.__flow_cache[flow] = flow
+		self.__flow_cache[uri] = flow
 		return flow
 
 	def load_from_ref(self, ref):

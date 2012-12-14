@@ -59,7 +59,7 @@ def str_to_bool(s):
 
 class FlowReader(object):
 	def __init__(self, source):
-		if isinstance(source, str):
+		if isinstance(source, basestring):
 			self.path = os.path.abspath(source)
 			self.fp = open(source, "r")
 		else:

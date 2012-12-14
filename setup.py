@@ -38,8 +38,8 @@ setup(
     install_requires = [
 		'docutils>=0.3',
 #		'lxml>=2.3',
-		'drmaa',
-		'Flask==0.6',
+#		'drmaa',
+		'Flask==0.9',
 		'pygments'
 	],
 
