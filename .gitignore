@@ -4,3 +4,4 @@ nbproject
 doc/*.pdf
 build
 dist
+.idea
