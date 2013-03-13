@@ -28,10 +28,11 @@ JOB_SCHEDULERS = {
 try:
 	from wok.scheduler.drmaa_ import DrmaaJobScheduler
 	JOB_SCHEDULERS["drmaa"] = DrmaaJobScheduler
-except:
-	from wok.logger import get_logger
-	log = get_logger()
-	log.warn("DRMAA is not installed in this machine")
+except Exception as ex:
+	from wok.logger import initialize, get_logger
+	initialize()
+	log = get_logger(name = "factory")
+	log.warn("DRMAA job scheduler can not be loaded: %s" % str(ex))
 
 
 def create_job_scheduler(name, conf):
