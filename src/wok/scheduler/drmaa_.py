@@ -23,6 +23,7 @@ import drmaa
 import os
 import shutil
 import time
+from time import sleep
 from stat import S_IRUSR, S_IWUSR, S_IXUSR, S_IRGRP, S_IWGRP, S_IXGRP, S_IROTH, S_IWOTH, S_IXOTH
 
 from wok import logger
@@ -30,6 +31,9 @@ from wok import exit_codes
 from wok.element import DataElement
 from wok.scheduler import JobScheduler
 from wok.launcher.factory import create_launcher
+
+_MAX_RETRY_ATTEMPTS = 3
+_RETRY_TIME = [10, 60, 30 * 60]
 
 class DrmaaJobScheduler(JobScheduler):
 	def __init__(self, conf):
@@ -143,8 +147,22 @@ class DrmaaJobScheduler(JobScheduler):
 			for k, v in env.iteritems():
 				sb += ["\t%s=%s" % (k, v)]
 		self._log.debug("".join(sb))
-		
-		jobid = self._session.runJob(jt)
+
+		attempts = 0
+		jobid = None
+		while jobid is None and attempts < _MAX_RETRY_ATTEMPTS:
+			try:
+				jobid = self._session.runJob(jt)
+			except drmaa.DrmaaException as e:
+				retry_time = _RETRY_TIME[attempts]
+				attempts += 1
+				self._log.exception(e)
+				self._log.error("Retrying in %s seconds ..." % retry_time)
+				sleep(retry_time)
+
+		if jobid is None:
+			raise Exception("Maximum number of retry attempts reached while submitting task %s" % task["id"])
+
 		self._waiting += [jobid]
 		self._jobs[jobid] = {
 			"task" : task,
@@ -178,15 +196,29 @@ class DrmaaJobScheduler(JobScheduler):
 				job = self._jobs[jobid]
 				task = job["task"]
 
-				try:
-					ret = self._session.wait(jobid, drmaa.Session.TIMEOUT_NO_WAIT)
-					joined_jobs += [jobid]
-				except drmaa.ExitTimeoutException:
-					ret = None
-				except Exception as e:
-					self._log.exception(e)
+				ret = None
+				attempts = 0
+				while attempts < _MAX_RETRY_ATTEMPTS and ret is None:
+					try:
+						ret = self._session.wait(jobid, drmaa.Session.TIMEOUT_NO_WAIT)
+						joined_jobs += [jobid]
+					except drmaa.ExitTimeoutException:
+						ret = None
+					except drmaa.DrmaaException as e:
+						attempts += 1
+						self._log.exception(e)
+						retry_time = _RETRY_TIME[attempt]
+						self._log.error("Retrying in %s seconds ..." % retry_time)
+						sleep(retry_time)
+					except Exception as e:
+						self._log.exception(e)
+						task["job/exit/code"] = exit_codes.EXCEPTION_WAITING
+						task["job/exit/message"] = "There was an exception while waiting for the job to finish: %s" % e
+						joined_jobs += [jobid]
+
+				if attempts >= _MAX_RETRY_ATTEMPTS:
 					task["job/exit/code"] = exit_codes.EXCEPTION_WAITING
-					task["job/exit/message"] = "There was an exception while waiting for the job to finish: %s" % e
+					task["job/exit/message"] = "Maximum number of retry attempts reached while waiting for job %s" % jobid
 					joined_jobs += [jobid]
 
 				if ret is None:

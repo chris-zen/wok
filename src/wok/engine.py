@@ -737,6 +737,9 @@ class WokEngine(object):
 
 				# Wait for modules to finish
 				self._log.info("Waiting for the %i tasks to finish ..." % len(tasks))
+
+				# TODO realtime ----------------------------------
+
 				self._run_lock.release()
 				self._job_sched.wait()
 				self._run_lock.acquire()
@@ -776,6 +779,8 @@ class WokEngine(object):
 						mnode.failed_tasks.append(task_id)
 					else:
 						mnode.finished_tasks.append(task_id)
+
+				# ------------------------------------------------
 
 				for mnode in batch_modules:
 					self._submitted.remove(mnode)
