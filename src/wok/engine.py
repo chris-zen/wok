@@ -704,6 +704,8 @@ class WokEngine(object):
 			if not os.path.exists(self._output_path):
 				os.makedirs(self._output_path)
 
+			failed_tasks = []
+
 			batch_index = 0
 			batch_modules = self._next_batch()
 			while len(batch_modules) > 0 and self._running:
@@ -740,8 +742,6 @@ class WokEngine(object):
 				self._run_lock.acquire()
 
 				# Update tasks and check failed ones
-
-				failed_tasks = []
 				
 				for task in tasks:
 					self._persist_task(task)
@@ -795,6 +795,7 @@ class WokEngine(object):
 
 				batch_modules = self._next_batch()
 				batch_index += 1
+				failed_tasks = []
 
 			if len(self._waiting) > 0:
 				self._log.error("Flow finished before completing all modules")
