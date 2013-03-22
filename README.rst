@@ -53,7 +53,7 @@ Acknowledgements
 
 *Wok* is used in different projects of the group by many of the group members who contribute with great feedback.
 
-Maik Röder (at CRG_) and Giovanni Dall'Olio (at `Institut de Biologia Evolutiva`_) are also giving nice feedback that helps on improving the software and the documentation.
+Thanks also to the initial feedback of Maik Röder (at CRG_) and Giovanni Dall'Olio (at `Institut de Biologia Evolutiva`_).
 
 License
 -------
