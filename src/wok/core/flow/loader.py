@@ -88,8 +88,9 @@ class FlowLoader(object):
 		reader = FlowReader(path)
 		name, library, version = reader.read_meta()
 		uri = self.compose_uri(name, library, version)
-		if uri in self.__flow_cache:
-			return self.__flow_cache[uri]
+		#FIXME instance.py modifies model objects so we cannot cache them
+		#if uri in self.__flow_cache:
+		#	return self.__flow_cache[uri]
 
 		flow = reader.read()
 		self.__flow_cache[uri] = flow

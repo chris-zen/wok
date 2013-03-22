@@ -19,6 +19,7 @@
 #
 ###############################################################################
 
+import os
 import os.path
 
 from wok.element import DataElement
@@ -32,14 +33,6 @@ class UnknownNativeCmdBuilderLanguage(Exception):
 class NativeCmdBuilder(CmdBuilder):
 	def __init__(self, conf):
 		CmdBuilder.__init__(self, conf)
-
-	def _merge_env(self, env1, env2):
-		env = DataElement()
-		if env1 is not None:
-			env.merge(env1)
-		if env2 is not None:
-			env.merge(env2)
-		return env
 
 	def _storage_conf(self, value, path = None):		
 		if path is None:
@@ -70,10 +63,16 @@ class NativeCmdBuilder(CmdBuilder):
 
 		script_path = self.conf["script_path"]
 
+		# Enviroment variables
+		env = DataElement()
+		for k, v in os.environ.items():
+			env[k] = v
+		env.merge(self.conf.get("env"))
+
 		if lang == "python":
 			cmd = lang_conf.get("bin", "python")
 			args = [self._task_absolute_path(task, script_path)]
-			env = self._merge_env(lang_conf.get("env"), self.conf.get("env"))
+			env.merge(self.conf.get("env"))
 
 			if "lib_path" in lang_conf:
 				if "PYTHONPATH" in env:

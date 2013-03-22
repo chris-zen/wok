@@ -41,9 +41,10 @@ class _BaseDesc(_Base):
 		self.repr_level(sb, 0)
 		return "".join(sb)
 
-	def repr_level(self, sb, level):
-		sb.extend([self._INDENT * level, self.__class__.__name__, " ", self.name, "\n"])
-		level += 1
+	def repr_level(self, sb, level, skip_tag=False):
+		if not skip_tag:
+			sb.extend([self._INDENT * level, self.__class__.__name__, " ", self.name, "\n"])
+			level += 1
 		sb.extend([self._INDENT * level, "Enabled: ", str(self.enabled), "\n"])
 		if self.title is not None:
 			sb.extend([self._INDENT * level, "Title: ", self.title, "\n"])
@@ -59,8 +60,8 @@ class _BasePort(_BaseDesc):
 		self.serializer = serializer
 		self.wsize = wsize
 
-	def repr_level(self, sb, level):
-		level = _BaseDesc.repr_level(self, sb, level)
+	def repr_level(self, sb, level, skip_tag=False):
+		level = _BaseDesc.repr_level(self, sb, level, skip_tag)
 		if self.serializer is not None:
 			sb.extend([self._INDENT * level, "Serializer: ", self.serializer, "\n"])
 		if self.wsize is not None:
@@ -110,8 +111,8 @@ class _BaseModule(_BasePort):
 	def out_port(self, name):
 		return self.out_port_map.get(name)
 
-	def repr_level(self, sb, level):
-		level = _BasePort.repr_level(self, sb, level)
+	def repr_level(self, sb, level, skip_tag=False):
+		level = _BasePort.repr_level(self, sb, level, skip_tag)
 		if self.maxpar is not None:
 			sb.extend([self._INDENT * level, "Maxpar: ", str(self.maxpar), "\n"])
 		if self.conf is not None:
@@ -150,8 +151,8 @@ class Flow(_BaseModule):
 	def module(self, name):
 		return self.module_map[name]
 		
-	def repr_level(self, sb, level):
-		level = _BaseModule.repr_level(self, sb, level)
+	def repr_level(self, sb, level, skip_tag=False):
+		level = _BaseModule.repr_level(self, sb, level, skip_tag)
 		if self.path is not None:
 			sb.extend([self._INDENT * level, "Path: ", self.path, "\n"])
 		if self.library is not None:
@@ -180,8 +181,8 @@ class Module(_BaseModule):
 		
 		self.execution = execution
 
-	def repr_level(self, sb, level):
-		level = _BaseModule.repr_level(self, sb, level)
+	def repr_level(self, sb, level, skip_tag=False):
+		level = _BaseModule.repr_level(self, sb, level, skip_tag)
 		if self.priority is not None:
 			sb.extend([self._INDENT * level, "Priority: ", self.priority, "\n"])
 		if self.depends is not None and len(self.depends) > 0:
@@ -211,8 +212,8 @@ class Port(_BasePort):
 	def is_output(self):
 		return self._ptype == PORT_MODE_OUT
 
-	def repr_level(self, sb, level):
-		level = _BasePort.repr_level(self, sb, level)
+	def repr_level(self, sb, level, skip_tag=False):
+		level = _BasePort.repr_level(self, sb, level, skip_tag)
 		if self.mode == PORT_MODE_IN:
 			mode = "In"
 		elif self.mode == PORT_MODE_OUT:

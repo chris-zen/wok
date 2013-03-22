@@ -21,6 +21,7 @@
 
 import os
 import os.path
+import shutil
 import json
 
 from wok.element import DataElement, DataFactory, DataElementJsonEncoder
@@ -83,15 +84,16 @@ class SfsStorage(Storage):
 					self._log.error("Failed creating path: " + path)
 					raise
 
+	def instance_path(self, instance_name, *path, **kargs):
+		path = os.path.join(self.work_path, instance_name, *path)
+
+		if kargs.get("ensure", False):
+			self._ensure_path(path)
+
+		return path
+
 	def module_path(self, instance_name, module_id):
-		mod_path = os.path.join(
-						self.work_path,
-						instance_name,
-						os.path.join(*module_id.split(".")))
-
-		self._ensure_path(mod_path)
-
-		return mod_path
+		return self.instance_path(instance_name, *module_id.split("."), ensure=True)
 
 	def _module_path_from_node(self, mod):
 		return self.module_path(mod.instance.name, mod.id)
@@ -121,13 +123,20 @@ class SfsStorage(Storage):
 	def close(self):
 		self._logs_mgr.close()
 
+	# Instances ====================================================================
+
+	def clean(self, instance):
+		path = self.instance_path(instance.name)
+		if os.path.exists(path):
+			shutil.rmtree(path)
+
 	# Tasks ====================================================================
 
 	def save_task_config(self, task):
 		"Save a task configuration"
 
 		mod = task.parent
-		mod_path = self.module_path(mod.instance.name, mod.id)
+		mod_path = self._module_path_from_node(mod)
 
 		task_config_path = os.path.join(mod_path,
 				"{}.task".format(self.task_prefix(task.index)))
@@ -152,7 +161,7 @@ class SfsStorage(Storage):
 		try:
 			f = open(task_config_path, "r")
 			o = json.load(f)
-			e = DataFactory.from_native(o, key_sep = "/")
+			e = DataFactory.from_native(o, key_sep = ".")
 			f.close()
 		except:
 			self._log.error("Failed reading task configuration: " + task_config_path)

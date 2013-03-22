@@ -483,6 +483,9 @@ class DataList(Data):
 		[2, 3, 2, 3]
 		"""
 
+		if e is None:
+			return
+
 		if not (isinstance(e, DataList) or isinstance(e, list)):
 			raise Exception("A data element list cannot merge an element of type %" % type(e))
 
@@ -756,6 +759,10 @@ class DataElement(Data):
 		TypeError: not all arguments converted during string formatting
 
 		"""
+
+		if e is None:
+			return
+
 		if not (isinstance(e, DataElement) or isinstance(e, dict)):
 			raise Exception("A data element cannot merge an element of type %" % type(e))
 

@@ -111,7 +111,10 @@ class FlowReader(object):
 			obj.serializer = xmle.attrib["serializer"]
 
 		if "wsize" in xmle.attrib:
-			obj.wsize = xmle.attrib["wsize"]
+			try:
+				obj.wsize = int(xmle.attrib["wsize"])
+			except:
+				raise Exception("At {} {}: 'wsize' should be a number greater than 0".format(xmle.tag, obj.name))
 			if obj.wsize < 1:
 				raise Exception("At {} {}: 'wsize' should be a number greater than 0".format(xmle.tag, obj.name))
 
@@ -119,7 +122,12 @@ class FlowReader(object):
 		self._parse_base_port(xmle, obj)
 
 		if "maxpar" in xmle.attrib:
-			obj.maxpar = int(xmle.attrib["maxpar"])
+			try:
+				obj.maxpar = int(xmle.attrib["maxpar"])
+			except:
+				raise Exception("At {} {}: 'maxpar' should be a number greater than 0".format(xmle.tag, obj.name))
+			if obj.maxpar < 1:
+				raise Exception("At {} {}: 'maxpar' should be a number greater than 0".format(xmle.tag, obj.name))
 		
 		conf_xml = xmle.find("conf")
 		if conf_xml is not None:

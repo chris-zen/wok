@@ -1,8 +1,6 @@
 from random import random
 
-from wok.task import Task
-
-task = Task()
+from wok.task import task
 
 @task.generator()
 def sequence(value_port):
@@ -21,7 +19,7 @@ def sequence(value_port):
 	MAX = conf.get("MAX", 4.0, dtype = float)
 
 	# get logger
-	log = task.logger()
+	log = task.logger
 	log.debug("<<<DEBUG>>>")
 	log.info("<<<INFO>>>")
 	log.warn("<<<WARN>>>")
@@ -35,5 +33,5 @@ def sequence(value_port):
 		log.debug("v[{}] = {}".format(i, value))
 		value_port.send(value)
 
-task.start()
+task.run()
 	

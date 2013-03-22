@@ -50,7 +50,13 @@ def initialize(conf = None):
 	logging.basicConfig(format = format)
 
 	_initialized = True
-	
+
+def get_level(level):
+	if level not in _log_level_map:
+		level = "notset"
+
+	return _log_level_map[level]
+
 def get_logger(name = None, level = "info", conf = None):
 	"""
 	Returns a logger.

@@ -154,7 +154,7 @@ class PartitionDataReader(DataReader):
 		
 		self._index_f = None
 		self._data_f = None
-		
+
 		self._last_partition = self._get_last_partition()
 
 	def _get_last_partition(self):
@@ -163,36 +163,33 @@ class PartitionDataReader(DataReader):
 			if f.endswith(".data"):
 				index = int(f[0:-5])
 				last = max(index, last)
-				
+
 		return last
-	
+
 	def _partition_path(self, partition, suffix):
 		return os.path.join(self._path, "%06d%s" % (partition, suffix))
-		
-	def _next_partition(self):
-		partition = self._partition + 1
-	
-		while partition <= self._last_partition:
-			data_path = self._partition_path(partition, ".data")
-			if os.path.isfile(data_path) and os.path.getsize(data_path) >= 8:
-				self._partition = partition
-				return True
-		
-			partition += 1
 
-		return False
-		
+	def is_opened(self):
+		return self._data_f is not None or self._index_f is not None
+
 	def open(self):
-		if self._data_f is not None:
+		if self.is_opened():
 			self.close()
 
-		self._index_path = self._partition_path(self._partition, ".index")
-		self._data_path = self._partition_path(self._partition, ".data")
-		
-		self._index_f = open(self._index_path, "rb")
-		self._data_f = open(self._data_path, "r")
-		
-		self._index_f.seek(self._start * 8)
+		while self._partition <= self._last_partition:
+			self._index_path = self._partition_path(self._partition, ".index")
+			self._data_path = self._partition_path(self._partition, ".data")
+			if os.path.isfile(self._data_path) and os.path.getsize(self._index_path) >= 8:
+				self._index_f = open(self._index_path, "rb")
+				self._data_f = open(self._data_path, "r")
+				self._index_f.seek(self._start * 8)
+				return
+			self._partition += 1
+
+		self._start = 0
+		self._size = 0
+		self._index_f = None
+		self._data_f = None
 	
 	def close(self):
 		if self._index_f is not None:
@@ -202,29 +199,29 @@ class PartitionDataReader(DataReader):
 			self._data_f.close()
 			self._data_f = None
 
-	def is_opened(self):
-		return self._data_f is not None
-
 	def next(self):
 		if self._size == 0:
 			raise StopIteration()
 
-		if self._data_f is None:
+		if not self.is_opened():
 			self.open()
+
+		if self._partition > self._last_partition:
+			raise StopIteration()
 
 		d = self._index_f.read(8)
 		if len(d) < 8:
-			if not self._next_partition():
+			self._partition += 1
+			self.open()
+			if self._partition > self._last_partition:
 				raise StopIteration()
-		
+
 			self._start = 0
 
-			self.open()
-		
 			d = self._index_f.read(8)
 			if len(d) < 8:
 				raise StopIteration()
-				
+
 		pos = struct.unpack("Q", d)[0]
 		self._data_f.seek(pos)
 		data = self._data_f.readline().rstrip()
@@ -242,8 +239,12 @@ class PartitionDataWriter(DataWriter):
 		self._partition = partition
 
 		if not os.path.exists(path):
-			os.makedirs(path)
-		
+			try:
+				os.makedirs(path)
+			except:
+				if not os.path.exists(path):
+					raise
+
 		self._index_path = os.path.join(path, "%06d.index" % partition)
 		self._data_path = os.path.join(path, "%06d.data" % partition)
 

@@ -1,13 +1,7 @@
-from wok.task import Task
-
-task = Task()
-
-nsum = 0
+from wok.task import task
 
 @task.main()
 def main():
-	log = task.logger()
-
 	values, result = task.ports("x", "sum")
 
 	count = 0
@@ -16,8 +10,8 @@ def main():
 		count += 1
 		nsum += v
 
-	log.info("Sum of {0} numbers = {1}".format(count, nsum))
+	task.logger.info("Sum of {0} numbers = {1}".format(count, nsum))
 	
 	result.send(nsum)
 
-task.start()
+task.run()

@@ -1,8 +1,6 @@
 from time import sleep
 
-from wok.task import Task
-
-task = Task()
+from wok.task import task
 
 @task.foreach()
 def process(time):
@@ -12,14 +10,13 @@ def process(time):
 	#max_delay = max(min_delay, max_delay)
 	#delay = min_delay + (max_delay - min_delay) * random()
 
-	log = task.logger()
-	log.info("{}: {}".format(type(time), repr(time)))
+	task.logger.info("{}: {}".format(type(time), repr(time)))
 	#if time > 1.5:
 	#	return -1
-	log.info("Waiting for {:.2} seconds ...".format(time))
+	task.logger.info("Waiting for {:.2} seconds ...".format(time))
 	sleep(time)
 
 	return time
 
-task.start()
+task.run()
 	

@@ -1,6 +1,4 @@
-from wok.task import Task
-
-task = Task()
+from wok.task import task
 
 @task.generator()
 def sequence(value):
@@ -8,11 +6,9 @@ def sequence(value):
 	start = conf.get("start", 0, dtype=int)
 	size = conf.get("size", 100, dtype=int)
 
-	log = task.logger()
-	log.info("Generating values from {0} to {1}".format(start, start + size - 1))
+	task.logger.info("Generating values from {0} to {1}".format(start, start + size - 1))
 
 	for v in xrange(start, start + size):
 		value.send(v)
 
-task.start()
-	
+task.run()
