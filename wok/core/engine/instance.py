@@ -544,8 +544,7 @@ class Instance(object):
 		tasks = []
 		require_rescheduling = True
 		while require_rescheduling:
-			require_rescheduling, tasks = \
-				self._schedule_tasks(self.root_node, tasks)
+			require_rescheduling, tasks = self._schedule_tasks(self.root_node, tasks)
 		return tasks
 
 	def _schedule_tasks(self, module, tasks):
@@ -888,7 +887,8 @@ class Instance(object):
 		self.root_node.repr_level(sb, level)
 		return level
 
-class InstanceController(Synchronizable):
+# TODO: http://stackoverflow.com/questions/2405590/how-do-i-override-getattr-in-python-without-breaking-the-default-behavior
+class SynchronizedInstance(Synchronizable):
 	def __init__(self, engine, instance):
 		Synchronizable.__init__(self, engine._lock)
 
@@ -901,30 +901,10 @@ class InstanceController(Synchronizable):
 		else:
 			return AttributeError(name)
 
-#	@property
-#	def name(self):
-#		return self.__instance.name
-#
-#	@property
-#	def title(self):
-#		return self.__instance.title
-#
-#	@property
-#	def created(self):
-#		return self.__instance.created
-#
-#	@property
-#	def running_time(self):
-#		return self.__instance.created
-#
-#	@property
-#	def state(self):
-#		return self.__instance.state
-
 	@synchronized
 	def module_conf(self, module_id, expanded = True):
 		m = self.__instance.module(module_id)
-		print repr(m), repr(m.conf)
+		#print repr(m), repr(m.conf)
 		if expanded:
 			return m.conf.clone().expand_vars()
 		else:

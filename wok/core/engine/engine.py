@@ -34,7 +34,7 @@ from wok.core import runstates
 from wok.core.utils.sync import Synchronizable, synchronized
 from wok.core.utils.logs import parse_log
 from wok.core.flow.loader import FlowLoader
-from wok.core.engine.instance import Instance, InstanceController
+from wok.core.engine.instance import Instance, SynchronizedInstance
 from wok.core.jobmgr.factory import create_job_manager
 from wok.core.storage import StorageContext
 from wok.core.storage.factory import create_storage
@@ -139,57 +139,8 @@ class WokEngine(Synchronizable):
 
 		return create_storage(storage_type, StorageContext.CONTROLLER, storage_conf)
 
-	@property
-	def work_path(self):
-		return self._work_path
-	
-	@property
-	def job_manager(self):
-		return self._job_mgr
-
-	@property
-	def storage(self):
-		return self._storage
-	
-	@property
-	def flow_loader(self):
-		return self._flow_loader
-
-	@synchronized
-	def create_instance(self, inst_name, conf_builder, flow_file):
-		"Creates a new workflow instance"
-
-		#TODO check in the db
-		if inst_name in self._instances_map:
-			raise Exception("Instance with this name already exists: {}".format(inst_name))
-
-		self._log.debug("Creating instance {} from {} ...".format(inst_name, flow_file))
-
-		cb = ConfigBuilder()
-		cb.add_value("wok.__instance.name", inst_name)
-		cb.add_value("wok.__instance.work_path", os.path.join(self._work_path, inst_name))
-		cb.add_builder(conf_builder)
-
-		# Create instance
-		inst = Instance(self, inst_name, cb, flow_file)
-		try:
-			# Initialize instance and register by name
-			inst.initialize()
-			self._instances += [inst]
-			self._instances_map[inst_name] = inst
-
-			self._storage.clean(inst)
-
-			self._cvar.notify()
-
-			#TODO self._db.instance_persist(inst)
-		except:
-			self._log.error("Error while creating instance {} for the workflow {} with configuration {}".format(inst_name, flow_file, cb()))
-			raise
-
-		self._log.debug("\n" + repr(inst))
-
-		return inst
+	def _instance_job_ids(self, instance):
+		return [job_id for job_id, task in self._job_task_map.items() if task.instance == instance]
 
 	def __queue_adaptative_get(self, queue, start_timeout = 1, max_timeout = 4):
 		timeout = start_timeout
@@ -214,6 +165,8 @@ class WokEngine(Synchronizable):
 				if timeout < max_timeout:
 					timeout += 1
 		return msg_batch
+
+	# threads ----------------------
 
 	@synchronized
 	def _run(self):
@@ -461,6 +414,24 @@ class WokEngine(Synchronizable):
 
 		_log.info("Engine join thread finished")
 
+	# API -----------------------------------
+
+	@property
+	def work_path(self):
+		return self._work_path
+	
+	@property
+	def job_manager(self):
+		return self._job_mgr
+
+	@property
+	def storage(self):
+		return self._storage
+	
+	@property
+	def flow_loader(self):
+		return self._flow_loader
+
 	@synchronized
 	def start(self, wait = True, single_run=False):
 		self._log.info("Starting engine ...")
@@ -515,7 +486,7 @@ class WokEngine(Synchronizable):
 		self.wait()
 		self._lock.acquire()
 
-	def notify(self, lock = True):
+	def notify(self, lock=True):
 		if lock:
 			self._lock.acquire()
 		self._notified = True
@@ -527,7 +498,7 @@ class WokEngine(Synchronizable):
 	def instances(self):
 		instances = []
 		for inst in self._instances:
-			instances += [InstanceController(self, inst)]
+			instances += [SynchronizedInstance(self, inst)]
 		return instances
 	
 	@synchronized
@@ -535,4 +506,51 @@ class WokEngine(Synchronizable):
 		inst = self._instances_map.get(name)
 		if inst is None:
 			return None
-		return InstanceController(self, inst)
+		return SynchronizedInstance(self, inst)
+
+	@synchronized
+	def create_instance(self, inst_name, conf_builder, flow_file):
+		"Creates a new workflow instance"
+
+		#TODO check in the db
+		if inst_name in self._instances_map:
+			raise Exception("Instance with this name already exists: {}".format(inst_name))
+
+		self._log.debug("Creating instance {} from {} ...".format(inst_name, flow_file))
+
+		cb = ConfigBuilder()
+		cb.add_value("wok.__instance.name", inst_name)
+		cb.add_value("wok.__instance.work_path", os.path.join(self._work_path, inst_name))
+		cb.add_builder(conf_builder)
+
+		# Create instance
+		inst = Instance(self, inst_name, cb, flow_file)
+		try:
+			# Initialize instance and register by name
+			inst.initialize()
+			self._instances += [inst]
+			self._instances_map[inst_name] = inst
+
+			self._storage.clean(inst)
+
+			self._cvar.notify()
+
+			#TODO self._db.instance_persist(inst)
+		except:
+			self._log.error("Error while creating instance {} for the workflow {} with configuration {}".format(inst_name, flow_file, cb()))
+			raise
+
+		self._log.debug("\n" + repr(inst))
+
+		return SynchronizedInstance(self, inst)
+
+	@synchronized
+	def remove_instance(self, name):
+		if name in self._instances_map:
+			inst = self._instances_map[name]
+			del self._instances_map[name]
+			self._instances.remove(inst)
+
+			self._job_mgr.stop(job_ids=self._instance_job_ids(inst))
+
+			self._storage.clean(inst)

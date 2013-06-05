@@ -64,8 +64,11 @@ class ConfigElement(object):
 		conf.merge(self.element)
 
 class ConfigBuilder(object):
-	def __init__(self):
-		self.__parts = []
+	def __init__(self, conf_builder=None):
+		if conf_builder is None:
+			self.__parts = []
+		else:
+			self.__parts = [p for p in conf_builder.__parts]
 
 	def add_file(self, path):
 		self.__parts += [ConfigFile(path)]

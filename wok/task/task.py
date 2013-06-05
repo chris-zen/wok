@@ -73,6 +73,7 @@ class Task(object):
 		self.name = self.data["name"]
 		self.module_path = self.data["module"]
 		self.instance_name = self.data["instance"]
+		self.index = task_index
 
 		self._main = None
 		self._generators = []
@@ -257,7 +258,7 @@ class Task(object):
 					names += [arg]
 
 			try:
-				ports = [self.__port_map[name] for name in names]
+				ports = [self._port_map[name] for name in names]
 			except Exception as e:
 				raise Exception("Unknown port: {0}".format(e.args[0]))
 
